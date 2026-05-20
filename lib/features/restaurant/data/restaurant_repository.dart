@@ -34,13 +34,18 @@ class RestaurantRepository {
   /// partner's chosen order. Returns [] for items without variants — the
   /// caller falls back to the item's base price.
   Future<List<ItemVariant>> getFoodItemVariants(String foodItemId) async {
-    final response = await _supabase
-        .from('food_item_variants')
-        .select()
-        .eq('food_item_id', foodItemId)
-        .eq('is_available', true)
-        .order('sort_order');
-    return (response as List).map((r) => ItemVariant.fromDb(r)).toList();
+    try {
+      final response = await _supabase
+          .from('food_item_variants')
+          .select()
+          .eq('food_item_id', foodItemId)
+          .eq('is_available', true)
+          .order('sort_order');
+      return (response as List).map((r) => ItemVariant.fromDb(r)).toList();
+    } catch (e) {
+      // Handle the case where the table doesn't exist or other db errors
+      return [];
+    }
   }
 
   // Map database column names to model field names

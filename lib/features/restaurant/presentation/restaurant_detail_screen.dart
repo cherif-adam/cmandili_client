@@ -143,10 +143,15 @@ class _RestaurantDetailScreenState
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    CachedNetworkImage(
-                      imageUrl: widget.restaurant.imageUrl,
-                      fit: BoxFit.cover,
-                    ),
+                    (widget.restaurant.imageUrl.isNotEmpty && widget.restaurant.imageUrl.startsWith('http'))
+                      ? CachedNetworkImage(
+                          imageUrl: widget.restaurant.imageUrl,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: AppColors.background,
+                          child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
+                        ),
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -475,16 +480,27 @@ class _FoodItemCard extends ConsumerWidget {
                 // Food Image
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: foodItem.imageUrl,
-                    width: 110,
-                    height: 110,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: AppColors.background,
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                  ),
+                  child: (foodItem.imageUrl.isNotEmpty && foodItem.imageUrl.startsWith('http'))
+                    ? CachedNetworkImage(
+                        imageUrl: foodItem.imageUrl,
+                        width: 110,
+                        height: 110,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.background,
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.background,
+                          child: const Icon(Icons.fastfood, color: Colors.grey),
+                        ),
+                      )
+                    : Container(
+                        width: 110,
+                        height: 110,
+                        color: AppColors.background,
+                        child: const Icon(Icons.fastfood, color: Colors.grey),
+                      ),
                 ),
                 
                 const SizedBox(width: 16),
@@ -655,12 +671,23 @@ class _FoodItemCard extends ConsumerWidget {
                       // Image
                       ClipRRect(
                         borderRadius: BorderRadius.circular(24),
-                        child: CachedNetworkImage(
-                          imageUrl: item.imageUrl,
-                          width: double.infinity,
-                          height: 250,
-                          fit: BoxFit.cover,
-                        ),
+                        child: (item.imageUrl.isNotEmpty && item.imageUrl.startsWith('http'))
+                          ? CachedNetworkImage(
+                              imageUrl: item.imageUrl,
+                              width: double.infinity,
+                              height: 250,
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Container(
+                                color: AppColors.background,
+                                child: const Icon(Icons.fastfood, size: 50, color: Colors.grey),
+                              ),
+                            )
+                          : Container(
+                              width: double.infinity,
+                              height: 250,
+                              color: AppColors.background,
+                              child: const Icon(Icons.fastfood, size: 50, color: Colors.grey),
+                            ),
                       ),
                       
                       const SizedBox(height: 24),

@@ -56,22 +56,29 @@ class RestaurantCard extends StatelessWidget {
                       topLeft: Radius.circular(screenWidth * 0.06),
                       topRight: Radius.circular(screenWidth * 0.06),
                     ),
-                    child: CachedNetworkImage(
-                      imageUrl: restaurant.imageUrl,
-                      height: screenHeight * 0.25,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppColors.background,
-                        child: const Center(
-                          child: CircularProgressIndicator(),
+                    child: (restaurant.imageUrl.isNotEmpty && restaurant.imageUrl.startsWith('http'))
+                      ? CachedNetworkImage(
+                          imageUrl: restaurant.imageUrl,
+                          height: screenHeight * 0.25,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            color: AppColors.background,
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.background,
+                            child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
+                          ),
+                        )
+                      : Container(
+                          height: screenHeight * 0.25,
+                          width: double.infinity,
+                          color: AppColors.background,
+                          child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
                         ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppColors.background,
-                        child: const Icon(Icons.restaurant),
-                      ),
-                    ),
                   ),
                   
                   // Status Badge

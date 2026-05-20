@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/service_category.dart';
 import '../../../core/providers/service_provider.dart';
+import '../../../core/providers/location_provider.dart';
 // import '../data/models/restaurant.dart'; // Removed unused import
 import '../../profile/presentation/profile_screen.dart';
 import '../../profile/presentation/saved_addresses_screen.dart';
@@ -177,13 +178,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       size: screenWidth * 0.05,
                                     ),
                                     SizedBox(width: screenWidth * 0.01),
-                                    Text(
-                                      AppLocalizations.of(context)!.currentLocation,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: screenWidth * 0.04,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                    Consumer(
+                                      builder: (context, ref, child) {
+                                        final loc = ref.watch(locationProvider);
+                                        return Text(
+                                          loc == 'Current Location' ? AppLocalizations.of(context)!.currentLocation : loc,
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: screenWidth * 0.04,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        );
+                                      },
                                     ),
                                     SizedBox(width: screenWidth * 0.01),
                                     Icon(
