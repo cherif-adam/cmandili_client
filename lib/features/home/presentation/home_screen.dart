@@ -22,6 +22,7 @@ import '../../orders/presentation/order_tracking_screen.dart';
 import '../../orders/providers/order_provider.dart';
 import '../../orders/data/models/order.dart';
 import '../../ai_search/presentation/ai_search_screen.dart';
+import '../../../screens/ai_chat_screen.dart';
 
 import '../../restaurant/providers/restaurant_provider.dart';
 
@@ -65,6 +66,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final cartItemCount = ref.watch(cartItemCountProvider);
 
     return Scaffold(
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: screenHeight * 0.1),
+        child: FloatingActionButton(
+          heroTag: 'ai_chat_fab',
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => AiChatScreen()),  // ← no const
+          ),
+          backgroundColor: const Color(0xFF6C3DE1),
+          tooltip: 'AI Chat',
+          child: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white),
+        ),
+      ),
       body: Stack(
         children: [
           // Main Content Area

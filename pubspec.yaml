@@ -42,7 +42,7 @@ dependencies:
   
   # Utilities
   intl: any
-  uuid: ^4.2.2
+  uuid: ^4.5.3
   shared_preferences: ^2.2.2
   
   # Voice & Audio
@@ -58,7 +58,7 @@ dependencies:
   badges: ^3.1.2
 
   # HTTP client for Mapbox Directions API (route polyline)
-  http: ^1.2.1
+  http: ^1.6.0
   flutter_dotenv: ^6.0.0
 
   # Phone call / external launches
