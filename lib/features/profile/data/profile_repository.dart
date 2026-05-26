@@ -50,24 +50,52 @@ class ProfileRepository {
     }
   }
 
-  // Upload profile picture to Supabase Storage
+  /// Uploads [file] to the `profiles` storage bucket under a stable per-user
+  /// path (`avatars/<userId>/avatar.jpg`). Using a stable path + upsert means
+  /// re-uploads replace the existing file instead of accumulating orphan files.
+  ///
+  /// A version timestamp is appended to the public URL so `Image.network`
+  /// ignores its HTTP cache and renders the new photo immediately.
+  ///
+  /// On success: updates the `profiles` table *and* Supabase auth user_metadata
+  /// so that [User.fromSupabase] (and therefore `authUser.photoURL`) reflects
+  /// the new avatar on the next auth-state emission.
+  ///
+  /// Returns the public URL on success, or `null` on any error.
   Future<String?> uploadProfilePicture(File file) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return null;
 
-      final fileName = '$userId-${DateTime.now().millisecondsSinceEpoch}.jpg';
-      
-      await _supabase.storage
-          .from('profiles')
-          .upload(fileName, file);
+      // Stable path — same file is overwritten on every upload.
+      // image_picker always outputs JPEG when imageQuality is set.
+      const storagePath = 'avatar.jpg';
+      final bucketPath = 'avatars/$userId/$storagePath';
 
-      final publicUrl = _supabase.storage
-          .from('profiles')
-          .getPublicUrl(fileName);
+      await _supabase.storage.from('profiles').upload(
+            bucketPath,
+            file,
+            fileOptions: const FileOptions(
+              upsert: true,
+              contentType: 'image/jpeg',
+            ),
+          );
 
-      // Update profile with new avatar URL
+      final rawUrl =
+          _supabase.storage.from('profiles').getPublicUrl(bucketPath);
+
+      // Cache-bust: appending ?v=<timestamp> forces Image.network to bypass
+      // the HTTP cache and display the freshly uploaded photo right away.
+      final publicUrl = '$rawUrl?v=${DateTime.now().millisecondsSinceEpoch}';
+
+      // 1. Persist to the profiles table
       await updateProfile(avatarUrl: publicUrl);
+
+      // 2. Sync to Supabase auth user_metadata so authUser.photoURL is current
+      //    without requiring a sign-out / sign-in cycle.
+      await _supabase.auth.updateUser(
+        UserAttributes(data: {'avatar_url': publicUrl}),
+      );
 
       return publicUrl;
     } catch (e) {

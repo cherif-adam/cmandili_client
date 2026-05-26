@@ -164,56 +164,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SavedAddressesScreen(),
-                                ),
-                              );
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  AppLocalizations.of(context)!.deliverTo,
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: screenWidth * 0.035,
+                          // Flexible: lets the address column shrink when
+                          // the notification bell needs space → no overflow
+                          Flexible(
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SavedAddressesScreen(),
                                   ),
-                                ),
-                                SizedBox(height: screenHeight * 0.005),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.location_on,
-                                      color: Colors.white,
-                                      size: screenWidth * 0.05,
+                                );
+                              },
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    AppLocalizations.of(context)!.deliverTo,
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: screenWidth * 0.035,
                                     ),
-                                    SizedBox(width: screenWidth * 0.01),
-                                    Consumer(
-                                      builder: (context, ref, child) {
-                                        final loc = ref.watch(locationProvider);
-                                        return Text(
-                                          loc == 'Current Location' ? AppLocalizations.of(context)!.currentLocation : loc,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: screenWidth * 0.04,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    SizedBox(width: screenWidth * 0.01),
-                                    Icon(
-                                      Icons.keyboard_arrow_down,
-                                      color: Colors.white.withOpacity(0.8),
-                                      size: screenWidth * 0.05,
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                  SizedBox(height: screenHeight * 0.005),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.location_on,
+                                        color: Colors.white,
+                                        size: screenWidth * 0.05,
+                                      ),
+                                      SizedBox(width: screenWidth * 0.01),
+                                      // Flexible: long address won't overflow
+                                      Flexible(
+                                        child: Consumer(
+                                          builder: (context, ref, child) {
+                                            final loc = ref.watch(locationProvider);
+                                            return Text(
+                                              loc == 'Current Location'
+                                                  ? AppLocalizations.of(context)!.currentLocation
+                                                  : loc,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: screenWidth * 0.04,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      SizedBox(width: screenWidth * 0.01),
+                                      Icon(
+                                        Icons.keyboard_arrow_down,
+                                        color: Colors.white.withOpacity(0.8),
+                                        size: screenWidth * 0.05,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           Container(
@@ -406,22 +418,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  AppLocalizations.of(context)!.happyHour,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
+                                Flexible(
+                                  child: Text(
+                                    AppLocalizations.of(context)!.happyHour,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: screenWidth * 0.052,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  AppLocalizations.of(context)!.saveUpTo60,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                Flexible(
+                                  child: Text(
+                                    AppLocalizations.of(context)!.saveUpTo60,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: screenWidth * 0.033,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ],

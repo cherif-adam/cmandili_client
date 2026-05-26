@@ -2,13 +2,13 @@
 //
 // Cmandili AI Chat — fully client-side implementation.
 //
-// Flow for every user message:
-//   1. Call OpenRouter (Gemini) with the system prompt → get structured JSON.
-//   2. Persist user message + AI reply to `chat_messages` in Supabase.
-//   3. If intent == "search_food" → query `food_items` ⨯ `restaurants` directly.
-//   4. Return a ChatMessage to the UI.
+// Supports:
+//   - Text messages (trilingual: FR / EN / Derja)
+//   - Image messages (base64 Vision via Gemini-1.5-flash)
+//   - Intents: search_food | delivery_request | shop_search | greeting | general
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -16,55 +16,68 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_message.dart';
 
 class AiChatService {
-  // ── OpenRouter config ────────────────────────────────────────────────────────
+  // ── OpenRouter config ─────────────────────────────────────────────────────
 
   static const String _endpoint =
       'https://openrouter.ai/api/v1/chat/completions';
 
-  /// Reads the key from .env (same file the rest of the app uses).
-  static String get _apiKey => dotenv.env['OPENROUTER_API_KEY'] ?? '';
+  static String get _apiKey {
+    final key = dotenv.env['OPENROUTER_API_KEY'] ?? '';
+    // Reject placeholder values that were left in the .env template
+    if (key.isEmpty || key.contains('xxx') || key == 'YOUR_KEY_HERE') return '';
+    return key;
+  }
 
-  /// Model to use. Override in .env with OPENROUTER_CHAT_MODEL if needed.
+  // Use a vision-capable model for image support
   static String get _model =>
-      dotenv.env['OPENROUTER_CHAT_MODEL'] ?? 'google/gemini-2.0-flash-001';
+      dotenv.env['OPENROUTER_CHAT_MODEL'] ??
+      'google/gemini-2.0-flash-001'; // ← vision-capable
 
-  // ── Supabase client ──────────────────────────────────────────────────────────
+  // ── Supabase ──────────────────────────────────────────────────────────────
 
   final _supabase = Supabase.instance.client;
-
-  // ── Supabase Storage base (for resolving relative image_url paths) ───────────
 
   static const String _storageBase =
       'https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/';
 
-  // ── System prompt ────────────────────────────────────────────────────────────
+  // ── System prompt ─────────────────────────────────────────────────────────
 
-  static const String _systemPrompt = '''
-You are "Cmandili Assistant", a friendly AI for a Tunisian food-delivery app.
-Your job is to understand the user's message, reply naturally in their language, and extract any food search intent.
+  static String _buildSystemPrompt() => r'''
+You are "Cmandili Assistant", the AI helper for the Cmandili platform in Tunisia.
+The platform has 3 services: Food (restaurants & pastry shops), P2P Logistics (courier delivery), and Shops (retail stores).
 
-━━━ LANGUAGE RULES ━━━
-- Detect the language automatically from the user's message.
-- If the user writes in Tunisian Darija (e.g. "aaslema", "n7eb", "7aja"), reply ENTIRELY in Tunisian Derja.
-- If the user writes in French (e.g. "bonsoir", "je veux"), reply ENTIRELY in French.
-- If the user writes in English, reply ENTIRELY in English.
-- NEVER mix languages in the "message" field.
+━━━ CRITICAL LANGUAGE RULE ━━━
+You are STRICTLY TRILINGUAL. Detect the user's language and reply ONLY in that SAME language.
+- French (bonjour, je veux, tu parles...) → Reply in fluent, professional French.
+- English (hello, I want, find...) → Reply in professional English.
+- Tunisian Derja (aaslema, n7eb, chnoua...) → Reply in authentic warm Derja.
+NEVER mix languages. NEVER use formal Arabic (Fusha). Default to French if unsure.
 
-━━━ DARIJA GLOSSARY ━━━
-- "aaslema / salam / bonsoir / bonne nuit / hello" → greeting
-- "n7eb nekel / nbghi nakol / nheb / je veux / I want" → I want to eat
-- "7arra / harr / épicé / spicy" → spicy: true
-- "bila la7em / végétarien / vegetarian" → vegetarian: true
-- "fissa3 / sari3 / rapide / fast" → delivery_time: "fast"
-- "ma tfoutch X dinar / moins de X / under X" → max_price: X
-- "pizza / burger / couscous / sandwich / kafteji / lablabi / fricassee" → category or keyword
+━━━ VISION / IMAGE RULE ━━━
+If the user provides an IMAGE:
+1. Carefully analyze the food/item shown in the image.
+2. Identify what it is (e.g., "pizza", "salade", "burger", "patisserie").
+3. Set "intent": "search_food" and "keyword": "<name_of_identified_food>".
+4. In "message", confirm what you saw and tell the user you are searching for it.
+   Example: "Je vois une pizza dans votre photo ! 🍕 Je vous cherche les meilleures pizzas disponibles !"
+5. If the image is NOT food, set "intent": "general" and explain you only handle food/delivery/shops.
 
-━━━ OUTPUT RULES — CRITICAL ━━━
-Respond with RAW JSON ONLY. No explanation, no markdown, no backticks.
-The JSON MUST strictly conform to this schema:
+━━━ PHOTO/IMAGES REQUEST RULE ━━━
+If the user asks to "see photos", "show images", "donner les photos", "أعطيني الصور" or similar:
+- They want to SEE the food cards with images, NOT literal photos from the internet.
+- Set intent: "search_food" (or "shop_search") and search for the last mentioned item.
+- In message: confirm you are showing them the available items.
+
+━━━ PLATFORM SERVICES ━━━
+1. FOOD (search_food): Restaurants, pastry shops, sandwiches, Tunisian food
+2. P2P DELIVERY (delivery_request): Send packages to friends/family via our drivers
+3. SHOPS (shop_search): Retail stores, supermarkets, pharmacies
+
+━━━ OUTPUT FORMAT ━━━
+Respond with RAW JSON ONLY. No markdown, no backticks.
 {
   "message": string,
-  "intent": "greeting" | "search_food" | "general",
+  "intent": "greeting" | "search_food" | "delivery_request" | "shop_search" | "general",
   "category": string | null,
   "spicy": boolean | null,
   "vegetarian": boolean | null,
@@ -74,63 +87,76 @@ The JSON MUST strictly conform to this schema:
   "keyword": string | null
 }
 
-━━━ FIELD RULES ━━━
-"message":
-  - Greeting → warm reply in the user's language. E.g. "Bonsoir ! Comment puis-je vous aider ? 😊" / "Aaslema ! Chnowa t7eb takol ? 🍽️"
-  - Food search → short enthusiastic confirmation. E.g. "Voilà les pizzas au thon ! 🍕"
-  - General → answer helpfully.
-  - ALWAYS end with 1 emoji. Keep under 120 characters.
-
-"intent":
-  - "greeting"    → user is ONLY greeting, no food request ("bonsoir", "aaslema", "merci")
-  - "search_food" → user wants to find or order food
-  - "general"     → other (question, complaint, etc.)
-
-"category": main food category in English (e.g. "pizza", "burger", "couscous") or null.
-"keyword": specific dish name or key ingredient (e.g. "thon", "fromage") or null.
-"spicy", "vegetarian": true only if explicitly mentioned, otherwise null.
-"delivery_time": "fast" only if user wants quick delivery, otherwise null.
-"max_price", "min_price": price in TND as a number, or null.
+"message": Same language as user. Max 150 chars. End with 1 emoji.
+"category": pizza/burger/patisserie/couscous/salade/sandwich/pharmacie/supermarche or null.
+"keyword": specific item name (from image or text) or null.
+"spicy"/"vegetarian": true only if explicitly mentioned.
+"delivery_time": "fast" only if user wants quick delivery.
+"max_price"/"min_price": price in TND as number or null.
 
 ━━━ EXAMPLES ━━━
-User: "bonsoir"
-→ {"message":"Bonsoir ! Comment puis-je vous aider ce soir ? 😊","intent":"greeting","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
 
-User: "aaslema"
-→ {"message":"Aaslema ! Chnowa t7eb takol elloum ? 🍽️","intent":"greeting","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
+[FR] "bonjour"
+→ {"message":"Bonsoir ! Comment puis-je vous aider ? 😊","intent":"greeting","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
 
-User: "je veux un pizza thon"
-→ {"message":"Voilà les pizzas au thon disponibles près de chez vous ! 🍕","intent":"search_food","category":"pizza","spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"thon"}
+[FR] "je veux une pizza thon"
+→ {"message":"Voici les pizzas au thon disponibles ! 🍕","intent":"search_food","category":"pizza","spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"thon"}
 
-User: "n7eb 7aja 7arra w ma tfoutch 15 dinar"
-→ {"message":"Nlqilek 7aja 7arra w rkhisa ! 🌶️","intent":"search_food","category":null,"spicy":true,"vegetarian":null,"max_price":15,"min_price":null,"delivery_time":null,"keyword":null}
+[FR] "donnez-moi les photos des salades"
+→ {"message":"Voici les salades disponibles dans nos restaurants ! 🥗","intent":"search_food","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"salade"}
+
+[EN] "hello"
+→ {"message":"Hey there! How can I help you today? 😊","intent":"greeting","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
+
+[TN] "aaslema"
+→ {"message":"Ayh sidi, aaslema! Chnoua t7eb elloum? 🍽️","intent":"greeting","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
+
+[TN] "n7eb pizza 7arra w ma tfoutch 15 dinar"
+→ {"message":"Hani jitech bel pizzas el 7arrin! 🌶️🍕","intent":"search_food","category":"pizza","spicy":true,"vegetarian":null,"max_price":15,"min_price":null,"delivery_time":null,"keyword":null}
+
+[IMAGE - pizza photo]
+→ {"message":"Je vois une pizza dans votre photo ! 🍕 Voici les meilleures pizzas disponibles !","intent":"search_food","category":"pizza","spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"pizza"}
 ''';
 
-  // ── Public API ───────────────────────────────────────────────────────────────
+  // ── Public API ────────────────────────────────────────────────────────────
 
+  /// [imageFile] is optional — if provided, sends image to Gemini Vision.
   Future<ChatMessage> sendMessage(
     String userText,
-    List<Map<String, dynamic>> history, // kept for API compatibility, unused
-  ) async {
-    // ── 1. Call OpenRouter ─────────────────────────────────────────────────────
+    List<Map<String, dynamic>> history, {
+    File? imageFile,
+  }) async {
     final _AiIntent intent;
     try {
-      intent = await _callOpenRouter(userText);
+      intent = await _callOpenRouter(userText, imageFile: imageFile);
     } catch (e) {
       debugPrint('AiChatService – OpenRouter error: $e');
       return ChatMessage(
-        text: "Désolé, je n'arrive pas à te répondre pour le moment 😕 Réessaie !",
+        text: 'Une erreur est survenue 😕 Veuillez réessayer !',
         isUser: false,
       );
     }
 
-    // ── 2. Persist both turns to Supabase (fire-and-forget, non-blocking) ──────
-    _persistMessages(userText: userText, aiReply: intent.message);
+    _persistMessages(
+      userText: imageFile != null
+          ? '[Image] ${userText.isNotEmpty ? userText : "Identify this"}'
+          : userText,
+      aiReply: intent.message,
+    );
 
-    // ── 3. Query food_items only when the AI thinks the user wants food ─────────
     List<ProductResult> products = [];
-    if (intent.isSearchFood) {
-      products = await _queryFoodItems(intent);
+    switch (intent.intentRaw) {
+      case 'search_food':
+        products = await _queryFoodItems(intent);
+        break;
+      case 'shop_search':
+        products = await _queryShopItems(intent);
+        break;
+      case 'delivery_request':
+        products = [_buildDeliveryCard()];
+        break;
+      default:
+        break;
     }
 
     return ChatMessage(
@@ -141,21 +167,58 @@ User: "n7eb 7aja 7arra w ma tfoutch 15 dinar"
     );
   }
 
-  // ── OpenRouter call ──────────────────────────────────────────────────────────
+  // ── OpenRouter call (text + optional vision) ──────────────────────────────
 
-  Future<_AiIntent> _callOpenRouter(String userText) async {
+  Future<_AiIntent> _callOpenRouter(
+    String userText, {
+    File? imageFile,
+  }) async {
     if (_apiKey.isEmpty) {
-      throw Exception(
-          'OPENROUTER_API_KEY is missing — add it to your .env file.');
+      throw Exception('OPENROUTER_API_KEY is missing in .env');
+    }
+
+    // Build the user content — text only, or text + image for Vision
+    final List<Map<String, dynamic>> userContent;
+
+    if (imageFile != null) {
+      // Convert image to base64
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      // Detect MIME type from extension
+      final ext = imageFile.path.split('.').last.toLowerCase();
+      final mimeType = switch (ext) {
+        'jpg' || 'jpeg' => 'image/jpeg',
+        'png' => 'image/png',
+        'webp' => 'image/webp',
+        'gif' => 'image/gif',
+        _ => 'image/jpeg',
+      };
+
+      userContent = [
+        // Text part (can be empty when only image is sent)
+        if (userText.isNotEmpty)
+          {'type': 'text', 'text': userText},
+        // Image part — OpenRouter/Gemini Vision format
+        {
+          'type': 'image_url',
+          'image_url': {
+            'url': 'data:$mimeType;base64,$base64Image',
+          },
+        },
+      ];
+    } else {
+      userContent = [
+        {'type': 'text', 'text': userText},
+      ];
     }
 
     final body = jsonEncode({
       'model': _model,
-      // Instructs compatible models to emit valid JSON.
       'response_format': {'type': 'json_object'},
       'messages': [
-        {'role': 'system', 'content': _systemPrompt},
-        {'role': 'user', 'content': userText},
+        {'role': 'system', 'content': _buildSystemPrompt()},
+        {'role': 'user', 'content': userContent},
       ],
       'temperature': 0.4,
       'max_tokens': 512,
@@ -174,17 +237,19 @@ User: "n7eb 7aja 7arra w ma tfoutch 15 dinar"
             },
             body: body,
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 45)); // longer for vision
     } catch (e) {
-      throw Exception('Network error reaching OpenRouter: $e');
+      throw Exception('Network error: $e');
     }
 
     if (response.statusCode != 200) {
-      debugPrint('OpenRouter ${response.statusCode}: ${response.body}');
+      debugPrint('OpenRouter HTTP ${response.statusCode}: ${response.body}');
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw Exception('Invalid or missing OPENROUTER_API_KEY (HTTP ${response.statusCode})');
+      }
       throw Exception('OpenRouter error (${response.statusCode})');
     }
 
-    // Extract the assistant message content from the OpenRouter envelope
     final envelope = jsonDecode(response.body) as Map<String, dynamic>;
     final content =
         envelope['choices']?[0]?['message']?['content'] as String?;
@@ -196,122 +261,142 @@ User: "n7eb 7aja 7arra w ma tfoutch 15 dinar"
     return _AiIntent.parse(content);
   }
 
-  // ── Supabase: persist messages ───────────────────────────────────────────────
+  // ── Persist messages ──────────────────────────────────────────────────────
 
   Future<void> _persistMessages({
     required String userText,
     required String aiReply,
   }) async {
     final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) return; // Not logged in → skip silently
-
+    if (userId == null) return;
     try {
       await _supabase.from('chat_messages').insert([
-        {
-          'user_id': userId,
-          'text': userText,
-          'is_user': true,
-        },
-        {
-          'user_id': userId,
-          'text': aiReply,
-          'is_user': false,
-        },
+        {'user_id': userId, 'text': userText, 'is_user': true},
+        {'user_id': userId, 'text': aiReply, 'is_user': false},
       ]);
     } catch (e) {
-      // Non-critical — don't surface this to the user
-      debugPrint('AiChatService – failed to persist messages: $e');
+      debugPrint('AiChatService – persist error: $e');
     }
   }
 
-  // ── Supabase: query food_items ────────────────────────────────────────────────
+  // ── Query food_items ──────────────────────────────────────────────────────
 
   Future<List<ProductResult>> _queryFoodItems(_AiIntent intent) async {
     try {
-      // Build the base query with the restaurant join
       var query = _supabase.from('food_items').select('''
-        id,
-        name,
-        description,
-        price,
-        discount_price,
-        image_url,
-        category,
-        is_spicy,
-        is_vegetarian,
-        preparation_time,
-        restaurant_id,
-        restaurants (
-          id,
-          name,
-          image_url,
-          rating,
-          delivery_time_min,
-          delivery_fee,
-          is_open
-        )
+        id, name, description, price, discount_price, image_url,
+        category, is_spicy, is_vegetarian, preparation_time, restaurant_id,
+        restaurants (id, name, image_url, rating, delivery_time_min, delivery_fee, is_open)
       ''').eq('is_available', true);
 
-      // Apply filters extracted by the AI
-      if (intent.spicy == true) {
-        query = query.eq('is_spicy', true);
-      }
-      if (intent.vegetarian == true) {
-        query = query.eq('is_vegetarian', true);
-      }
-      if (intent.maxPrice != null) {
-        query = query.lte('price', intent.maxPrice!);
-      }
-      if (intent.minPrice != null) {
-        query = query.gte('price', intent.minPrice!);
-      }
-      if (intent.deliveryFast) {
-        query = query.lte('preparation_time', 20);
-      }
-      if (intent.category != null && intent.category != 'general') {
+      if (intent.spicy == true) query = query.eq('is_spicy', true);
+      if (intent.vegetarian == true) query = query.eq('is_vegetarian', true);
+      if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
+      if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
+      if (intent.deliveryFast) query = query.lte('preparation_time', 20);
+      if (intent.category != null && intent.category!.isNotEmpty) {
         query = query.ilike('category', '%${intent.category}%');
       }
-      if (intent.keyword != null) {
+      if (intent.keyword != null && intent.keyword!.isNotEmpty) {
         query = query.or(
-          'name.ilike.%${intent.keyword}%,'
-          'description.ilike.%${intent.keyword}%',
+          'name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%',
         );
       }
 
-      final rows = await query
-          .order('price', ascending: true)
-          .limit(20) as List<dynamic>;
+      final rows = await query.order('price', ascending: true).limit(20)
+          as List<dynamic>;
 
       return rows
           .where((r) => r['restaurants'] != null)
           .map<ProductResult>((r) {
-            final restaurant = r['restaurants'] as Map<String, dynamic>;
-            return ProductResult(
-              type: 'food',
-              id: (r['id'] ?? '').toString(),
-              name: (r['name'] ?? '') as String,
-              description: r['description'] as String?,
-              price: ((r['discount_price'] ?? r['price']) as num?)
-                      ?.toDouble() ??
-                  0.0,
-              currency: 'TND',
-              imageUrl: _resolveImageUrl(r['image_url']),
-              sourceName: (restaurant['name'] ?? '') as String,
-            );
-          })
-          .toList();
+        final restaurant = r['restaurants'] as Map<String, dynamic>;
+        return ProductResult(
+          type: 'food',
+          id: (r['id'] ?? '').toString(),
+          name: (r['name'] ?? '') as String,
+          description: r['description'] as String?,
+          price:
+              ((r['discount_price'] ?? r['price']) as num?)?.toDouble() ?? 0.0,
+          currency: 'TND',
+          imageUrl: _resolveImageUrl(r['image_url']),
+          sourceName: (restaurant['name'] ?? '') as String,
+          sourceId: (restaurant['id'] ?? '').toString(),
+          rating: (restaurant['rating'] as num?)?.toDouble(),
+          deliveryTime: (restaurant['delivery_time_min'] as num?)?.toInt(),
+          deliveryFee:
+              (restaurant['delivery_fee'] as num?)?.toDouble(),
+        );
+      }).toList();
     } catch (e) {
       debugPrint('AiChatService – food query error: $e');
       return [];
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
+  // ── Query grocery_items ───────────────────────────────────────────────────
 
-  /// Resolves image URLs from the DB:
-  /// - Already http/https → use as-is.
-  /// - Relative path     → prepend Supabase Storage base URL.
-  /// - Null / empty      → return null (UI shows placeholder).
+  Future<List<ProductResult>> _queryShopItems(_AiIntent intent) async {
+    try {
+      var query = _supabase.from('grocery_items').select('''
+        id, name, description, price, discount_price, image_url, category,
+        supermarkets (id, name, image_url, rating, is_open)
+      ''').eq('is_available', true);
+
+      if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
+      if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
+      if (intent.category != null && intent.category!.isNotEmpty) {
+        query = query.ilike('category', '%${intent.category}%');
+      }
+      if (intent.keyword != null && intent.keyword!.isNotEmpty) {
+        query = query.or(
+          'name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%',
+        );
+      }
+
+      final rows = await query.order('price', ascending: true).limit(20)
+          as List<dynamic>;
+
+      return rows
+          .where((r) => r['supermarkets'] != null)
+          .map<ProductResult>((r) {
+        final shop = r['supermarkets'] as Map<String, dynamic>;
+        return ProductResult(
+          type: 'shop',
+          id: (r['id'] ?? '').toString(),
+          name: (r['name'] ?? '') as String,
+          description: r['description'] as String?,
+          price:
+              ((r['discount_price'] ?? r['price']) as num?)?.toDouble() ?? 0.0,
+          currency: 'TND',
+          imageUrl: _resolveImageUrl(r['image_url']),
+          sourceName: (shop['name'] ?? '') as String,
+          sourceId: (shop['id'] ?? '').toString(),
+          rating: (shop['rating'] as num?)?.toDouble(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('AiChatService – shop query error: $e');
+      return [];
+    }
+  }
+
+  // ── Delivery P2P card ─────────────────────────────────────────────────────
+
+  ProductResult _buildDeliveryCard() => ProductResult(
+        type: 'delivery',
+        id: 'p2p_delivery',
+        name: 'Livraison P2P',
+        description:
+            'Envoyez vos colis à vos proches via nos livreurs. Suivi en temps réel !',
+        price: 0.0,
+        currency: 'TND',
+        imageUrl: null,
+        sourceName: 'Cmandili Courier',
+        rating: null,
+      );
+
+  // ── Image URL resolver ────────────────────────────────────────────────────
+
   String? _resolveImageUrl(dynamic raw) {
     if (raw == null) return null;
     final url = raw.toString().trim();
@@ -321,21 +406,19 @@ User: "n7eb 7aja 7arra w ma tfoutch 15 dinar"
   }
 }
 
-// ── Internal model ────────────────────────────────────────────────────────────
+// ── Internal intent model ─────────────────────────────────────────────────────
 
-/// Holds the parsed Gemini JSON response.
 class _AiIntent {
   final String message;
-  final String intentRaw; // "greeting" | "search_food" | "general"
+  final String intentRaw;
   final String? category;
   final String? keyword;
   final bool? spicy;
   final bool? vegetarian;
   final num? maxPrice;
   final num? minPrice;
-  final String? deliveryTime; // "fast" | "any" | null
+  final String? deliveryTime;
 
-  bool get isSearchFood => intentRaw == 'search_food';
   bool get deliveryFast => deliveryTime == 'fast';
 
   const _AiIntent({
@@ -350,8 +433,6 @@ class _AiIntent {
     this.deliveryTime,
   });
 
-  /// Parses the raw JSON string from OpenRouter.
-  /// Strips markdown fences defensively in case the model ignores instructions.
   factory _AiIntent.parse(String raw) {
     var cleaned = raw.trim();
     if (cleaned.startsWith('```')) {
@@ -366,9 +447,8 @@ class _AiIntent {
       json = jsonDecode(cleaned) as Map<String, dynamic>;
     } catch (e) {
       debugPrint('_AiIntent.parse – JSON decode failed: $e\nRaw: $raw');
-      // Return a graceful fallback so the app never crashes
-      return _AiIntent(
-        message: "Je suis là pour vous aider ! 😊",
+      return const _AiIntent(
+        message: 'Je suis là pour vous aider ! 😊',
         intentRaw: 'general',
       );
     }
@@ -376,7 +456,7 @@ class _AiIntent {
     return _AiIntent(
       message: (json['message'] as String?)?.trim().isNotEmpty == true
           ? json['message'] as String
-          : "Je suis là pour vous aider ! 😊",
+          : 'Comment puis-je vous aider ? 😊',
       intentRaw: (json['intent'] as String?) ?? 'general',
       category: json['category'] as String?,
       keyword: json['keyword'] as String?,

@@ -290,289 +290,268 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               padding: EdgeInsets.only(
                 left: screenWidth * 0.06,
                 right: screenWidth * 0.06,
-                top: screenHeight * 0.06, // Extra padding to avoid status bar
+                top: screenHeight * 0.06,
                 bottom: screenHeight * 0.02,
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Logo and Title
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: Column(
-                        children: [
-                          // Logo Container
-                          Container(
-                            padding: EdgeInsets.all(screenWidth * 0.04),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: screenWidth * 0.05,
-                                  offset: Offset(0, screenHeight * 0.01),
-                                ),
-                              ],
-                            ),
-                            child: Image.asset(
-                              'assets/images/logo.png',
-                              width: screenWidth * 0.15,
-                              height: screenWidth * 0.15,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                          SizedBox(height: screenHeight * 0.015),
-                          
-                          // App Title
-                          Text(
-                            AppLocalizations.of(context)!.appTitle,
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.09,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          SizedBox(height: screenHeight * 0.005),
-                          
-                          // Welcome Text
-                          Text(
-                            AppLocalizations.of(context)!.welcome,
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.038,
-                              color: Colors.white.withOpacity(0.95),
-                              letterSpacing: 0.5,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: screenHeight
+                        - screenHeight * 0.08
+                        - MediaQuery.of(context).padding.top
+                        - MediaQuery.of(context).padding.bottom,
                   ),
-
-                  // Glassmorphic Form Container
-                  SlideTransition(
-                    position: _slideAnimation,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(screenWidth * 0.08),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                          child: Container(
-                            padding: EdgeInsets.all(screenWidth * 0.06),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.92),
-                              borderRadius: BorderRadius.circular(screenWidth * 0.08),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
-                                  blurRadius: screenWidth * 0.08,
-                                  offset: Offset(0, screenHeight * 0.015),
-                                ),
-                              ],
-                            ),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Logo and Title
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: ScaleTransition(
+                            scale: _scaleAnimation,
                             child: Column(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Custom Tab Bar
+                                // Logo Container
                                 Container(
-                                  height: screenHeight * 0.055,
+                                  padding: EdgeInsets.all(screenWidth * 0.04),
                                   decoration: BoxDecoration(
-                                    color: AppColors.background,
-                                    borderRadius: BorderRadius.circular(screenWidth * 0.08),
-                                  ),
-                                  child: TabBar(
-                                    controller: _tabController,
-                                    indicator: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFFFF6B35),
-                                          Color(0xFFF7931E),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(screenWidth * 0.08),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary.withOpacity(0.4),
-                                          blurRadius: screenWidth * 0.03,
-                                          offset: Offset(0, screenHeight * 0.005),
-                                        ),
-                                      ],
-                                    ),
-                                    labelColor: Colors.white,
-                                    unselectedLabelColor: AppColors.textSecondary,
-                                    labelStyle: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: screenWidth * 0.04,
-                                    ),
-                                    tabs: [
-                                      Tab(text: AppLocalizations.of(context)!.signIn),
-                                      Tab(text: AppLocalizations.of(context)!.signUp),
-                                    ],
-                                    onTap: (_) => setState(() {}),
-                                  ),
-                                ),
-                                SizedBox(height: screenHeight * 0.025),
-
-                                // Form
-                                Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    children: [
-                                      if (_tabController.index == 1) ...[
-                                        _buildTextField(
-                                          controller: _nameController,
-                                          label: AppLocalizations.of(context)!.fullName,
-                                          icon: Icons.person_outline_rounded,
-                                          screenWidth: screenWidth,
-                                          screenHeight: screenHeight,
-                                        ),
-                                        SizedBox(height: screenHeight * 0.015),
-                                      ],
-                                      _buildTextField(
-                                        controller: _emailController,
-                                        label: AppLocalizations.of(context)!.email,
-                                        icon: Icons.email_outlined,
-                                        keyboardType: TextInputType.emailAddress,
-                                        screenWidth: screenWidth,
-                                        screenHeight: screenHeight,
-                                      ),
-                                      SizedBox(height: screenHeight * 0.015),
-                                      _buildTextField(
-                                        controller: _passwordController,
-                                        label: AppLocalizations.of(context)!.password,
-                                        icon: Icons.lock_outline_rounded,
-                                        isPassword: true,
-                                        isObscure: _obscurePassword,
-                                        onToggleObscure: () {
-                                          setState(() {
-                                            _obscurePassword = !_obscurePassword;
-                                          });
-                                        },
-                                        screenWidth: screenWidth,
-                                        screenHeight: screenHeight,
-                                      ),
-                                      SizedBox(height: screenHeight * 0.025),
-
-                                      // Main Action Button
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: screenHeight * 0.06,
-                                        child: ElevatedButton(
-                                          onPressed: _isLoading ? null : _handleEmailAuth,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.primary,
-                                            foregroundColor: Colors.white,
-                                            elevation: 8,
-                                            shadowColor: AppColors.primary.withOpacity(0.5),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(screenWidth * 0.04),
-                                            ),
-                                          ),
-                                          child: _isLoading
-                                              ? SizedBox(
-                                                  height: screenHeight * 0.025,
-                                                  width: screenHeight * 0.025,
-                                                  child: const CircularProgressIndicator(
-                                                    color: Colors.white,
-                                                    strokeWidth: 2.5,
-                                                  ),
-                                                )
-                                              : Text(
-                                                  _tabController.index == 0
-                                                      ? AppLocalizations.of(context)!.signIn
-                                                      : AppLocalizations.of(context)!.createAccount,
-                                                  style: TextStyle(
-                                                    fontSize: screenWidth * 0.042,
-                                                    fontWeight: FontWeight.bold,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                        ),
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: screenWidth * 0.05,
+                                        offset: Offset(0, screenHeight * 0.01),
                                       ),
                                     ],
                                   ),
+                                  child: Image.asset(
+                                    'assets/images/logo.png',
+                                    width: screenWidth * 0.15,
+                                    height: screenWidth * 0.15,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
-
-                                SizedBox(height: screenHeight * 0.02),
-                                
-                                // Divider
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        height: 1.5,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.transparent,
-                                              AppColors.textLight.withOpacity(0.3),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-                                      child: Text(
-                                        AppLocalizations.of(context)!.or,
-                                        style: TextStyle(
-                                          color: AppColors.textSecondary.withOpacity(0.7),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: screenWidth * 0.035,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Container(
-                                        height: 1.5,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              AppColors.textLight.withOpacity(0.3),
-                                              Colors.transparent,
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                SizedBox(height: screenHeight * 0.015),
+                                Text(
+                                  AppLocalizations.of(context)!.appTitle,
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.09,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: 1.2,
+                                  ),
                                 ),
-                                
-                                SizedBox(height: screenHeight * 0.02),
-
-                                // Social Buttons
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    _buildSocialButton(
-                                      icon: Icons.g_mobiledata_rounded,
-                                      onPressed: () => _handleSocialSignIn(
-                                        ref.read(authRepositoryProvider).signInWithGoogle,
-                                      ),
-                                      screenWidth: screenWidth,
-                                      screenHeight: screenHeight,
-                                    ),
-                                  ],
+                                SizedBox(height: screenHeight * 0.005),
+                                Text(
+                                  AppLocalizations.of(context)!.welcome,
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.038,
+                                    color: Colors.white.withOpacity(0.95),
+                                    letterSpacing: 0.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                      ),
+
+                        SizedBox(height: screenHeight * 0.04),
+
+                        // Glassmorphic Form Container
+                        SlideTransition(
+                          position: _slideAnimation,
+                          child: FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(screenWidth * 0.08),
+                              child: BackdropFilter(
+                                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                child: Container(
+                                  padding: EdgeInsets.all(screenWidth * 0.06),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.92),
+                                    borderRadius: BorderRadius.circular(screenWidth * 0.08),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        blurRadius: screenWidth * 0.08,
+                                        offset: Offset(0, screenHeight * 0.015),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Custom Tab Bar
+                                      Container(
+                                        height: screenHeight * 0.055,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.background,
+                                          borderRadius: BorderRadius.circular(screenWidth * 0.08),
+                                        ),
+                                        child: TabBar(
+                                          controller: _tabController,
+                                          indicator: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              colors: [Color(0xFFFF6B35), Color(0xFFF7931E)],
+                                            ),
+                                            borderRadius: BorderRadius.circular(screenWidth * 0.08),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: AppColors.primary.withOpacity(0.4),
+                                                blurRadius: screenWidth * 0.03,
+                                                offset: Offset(0, screenHeight * 0.005),
+                                              ),
+                                            ],
+                                          ),
+                                          labelColor: Colors.white,
+                                          unselectedLabelColor: AppColors.textSecondary,
+                                          labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: screenWidth * 0.04),
+                                          tabs: [
+                                            Tab(text: AppLocalizations.of(context)!.signIn),
+                                            Tab(text: AppLocalizations.of(context)!.signUp),
+                                          ],
+                                          onTap: (_) => setState(() {}),
+                                        ),
+                                      ),
+                                      SizedBox(height: screenHeight * 0.025),
+
+                                      // Form
+                                      Form(
+                                        key: _formKey,
+                                        child: Column(
+                                          children: [
+                                            if (_tabController.index == 1) ...[
+                                              _buildTextField(
+                                                controller: _nameController,
+                                                label: AppLocalizations.of(context)!.fullName,
+                                                icon: Icons.person_outline_rounded,
+                                                screenWidth: screenWidth,
+                                                screenHeight: screenHeight,
+                                              ),
+                                              SizedBox(height: screenHeight * 0.015),
+                                            ],
+                                            _buildTextField(
+                                              controller: _emailController,
+                                              label: AppLocalizations.of(context)!.email,
+                                              icon: Icons.email_outlined,
+                                              keyboardType: TextInputType.emailAddress,
+                                              screenWidth: screenWidth,
+                                              screenHeight: screenHeight,
+                                            ),
+                                            SizedBox(height: screenHeight * 0.015),
+                                            _buildTextField(
+                                              controller: _passwordController,
+                                              label: AppLocalizations.of(context)!.password,
+                                              icon: Icons.lock_outline_rounded,
+                                              isPassword: true,
+                                              isObscure: _obscurePassword,
+                                              onToggleObscure: () {
+                                                setState(() => _obscurePassword = !_obscurePassword);
+                                              },
+                                              screenWidth: screenWidth,
+                                              screenHeight: screenHeight,
+                                            ),
+                                            SizedBox(height: screenHeight * 0.025),
+
+                                            // Main Action Button
+                                            SizedBox(
+                                              width: double.infinity,
+                                              height: screenHeight * 0.06,
+                                              child: ElevatedButton(
+                                                onPressed: _isLoading ? null : _handleEmailAuth,
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: AppColors.primary,
+                                                  foregroundColor: Colors.white,
+                                                  elevation: 8,
+                                                  shadowColor: AppColors.primary.withOpacity(0.5),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(screenWidth * 0.04),
+                                                  ),
+                                                ),
+                                                child: _isLoading
+                                                    ? SizedBox(
+                                                        height: screenHeight * 0.025,
+                                                        width: screenHeight * 0.025,
+                                                        child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                                      )
+                                                    : Text(
+                                                        _tabController.index == 0
+                                                            ? AppLocalizations.of(context)!.signIn
+                                                            : AppLocalizations.of(context)!.createAccount,
+                                                        style: TextStyle(fontSize: screenWidth * 0.042, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                                                      ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      SizedBox(height: screenHeight * 0.02),
+
+                                      // Divider
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Container(
+                                              height: 1.5,
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(colors: [Colors.transparent, AppColors.textLight.withOpacity(0.3)]),
+                                              ),
+                                            ),
+                                          ),
+                                          Padding(
+                                            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                                            child: Text(
+                                              AppLocalizations.of(context)!.or,
+                                              style: TextStyle(color: AppColors.textSecondary.withOpacity(0.7), fontWeight: FontWeight.w600, fontSize: screenWidth * 0.035),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Container(
+                                              height: 1.5,
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(colors: [AppColors.textLight.withOpacity(0.3), Colors.transparent]),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      SizedBox(height: screenHeight * 0.02),
+
+                                      // Social Buttons
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          _buildSocialButton(
+                                            icon: Icons.g_mobiledata_rounded,
+                                            onPressed: () => _handleSocialSignIn(ref.read(authRepositoryProvider).signInWithGoogle),
+                                            screenWidth: screenWidth,
+                                            screenHeight: screenHeight,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: screenHeight * 0.01),
+                      ],
                     ),
                   ),
-                  
-                  SizedBox(height: screenHeight * 0.01),
-                ],
+                ),
               ),
             ),
           ),
