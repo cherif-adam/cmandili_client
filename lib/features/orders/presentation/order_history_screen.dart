@@ -211,7 +211,7 @@ class _OrderCard extends StatelessWidget {
                           ),
                           SizedBox(height: sh * 0.003),
                           Text(
-                            '#${order.id.substring(0, 8).toUpperCase()}',
+                            '#${(order.id.length >= 8 ? order.id.substring(0, 8) : order.id).toUpperCase()}',
                             style: TextStyle(
                               color: Colors.grey[500],
                               fontSize: sw * 0.03,

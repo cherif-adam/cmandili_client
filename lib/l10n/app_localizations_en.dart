@@ -552,4 +552,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get continueButton => 'Continue';
+
+  @override
+  String get promoCode => 'Promo Code';
+
+  @override
+  String get promoCodePlaceholder => 'Enter your promo code';
+
+  @override
+  String get applyPromoCode => 'Apply';
+
+  @override
+  String get removePromoCode => 'Remove';
+
+  @override
+  String get promoApplied => 'Discount applied!';
+
+  @override
+  String promoDiscount(String code) {
+    return 'Discount ($code)';
+  }
 }

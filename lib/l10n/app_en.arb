@@ -175,5 +175,16 @@
     "addYourPhoneNumber": "Add your phone number",
     "phoneRequiredExplain": "We need your phone number so drivers can reach you about deliveries. This is a one-time step.",
     "phoneInvalid": "Please enter a valid phone number",
-    "continueButton": "Continue"
+    "continueButton": "Continue",
+    "promoCode": "Promo Code",
+    "promoCodePlaceholder": "Enter your promo code",
+    "applyPromoCode": "Apply",
+    "removePromoCode": "Remove",
+    "promoApplied": "Discount applied!",
+    "promoDiscount": "Discount ({code})",
+    "@promoDiscount": {
+        "placeholders": {
+            "code": { "type": "String" }
+        }
+    }
 }

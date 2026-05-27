@@ -547,4 +547,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get continueButton => 'متابعة';
+
+  @override
+  String get promoCode => 'رمز الخصم';
+
+  @override
+  String get promoCodePlaceholder => 'أدخل رمز الخصم';
+
+  @override
+  String get applyPromoCode => 'تطبيق';
+
+  @override
+  String get removePromoCode => 'إزالة';
+
+  @override
+  String get promoApplied => 'تم تطبيق الخصم!';
+
+  @override
+  String promoDiscount(String code) {
+    return 'خصم ($code)';
+  }
 }

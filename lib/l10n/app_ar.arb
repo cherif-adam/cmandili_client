@@ -175,5 +175,16 @@
     "addYourPhoneNumber": "أضف رقم هاتفك",
     "phoneRequiredExplain": "نحتاج إلى رقم هاتفك حتى يتمكن السائقون من التواصل معك بخصوص التوصيلات. خطوة لمرة واحدة.",
     "phoneInvalid": "يرجى إدخال رقم هاتف صحيح",
-    "continueButton": "متابعة"
+    "continueButton": "متابعة",
+    "promoCode": "رمز الخصم",
+    "promoCodePlaceholder": "أدخل رمز الخصم",
+    "applyPromoCode": "تطبيق",
+    "removePromoCode": "إزالة",
+    "promoApplied": "تم تطبيق الخصم!",
+    "promoDiscount": "خصم ({code})",
+    "@promoDiscount": {
+        "placeholders": {
+            "code": { "type": "String" }
+        }
+    }
 }

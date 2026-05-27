@@ -1161,6 +1161,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue'**
   String get continueButton;
+
+  /// No description provided for @promoCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Promo Code'**
+  String get promoCode;
+
+  /// No description provided for @promoCodePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your promo code'**
+  String get promoCodePlaceholder;
+
+  /// No description provided for @applyPromoCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get applyPromoCode;
+
+  /// No description provided for @removePromoCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removePromoCode;
+
+  /// No description provided for @promoApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount applied!'**
+  String get promoApplied;
+
+  /// No description provided for @promoDiscount.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount ({code})'**
+  String promoDiscount(String code);
 }
 
 class _AppLocalizationsDelegate

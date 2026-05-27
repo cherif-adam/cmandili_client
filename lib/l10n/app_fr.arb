@@ -175,5 +175,16 @@
     "addYourPhoneNumber": "Ajoutez votre numéro de téléphone",
     "phoneRequiredExplain": "Nous avons besoin de votre numéro de téléphone pour que les livreurs puissent vous joindre. Étape unique.",
     "phoneInvalid": "Veuillez entrer un numéro de téléphone valide",
-    "continueButton": "Continuer"
+    "continueButton": "Continuer",
+    "promoCode": "Code promo",
+    "promoCodePlaceholder": "Entrez votre code promo",
+    "applyPromoCode": "Appliquer",
+    "removePromoCode": "Retirer",
+    "promoApplied": "Réduction appliquée !",
+    "promoDiscount": "Réduction ({code})",
+    "@promoDiscount": {
+        "placeholders": {
+            "code": { "type": "String" }
+        }
+    }
 }
