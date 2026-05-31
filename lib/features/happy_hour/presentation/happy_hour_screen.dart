@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
+import '../../../core/utils/platform_pricing.dart';
 import '../providers/happy_hour_provider.dart';
 import '../../cart/providers/cart_provider.dart';
 import '../../cart/data/models/cart_item.dart';
@@ -147,8 +148,8 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
               imageUrl: item.imageUrl,
               name: item.name,
               description: item.description,
-              originalPrice: item.price,
-              discountPrice: item.discountPrice!,
+              originalPrice: applyPlatformMarkup(item.price),
+              discountPrice: item.clientPrice,
               discountEndTime: item.discountEndTime!,
               discountQuantity: item.discountQuantity,
               onTap: () {
@@ -196,8 +197,8 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
               imageUrl: item.imageUrl,
               name: item.name,
               description: "${item.description} (${item.unit})",
-              originalPrice: item.price,
-              discountPrice: item.discountPrice!,
+              originalPrice: applyPlatformMarkup(item.price),
+              discountPrice: item.clientPrice,
               discountEndTime: item.discountEndTime!,
               discountQuantity: item.discountQuantity,
               onTap: () {

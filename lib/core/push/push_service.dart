@@ -3,24 +3,34 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Channel id must match com.google.firebase.messaging.default_notification_channel_id
-// in AndroidManifest.xml so background `notification` payloads land here too.
-const String _kAndroidChannelId   = 'cmandili_orders';
-const String _kAndroidChannelName = 'Order updates';
-const String _kAndroidChannelDesc = 'Notifications about your orders';
+// ── Channel IDs ──────────────────────────────────────────────────────────────
+const String _kChannelId   = 'cmandili_orders';
+const String _kChannelName = 'Order updates';
+const String _kChannelDesc = 'Notifications about your orders';
 
-/// Top-level handler for background messages. Must be a top-level function.
+// High-priority channel for driver-arrival / on-the-way alerts.
+const String _kUrgentChannelId   = 'cmandili_orders_urgent';
+const String _kUrgentChannelName = 'Delivery alerts';
+const String _kUrgentChannelDesc =
+    'High-priority alerts when your driver is on the way';
+
+// ── Background handler ───────────────────────────────────────────────────────
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Android renders `notification`-payload pushes automatically using the
-  // default channel from the manifest, so nothing to do here.
+  // Android renders `notification`-payload pushes automatically via the
+  // default channel declared in AndroidManifest. Nothing to do here for
+  // standard status pushes.
+  //
+  // If you ever need data-only pushes on the client side, handle them here.
 }
+
+// ── PushService ──────────────────────────────────────────────────────────────
 
 class PushService {
   PushService._();
   static final PushService instance = PushService._();
 
-  final _fcm = FirebaseMessaging.instance;
+  final _fcm   = FirebaseMessaging.instance;
   final _local = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
@@ -40,18 +50,24 @@ class PushService {
       const InitializationSettings(android: androidInit, iOS: iosInit),
     );
 
-    // Pre-create the Android channel so the OS has it ready when background
-    // pushes arrive. Without this the first push after install is silently
-    // dropped on Android 8+.
-    await _local
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(const AndroidNotificationChannel(
-          _kAndroidChannelId,
-          _kAndroidChannelName,
-          description: _kAndroidChannelDesc,
-          importance: Importance.high,
-        ));
+    final androidPlugin = _local.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+
+    // Standard channel for order-lifecycle status updates.
+    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+      _kChannelId,
+      _kChannelName,
+      description: _kChannelDesc,
+      importance: Importance.high,
+    ));
+
+    // Urgent channel for on-the-way / arrival alerts.
+    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+      _kUrgentChannelId,
+      _kUrgentChannelName,
+      description: _kUrgentChannelDesc,
+      importance: Importance.max,
+    ));
 
     await _fcm.setForegroundNotificationPresentationOptions(
       alert: true,
@@ -66,11 +82,11 @@ class PushService {
     _fcm.onTokenRefresh.listen((_) => _registerToken());
 
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.signedIn) {
-        _registerToken();
-      }
+      if (data.event == AuthChangeEvent.signedIn) _registerToken();
     });
   }
+
+  // ── Token registration ──────────────────────────────────────────────────
 
   Future<void> _registerToken() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -86,24 +102,32 @@ class PushService {
     } catch (_) {}
   }
 
+  // ── Foreground message handler ──────────────────────────────────────────
+
   void _onForegroundMessage(RemoteMessage message) {
-    // Fall back to data-payload fields when no notification block is set.
-    final title = message.notification?.title ?? message.data['title'] as String?;
-    final body  = message.notification?.body  ?? message.data['body']  as String?;
+    final status = message.data['status'] as String?;
+    final title  = message.notification?.title ?? message.data['title'] as String?;
+    final body   = message.notification?.body  ?? message.data['body']  as String?;
     if (title == null && body == null) return;
+
+    // onTheWay / pickedUp get a heads-up banner with max importance so the
+    // customer is aware that their driver is en route even if the app is open.
+    final isDriverAlert = status == 'onTheWay' || status == 'pickedUp';
+
     _local.show(
       message.hashCode,
       title,
       body,
-      const NotificationDetails(
+      NotificationDetails(
         android: AndroidNotificationDetails(
-          _kAndroidChannelId,
-          _kAndroidChannelName,
-          channelDescription: _kAndroidChannelDesc,
-          importance: Importance.high,
-          priority: Priority.high,
+          isDriverAlert ? _kUrgentChannelId : _kChannelId,
+          isDriverAlert ? _kUrgentChannelName : _kChannelName,
+          channelDescription: isDriverAlert ? _kUrgentChannelDesc : _kChannelDesc,
+          importance: isDriverAlert ? Importance.max : Importance.high,
+          priority:   isDriverAlert ? Priority.max  : Priority.high,
+          playSound: true,
         ),
-        iOS: DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(presentSound: true),
       ),
     );
   }

@@ -151,32 +151,29 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       final orderType =
           supermarketId != null ? OrderType.supermarket : OrderType.food;
 
-      double partnerFlatFee = widget.deliveryFee;
       double? pickupLat;
       double? pickupLng;
 
+      // Fetch pickup coordinates only — delivery_fee is no longer taken from
+      // the partner row; the platform fee algorithm uses a fixed base instead.
       try {
         if (restaurantId != null) {
           final r = await Supabase.instance.client
               .from('restaurants')
-              .select('delivery_fee, latitude, longitude')
+              .select('latitude, longitude')
               .eq('id', restaurantId)
               .maybeSingle();
           if (r != null) {
-            partnerFlatFee =
-                (r['delivery_fee'] as num?)?.toDouble() ?? partnerFlatFee;
             pickupLat = (r['latitude'] as num?)?.toDouble();
             pickupLng = (r['longitude'] as num?)?.toDouble();
           }
         } else if (supermarketId != null) {
           final s = await Supabase.instance.client
               .from('supermarkets')
-              .select('delivery_fee, latitude, longitude')
+              .select('latitude, longitude')
               .eq('id', supermarketId)
               .maybeSingle();
           if (s != null) {
-            partnerFlatFee =
-                (s['delivery_fee'] as num?)?.toDouble() ?? partnerFlatFee;
             pickupLat = (s['latitude'] as num?)?.toDouble();
             pickupLng = (s['longitude'] as num?)?.toDouble();
           }
@@ -189,10 +186,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         destLat: _selectedAddress!.latitude,
         destLng: _selectedAddress!.longitude,
       );
-      final finalDeliveryFee = calculateDeliveryFee(
-        partnerFlatFee: partnerFlatFee,
-        distanceKm: distanceKm,
-      );
+      // Base 3.500 TND + 0.500 TND/km beyond 3 km.
+      final finalDeliveryFee = calculateDeliveryFee(distanceKm: distanceKm);
 
       // effectiveSubtotal already has the promo discount baked in (or equals
       // widget.subtotal when no promo was applied).

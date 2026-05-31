@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/platform_pricing.dart';
 import '../../home/data/models/restaurant.dart';
 import '../../cart/data/models/cart_item.dart';
 import '../../cart/providers/cart_provider.dart';
@@ -576,7 +577,7 @@ class _FoodItemCard extends ConsumerWidget {
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
-                                          CurrencyFormatter.formatPrice(foodItem.discountPrice!),
+                                          CurrencyFormatter.formatPrice(foodItem.clientPrice),
                                           style: const TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -586,7 +587,7 @@ class _FoodItemCard extends ConsumerWidget {
                                         const SizedBox(width: 6),
                                         Flexible(
                                           child: Text(
-                                            CurrencyFormatter.formatPrice(foodItem.price),
+                                            CurrencyFormatter.formatPrice(applyPlatformMarkup(foodItem.price)),
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: AppColors.textSecondary,
@@ -598,7 +599,7 @@ class _FoodItemCard extends ConsumerWidget {
                                       ],
                                     )
                                   : Text(
-                                      CurrencyFormatter.formatPrice(foodItem.price),
+                                      CurrencyFormatter.formatPrice(foodItem.clientPrice),
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
@@ -708,7 +709,7 @@ class _FoodItemCard extends ConsumerWidget {
                           ),
                           const SizedBox(width: 16),
                           Text(
-                            CurrencyFormatter.formatPrice(item.price),
+                            CurrencyFormatter.formatPrice(item.clientPrice),
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -762,7 +763,7 @@ class _FoodItemCard extends ConsumerWidget {
                                           selectedVariant?.id == v.id;
                                       return ChoiceChip(
                                         label: Text(
-                                          '${v.name}  ${CurrencyFormatter.formatPrice(v.price)}',
+                                          '${v.name}  ${CurrencyFormatter.formatPrice(applyPlatformMarkup(v.price))}',
                                           style: TextStyle(
                                             color: isSelected
                                                 ? Colors.white
@@ -870,7 +871,9 @@ class _FoodItemCard extends ConsumerWidget {
                   final variants = variantsAsync.value ?? const <ItemVariant>[];
                   final hasVariants = variants.isNotEmpty;
                   final mustPick = hasVariants && selectedVariant == null;
-                  final unitPrice = selectedVariant?.price ?? item.price;
+                  final unitPrice = selectedVariant != null
+                      ? applyPlatformMarkup(selectedVariant!.price)
+                      : item.clientPrice;
                   return SizedBox(
                     width: double.infinity,
                     height: 56,

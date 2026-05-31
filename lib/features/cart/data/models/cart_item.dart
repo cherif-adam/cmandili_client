@@ -1,6 +1,7 @@
 import '../../../menu/data/models/item_variant.dart';
 import '../../../restaurant/data/models/food_item.dart';
 import '../../../supermarket/data/models/grocery_item.dart';
+import '../../../../core/utils/platform_pricing.dart';
 import 'order_customization.dart';
 
 enum CartItemType {
@@ -41,20 +42,12 @@ class CartItem {
     return variant != null ? '$base — ${variant!.name}' : base;
   }
   double get price {
-    // Variant price wins over base/discount price — customer is buying that
-    // specific named option (the partner set its own price for it).
-    if (variant != null) return variant!.price;
-    if (type == CartItemType.restaurant) {
-      if (foodItem!.discountPrice != null) {
-        return foodItem!.discountPrice!;
-      }
-      return foodItem!.price;
-    } else {
-      if (groceryItem!.discountPrice != null) {
-        return groceryItem!.discountPrice!;
-      }
-      return groceryItem!.price;
-    }
+    // All prices are base + 10% platform fee via clientPrice / applyPlatformMarkup.
+    // This getter is the single source used for cart totals, checkout, and the
+    // order_items.price column stored in the DB — so the markup is always applied.
+    if (variant != null) return applyPlatformMarkup(variant!.price);
+    if (type == CartItemType.restaurant) return foodItem!.clientPrice;
+    return groceryItem!.clientPrice;
   }
   String get imageUrl => type == CartItemType.restaurant ? foodItem!.imageUrl : groceryItem!.imageUrl;
 

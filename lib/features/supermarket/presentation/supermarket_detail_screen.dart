@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:badges/badges.dart' as badges;
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/platform_pricing.dart';
 import '../data/models/supermarket.dart';
 import '../data/models/grocery_category.dart';
 import '../data/models/grocery_item.dart';
@@ -347,7 +348,7 @@ class _ProductCard extends ConsumerWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      CurrencyFormatter.formatPrice(item.discountPrice!),
+                                      CurrencyFormatter.formatPrice(item.clientPrice),
                                       style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -355,7 +356,7 @@ class _ProductCard extends ConsumerWidget {
                                       ),
                                     ),
                                     Text(
-                                      CurrencyFormatter.formatPrice(item.price),
+                                      CurrencyFormatter.formatPrice(applyPlatformMarkup(item.price)),
                                       style: const TextStyle(
                                         fontSize: 11,
                                         color: AppColors.textSecondary,
@@ -365,7 +366,7 @@ class _ProductCard extends ConsumerWidget {
                                   ],
                                 )
                               : Text(
-                                  CurrencyFormatter.formatPrice(item.price),
+                                  CurrencyFormatter.formatPrice(item.clientPrice),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -457,7 +458,7 @@ class _ProductCard extends ConsumerWidget {
                     title: Text(v.name,
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                     trailing: Text(
-                      CurrencyFormatter.formatPrice(v.price),
+                      CurrencyFormatter.formatPrice(applyPlatformMarkup(v.price)),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF4CAF50),

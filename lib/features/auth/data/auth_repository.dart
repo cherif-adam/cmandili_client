@@ -177,8 +177,34 @@ class AuthRepository {
     await _supabase.auth.signOut();
   }
 
-  // Reset password
-  Future<void> resetPassword(String email) async {
+  // ── Password reset (OTP flow) ──────────────────────────────────────────────
+
+  /// Step 1 — Sends a 6-digit recovery code to [email].
+  /// Supabase's "Reset Password" email template must be set to OTP mode
+  /// (use {{ .Token }} instead of {{ .ConfirmationURL }} — see SUPABASE SETUP).
+  Future<void> sendPasswordResetOtp(String email) async {
     await _supabase.auth.resetPasswordForEmail(email);
+  }
+
+  /// Step 2 — Verifies the 6-digit [token] the user received by email and
+  /// establishes a short-lived recovery session.  Must be called before
+  /// [updatePassword].
+  Future<void> verifyPasswordResetOtp({
+    required String email,
+    required String token,
+  }) async {
+    await _supabase.auth.verifyOTP(
+      email: email,
+      token: token,
+      type: supabase.OtpType.recovery,
+    );
+  }
+
+  /// Step 3 — Replaces the current user's password.  Only valid after a
+  /// successful [verifyPasswordResetOtp] call.
+  Future<void> updatePassword(String newPassword) async {
+    await _supabase.auth.updateUser(
+      supabase.UserAttributes(password: newPassword),
+    );
   }
 }

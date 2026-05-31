@@ -1,32 +1,36 @@
 import 'location_service.dart';
 
-/// Computes the customer-facing delivery fee for an order.
+/// Platform delivery fee constants.
 ///
-/// Rules (locked in with the partner — every order must clear this floor so
-/// drivers always earn at least 3 DT, with a 0.5 DT/km bonus past 4 km):
+/// Base fee:   3.500 TND — covers the first [_kThresholdKm] kilometres.
+/// Threshold:  3 km       — no surcharge up to this distance.
+/// Surcharge:  0.500 TND per km beyond the threshold.
 ///
-///   - Base fee = `partnerFlatFee` (e.g. restaurants.delivery_fee, or 5 DT
-///     for courier orders, 2 DT for bill payments). May be 0 if the partner
-///     hasn't set one — that's fine, the floor still applies.
-///   - Distance fee = 0.5 × max(0, distanceKm − 4)
-///   - Final fee = max(3.0, base + distance)
+/// Examples:
+///   2.5 km → 3.500 TND
+///   4.0 km → 4.000 TND  (3.500 + 1.0 × 0.500)
+///   4.5 km → 4.250 TND  (3.500 + 1.5 × 0.500)
+const double kDeliveryBaseFee = 3.5;
+const double _kThresholdKm = 3.0;
+const double _kPerKmSurcharge = 0.5;
+
+/// Computes the customer-facing delivery fee.
 ///
-/// Returns 3.0 when [distanceKm] is null (we don't know the customer's
-/// location yet) so the cart can show a sensible preview before address
-/// selection. Re-computed at order placement once the address is known.
+/// [partnerFlatFee] defaults to [kDeliveryBaseFee] (the platform base for
+/// restaurant and supermarket orders). Pass a different value for special
+/// order types (courier = 5 DT, bill payment = 2 DT) — the platform base
+/// still acts as the floor so the fee is always ≥ [kDeliveryBaseFee].
+///
+/// When [distanceKm] is null the base fee is returned as-is; the exact fee
+/// is re-computed at checkout once the delivery address is known.
 double calculateDeliveryFee({
-  required double partnerFlatFee,
+  double partnerFlatFee = kDeliveryBaseFee,
   double? distanceKm,
 }) {
-  const minimum = 3.0;
-  const distanceThresholdKm = 4.0;
-  const perKmBonus = 0.5;
-
-  final extraKm = (distanceKm ?? 0) - distanceThresholdKm;
-  final distanceFee = extraKm > 0 ? extraKm * perKmBonus : 0;
-
-  final candidate = partnerFlatFee + distanceFee;
-  return candidate < minimum ? minimum : candidate.toDouble();
+  final extraKm = (distanceKm ?? 0) - _kThresholdKm;
+  final surcharge = extraKm > 0 ? extraKm * _kPerKmSurcharge : 0.0;
+  final candidate = partnerFlatFee + surcharge;
+  return candidate < kDeliveryBaseFee ? kDeliveryBaseFee : candidate;
 }
 
 /// Distance helper that returns null when either side has missing/zero

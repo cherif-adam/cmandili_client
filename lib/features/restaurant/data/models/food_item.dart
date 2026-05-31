@@ -1,3 +1,5 @@
+import '../../../../core/utils/platform_pricing.dart';
+
 class FoodItem {
   final String id;
   final String restaurantId;
@@ -32,6 +34,9 @@ class FoodItem {
     this.discountEndTime,
     this.discountQuantity,
   });
+
+  /// Price shown to customers — base (or discounted) price + platform fee.
+  double get clientPrice => applyPlatformMarkup(discountPrice ?? price);
 
   factory FoodItem.fromJson(Map<String, dynamic> json) {
     return FoodItem(

@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/cart_item.dart';
 import '../data/models/order_customization.dart';
 import '../../../core/utils/delivery_fee.dart';
-import '../../restaurant/providers/restaurant_provider.dart';
 
 const _kCartKey = 'cmandili_cart_v1';
 
@@ -108,26 +107,14 @@ final cartItemCountProvider = Provider<int>((ref) {
   return cart.fold(0, (sum, item) => sum + item.quantity);
 });
 
-// Preview delivery fee shown in the cart screen, before the customer picks a
-// delivery address. Distance bonus can't be computed yet, so we just apply the
-// 3 DT floor to the partner's flat fee. The final fee (with distance bonus)
-// is recomputed in checkout once the address is known and stored on the order.
+// Preview delivery fee shown in the cart screen before the customer picks a
+// delivery address. Distance is unknown at this point so we return the base
+// fee (3.500 TND). The final fee — which adds 0.500 TND/km beyond 3 km — is
+// recomputed in checkout once the delivery address is known.
 final cartDeliveryFeeProvider = Provider<double>((ref) {
   final cart = ref.watch(cartProvider);
-  if (cart.isEmpty) return calculateDeliveryFee(partnerFlatFee: 0);
-  final first = cart.first;
-  final restaurantId = first.foodItem?.restaurantId;
-  if (restaurantId == null) return calculateDeliveryFee(partnerFlatFee: 0);
-  final restaurantsAsync = ref.watch(restaurantsProvider);
-  return restaurantsAsync.when(
-    data: (list) {
-      final match = list.where((r) => r.id == restaurantId);
-      final flat = match.isNotEmpty ? match.first.deliveryFee : 0.0;
-      return calculateDeliveryFee(partnerFlatFee: flat);
-    },
-    loading: () => calculateDeliveryFee(partnerFlatFee: 0),
-    error: (_, __) => calculateDeliveryFee(partnerFlatFee: 0),
-  );
+  if (cart.isEmpty) return 0.0;
+  return calculateDeliveryFee(); // base fee: 3.500 TND
 });
 
 final cartTotalProvider = Provider<double>((ref) {
