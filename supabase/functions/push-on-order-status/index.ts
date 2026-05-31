@@ -119,6 +119,7 @@ async function getAccessToken(serviceAccountJson: string): Promise<string> {
   return tokenData.access_token as string;
 }
 
+/** Standard push: system renders the notification (title + body visible in shade). */
 async function sendFcm(
   accessToken: string,
   projectId: string,
@@ -146,6 +147,54 @@ async function sendFcm(
   });
 }
 
+/**
+ * Data-only push: NO `notification` block, so FCM delivers it silently to
+ * the app process and the Flutter firebaseMessagingBackgroundHandler fires.
+ * The Flutter code is responsible for displaying the notification (with
+ * custom sound / full-screen intent / alarm channel).
+ *
+ * Used for:
+ *   - partner new_order  → alarm sound + FLAG_INSISTENT
+ *   - driver offer       → alarm sound + fullScreenIntent (call-style)
+ */
+async function sendDataOnlyFcm(
+  accessToken: string,
+  projectId: string,
+  token: string,
+  data: Record<string, string>,
+) {
+  const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: {
+        token,
+        data,          // ← data ONLY, no notification block
+        android: {
+          priority: 'high',
+          // Wake the device CPU even when Doze is active.
+          direct_boot_ok: true,
+        },
+        apns: {
+          headers: { 'apns-priority': '10' },
+          payload: {
+            aps: {
+              'content-available': 1,  // silent background wake on iOS
+            },
+          },
+        },
+      },
+    }),
+  });
+  if (!resp.ok) {
+    console.error(`sendDataOnlyFcm error for token ${token.slice(-8)}:`, await resp.text());
+  }
+}
+
 async function tokensForUser(supabase: SupabaseClient, userId: string): Promise<string[]> {
   const { data } = await supabase
     .from('device_tokens')
@@ -154,6 +203,7 @@ async function tokensForUser(supabase: SupabaseClient, userId: string): Promise<
   return (data ?? []).map((r: { token: string }) => r.token);
 }
 
+/** Fan-out a standard (system-rendered) notification to multiple users. */
 async function pushToUsers(
   supabase: SupabaseClient,
   accessToken: string,
@@ -168,6 +218,27 @@ async function pushToUsers(
   if (tokens.length === 0) return 0;
   await Promise.allSettled(
     tokens.map(t => sendFcm(accessToken, projectId, t, title, body, data)),
+  );
+  return tokens.length;
+}
+
+/**
+ * Fan-out a DATA-ONLY push to multiple users.
+ * Used for alarm-style events (partner new_order, driver offer) so the
+ * Flutter background handler takes over display with custom sounds.
+ */
+async function pushDataOnlyToUsers(
+  supabase: SupabaseClient,
+  accessToken: string,
+  projectId: string,
+  userIds: string[],
+  data: Record<string, string>,
+): Promise<number> {
+  const all = await Promise.all(userIds.map(id => tokensForUser(supabase, id)));
+  const tokens = Array.from(new Set(all.flat()));
+  if (tokens.length === 0) return 0;
+  await Promise.allSettled(
+    tokens.map(t => sendDataOnlyFcm(accessToken, projectId, t, data)),
   );
   return tokens.length;
 }
@@ -203,7 +274,57 @@ serve(async (req: Request) => {
 
   const data = { order_id, status, event: event ?? 'status' };
 
-  // ── Mode B: fan out to nearby online drivers ───────────────────────────────
+  // ── Mode C: offer an order to a single driver (10s window) ─────────────────
+  // Triggered by the offer_order_to_driver RPC. The order's
+  // assigned_driver_id has already been updated; we just need to push.
+  if (event === 'offer_to_driver') {
+    const { driver_id } = await (async () => {
+      // The body was already parsed at the top of serve(); re-read driver_id
+      // from there. We can't reuse the destructured `event/order_id/status`
+      // bag because driver_id wasn't pulled out — so look it up via DB.
+      const { data: row } = await supabase
+        .from('orders')
+        .select('assigned_driver_id')
+        .eq('id', order_id)
+        .maybeSingle();
+      return { driver_id: row?.assigned_driver_id as string | null };
+    })();
+
+    if (!driver_id) {
+      return new Response('No assigned driver', { status: 200 });
+    }
+
+    const { data: drow } = await supabase
+      .from('drivers')
+      .select('user_id')
+      .eq('id', driver_id)
+      .maybeSingle();
+    const driverUserId = drow?.user_id as string | undefined;
+    if (!driverUserId) {
+      return new Response('Driver has no auth user', { status: 200 });
+    }
+
+    // Data-only so the Flutter background handler shows the alarm notification
+    // (custom sound + fullScreenIntent). A standard push with a `notification`
+    // block would be rendered by the system as a plain banner, bypassing our
+    // alarm channel entirely.
+    const sent = await pushDataOnlyToUsers(
+      supabase, accessToken, projectId, [driverUserId],
+      {
+        event: 'offer_to_driver',
+        order_id,
+        status,
+        urgent: '1',
+        title: '🔔 Nouvelle livraison',
+        body: 'Acceptez dans les 15 secondes.',
+      },
+    );
+    return new Response(JSON.stringify({ mode: 'offer', sent }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // ── Mode B: fan out to nearby online drivers (legacy / fallback) ───────────
   if (event === 'driver_fanout') {
     // Look up the order to get pickup coords via its restaurant/supermarket.
     const { data: order } = await supabase
@@ -255,13 +376,47 @@ serve(async (req: Request) => {
     }
 
     const userIds = (drivers as { user_id: string }[]).map(d => d.user_id);
-    const sent = await pushToUsers(
-      supabase, accessToken, projectId, userIds,
-      '🔔 New delivery nearby',
-      'A new order is ready for pickup near you.',
-      data,
-    );
-    return new Response(JSON.stringify({ mode: 'fanout', sent }), {
+    
+    // Waterfall Dispatch: Offer to one driver at a time, wait 15 seconds
+    const runWaterfall = async () => {
+      for (let i = 0; i < userIds.length; i++) {
+        const userId = userIds[i];
+        
+        // Check if the order is still available (no driver assigned, and status is preparing or ready)
+        const { data: currentOrder } = await supabase
+          .from('orders')
+          .select('driver_id, status')
+          .eq('id', order_id)
+          .maybeSingle();
+          
+        if (!currentOrder || currentOrder.driver_id || (currentOrder.status !== 'preparing' && currentOrder.status !== 'ready')) {
+          console.log(`Waterfall stopped for order ${order_id}: driver assigned or status changed.`);
+          break;
+        }
+
+        console.log(`Offering order ${order_id} to driver ${userId} (Attempt ${i + 1}/${userIds.length})`);
+        
+        await pushDataOnlyToUsers(
+          supabase, accessToken, projectId, [userId],
+          {
+            event: 'offer_to_driver',
+            order_id,
+            status,
+            urgent: '1',
+            title: '🔔 Nouvelle livraison',
+            body: 'Une nouvelle commande est prête. Vous avez 15 secondes pour accepter.',
+          },
+        );
+        
+        // Wait 15 seconds before offering to the next driver
+        await new Promise(resolve => setTimeout(resolve, 15000));
+      }
+    };
+
+    // Start waterfall in background
+    runWaterfall().catch(console.error);
+
+    return new Response(JSON.stringify({ mode: 'waterfall_started', drivers_count: userIds.length }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }

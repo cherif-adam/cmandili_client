@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cmandili_partner/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -70,8 +71,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
       
       if (!uploadSuccess && mounted) {
+        final l = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Warning: Failed to upload new avatar image.'), backgroundColor: AppColors.warning),
+          SnackBar(content: Text(l.warningAvatarFailed), backgroundColor: AppColors.warning),
         );
       }
 
@@ -88,15 +90,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         
         if (mounted) {
           setState(() => _isLoading = false);
+          final l = AppLocalizations.of(context)!;
           if (updateSuccess) {
             ref.invalidate(partnerProfileProvider);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: AppColors.success),
+              SnackBar(content: Text(l.profileUpdated), backgroundColor: AppColors.success),
             );
             Navigator.pop(context);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to update profile'), backgroundColor: AppColors.error),
+              SnackBar(content: Text(l.failedToUpdateProfile), backgroundColor: AppColors.error),
             );
           }
         }
@@ -112,9 +115,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final user = ref.watch(authRepositoryProvider).currentUser;
     final photoUrl = user?.photoURL;
     
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l.editProfile, style: const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -181,7 +185,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               
               _buildTextField(
                 controller: _nameController,
-                label: 'Business Name',
+                label: AppLocalizations.of(context)!.businessName,
                 icon: Icons.storefront_outlined,
                 validator: (value) => value!.isEmpty ? 'Please enter your business name' : null,
               ),
