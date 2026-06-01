@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_partner/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/models/order.dart';
@@ -210,6 +211,19 @@ class _OrderCard extends ConsumerWidget {
                 ? order.deliveryAddress.label
                 : 'Customer');
 
+    // First item name + overflow count — mirrors the dashboard card logic.
+    final firstItem = order.items.isNotEmpty ? order.items.first : null;
+    final imageUrl = firstItem?.imageUrl ?? '';
+    final String orderTitle;
+    if (firstItem == null) {
+      orderTitle = '#${order.id.substring(0, 8).toUpperCase()}';
+    } else {
+      final extra = order.items.length - 1;
+      orderTitle = extra > 0
+          ? '${firstItem.displayName} + $extra item(s)'
+          : firstItem.displayName;
+    }
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
@@ -233,14 +247,33 @@ class _OrderCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+              // Item thumbnail with shopping-bag fallback — same as dashboard.
+              SizedBox(
+                width: 52,
+                height: 52,
+                child: ClipRRect(
                   borderRadius: BorderRadius.circular(14),
+                  child: imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(
+                            color: statusColor.withOpacity(0.08),
+                            child: Center(
+                              child: SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => _itemFallback(statusColor),
+                        )
+                      : _itemFallback(statusColor),
                 ),
-                child: Icon(Icons.shopping_bag_rounded, color: statusColor),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -248,10 +281,12 @@ class _OrderCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '#${order.id.substring(0, 8).toUpperCase()}',
+                      orderTitle,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -337,6 +372,13 @@ class _OrderCard extends ConsumerWidget {
         ],
       ),
       ),
+    );
+  }
+
+  Widget _itemFallback(Color statusColor) {
+    return Container(
+      color: statusColor.withOpacity(0.12),
+      child: Icon(Icons.shopping_bag_rounded, color: statusColor),
     );
   }
 

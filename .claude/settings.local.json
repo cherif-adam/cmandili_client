@@ -6,7 +6,9 @@
       "Bash(copy \"C:\\\\Users\\\\user\\\\Desktop\\\\cmandili\\\\cmandili_mobile\\\\lib\\\\features\\\\auth\\\\presentation\\\\reset_password_screen.dart\" \"C:\\\\Users\\\\user\\\\Desktop\\\\cmandili\\\\cmandili_partner\\\\lib\\\\features\\\\auth\\\\presentation\\\\reset_password_screen.dart\")",
       "Bash(copy \"C:\\\\Users\\\\user\\\\Desktop\\\\cmandili\\\\cmandili_mobile\\\\lib\\\\features\\\\auth\\\\presentation\\\\forgot_password_screen.dart\" \"C:\\\\Users\\\\user\\\\Desktop\\\\cmandili\\\\cmandili_driver\\\\lib\\\\features\\\\auth\\\\presentation\\\\forgot_password_screen.dart\")",
       "Bash(copy \"C:\\\\Users\\\\user\\\\Desktop\\\\cmandili\\\\cmandili_mobile\\\\lib\\\\features\\\\auth\\\\presentation\\\\reset_password_screen.dart\" \"C:\\\\Users\\\\user\\\\Desktop\\\\cmandili\\\\cmandili_driver\\\\lib\\\\features\\\\auth\\\\presentation\\\\reset_password_screen.dart\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

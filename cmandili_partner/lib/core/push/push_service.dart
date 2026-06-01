@@ -50,12 +50,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         // raw resource name without extension — file lives at:
         // android/app/src/main/res/raw/new_order.mp3
         sound: const RawResourceAndroidNotificationSound('new_order'),
-        // AudioAttributesUsage.alarm bypasses Do-Not-Disturb and rings even
-        // when the device is in silent/vibrate mode.
-        audioAttributes: const AudioAttributes(
-          contentType: AudioAttributesContentType.sonification,
-          usage: AudioAttributesUsage.alarm,
-        ),
         enableVibration: true,
         vibrationPattern: Int64List.fromList([0, 500, 300, 700, 300, 700]),
       ));
@@ -150,10 +144,6 @@ class PushService {
       importance: Importance.max,
       playSound: true,
       sound: const RawResourceAndroidNotificationSound('new_order'),
-      audioAttributes: const AudioAttributes(
-        contentType: AudioAttributesContentType.sonification,
-        usage: AudioAttributesUsage.alarm,
-      ),
       enableVibration: true,
       vibrationPattern: Int64List.fromList([0, 500, 300, 700, 300, 700]),
     ));

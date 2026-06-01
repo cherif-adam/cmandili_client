@@ -14,6 +14,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'core/config/supabase_config.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/push/push_service.dart';
 import 'firebase_options.dart';
 
@@ -35,10 +36,17 @@ void main() async {
         .catchError((_) => Firebase.app()),
   ]);
 
+  // MUST be registered before runApp(). Firebase spawns a separate Dart
+  // isolate for background/terminated FCM messages and calls this handler
+  // directly via the @pragma('vm:entry-point') annotation. If it is
+  // registered after runApp() (e.g. in addPostFrameCallback), Android never
+  // wires it up and data-only alarm messages are silently dropped.
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
   runApp(const ProviderScope(child: MyApp()));
 
-  // Defer push registration off the critical path — it does an FCM token
-  // round-trip + Supabase upsert that can stall first frame on slow networks.
+  // Defer the rest of push init (token fetch + Supabase upsert + foreground
+  // listener) off the critical path so it doesn't stall first frame.
   WidgetsBinding.instance.addPostFrameCallback((_) {
     PushService.instance.initialize().catchError((_) {});
   });

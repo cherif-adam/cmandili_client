@@ -13,6 +13,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../auth/presentation/partner_onboarding_screen.dart';
 import '../../orders/providers/audio_alert_provider.dart';
 import '../../orders/data/models/order.dart';
+import '../../orders/presentation/incoming_order_dialog.dart';
 
 // Tracks shop open/closed state, synced to restaurants/supermarkets table.
 final _shopOpenProvider = StateNotifierProvider<_ShopOpenNotifier, bool?>((ref) {
@@ -53,6 +54,11 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
 
+  /// IDs of pending orders for which a dialog has already been shown this
+  /// session. Prevents the same order from triggering multiple dialogs if
+  /// the stream emits it again (e.g. on reconnect).
+  final Set<String> _shownPendingIds = {};
+
   final List<Widget> _tabs = const [
     _DashboardTab(),
     PartnerOrdersScreen(),
@@ -61,6 +67,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ProfileScreen(),
   ];
 
+  /// Shows the incoming-order dialog for [order] after the current frame so
+  /// it never interrupts an ongoing build pass.
+  void _showIncomingOrderDialog(Order order) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false, // partner must explicitly accept or reject
+        builder: (_) => IncomingOrderDialog(order: order),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(partnerProfileProvider);
@@ -68,6 +87,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Démarre l'écoute globale pour les alertes sonores de nouvelles commandes
     ref.listen(orderAlertProvider, (_, __) {});
+
+    // Detect new pending orders and show the incoming-order dialog once per
+    // order ID. addPostFrameCallback ensures the dialog is shown safely after
+    // the current build completes, even if the stream emits during a rebuild.
+    ref.listen<AsyncValue<List<Order>>>(partnerOrdersStreamProvider,
+        (_, next) {
+      next.whenData((orders) {
+        for (final order in orders) {
+          if (order.status == OrderStatus.pending &&
+              !_shownPendingIds.contains(order.id)) {
+            _shownPendingIds.add(order.id);
+            _showIncomingOrderDialog(order);
+          }
+        }
+      });
+    });
 
     return profileAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
@@ -490,7 +525,7 @@ class _DashboardTab extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
-                  height: 96,
+                  height: 108,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: 4,
@@ -545,6 +580,8 @@ class _DashboardTab extends ConsumerWidget {
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
                                     ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -752,7 +789,8 @@ class _DashboardTab extends ConsumerWidget {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  await ref.read(audioAlertServiceProvider).stopAlert();
                   ref.read(partnerOrderRepositoryProvider).updateOrderStatus(order.id, OrderStatus.confirmed);
                 },
                 style: ElevatedButton.styleFrom(

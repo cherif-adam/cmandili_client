@@ -1,6 +1,6 @@
 # Cmandili — Project Architecture & State Document
 > **Purpose:** Dense AI-session bootstrap context. Feed this file at the start of every session instead of reading the full codebase.
-> **Last updated:** 2026-05-31 | **Covers:** cmandili_mobile · cmandili_driver · cmandili_partner
+> **Last updated:** 2026-06-01 | **Covers:** cmandili_mobile · cmandili_driver · cmandili_partner
 
 ---
 
@@ -378,7 +378,9 @@ Two fan-out helpers:
 - `pushDataOnlyToUsers()` — calls `sendDataOnlyFcm()`
 
 Three modes inside the function:
-- **Mode A (status change):** fans out to customer + partner + assigned driver using `pushToUsers()`.
+- **Mode A (status change):** fans out to customer + partner + assigned driver.
+  - Partner gets **data-only FCM** (`pushDataOnlyToUsers`) when `status === 'pending'` OR `status === 'confirmed'` — both trigger the `type: 'new_order'` alarm payload so the Flutter background handler fires regardless of whether the DB trigger fires on INSERT or UPDATE.
+  - All other statuses use `pushToUsers()` (standard FCM banner) for both partner and customer.
 - **Mode B (driver_fanout/waterfall):** uses `pushDataOnlyToUsers()` with `event: 'offer_to_driver'` data.
 - **Mode C (offer_to_driver):** single driver, uses `pushDataOnlyToUsers()` with `event: 'offer_to_driver'` data.
 
@@ -386,9 +388,10 @@ Three modes inside the function:
 
 **Channels:**
 - `cmandili_orders` — standard, `Importance.high`
-- `cmandili_orders_urgent_2` — alarm channel, `Importance.max`, `AudioAttributesUsage.alarm`, `sound: new_order` (mp3 in `res/raw/`)
+- `cmandili_orders_urgent_2` — alarm channel, `Importance.max`, `sound: new_order` (mp3 in `res/raw/`)
 
 **Background handler** (`firebaseMessagingBackgroundHandler`):
+- **Must be registered before `runApp()`** in `main.dart` — this is critical. Android wires up the background isolate entrypoint at app startup; registering it after `runApp()` (e.g. in `addPostFrameCallback`) causes all background/terminated FCM messages to be silently dropped.
 - Fires when `data['type'] == 'new_order'`
 - Shows notification on `cmandili_orders_urgent_2` with:
   - `fullScreenIntent: true` — wakes screen / shows on lock screen
@@ -401,7 +404,8 @@ Three modes inside the function:
 
 **`cancelOrderAlarm()`** — call after partner accepts/rejects to stop ringing.
 
-**Audio file:** `android/app/src/main/res/raw/new_order.mp3` (Android), `ios/Runner/new_order.wav` (iOS, max 30s).
+**Audio file:** `android/app/src/main/res/raw/new_order.mp3` (Android), `ios/Runner/new_order.wav` (iOS, max 30s). Shared across all 3 apps — same filename everywhere.
+**In-app audio (foreground):** `audioplayers` reads from `assets/audio/new_order.mp3` (Flutter asset). This is **separate** from `res/raw/` — both files must exist. The asset is used by `AudioAlertService` for the in-app incoming-order dialog loop.
 
 **AndroidManifest permissions added:** `USE_FULL_SCREEN_INTENT`, `TURN_SCREEN_ON`, `DISABLE_KEYGUARD`.
 
@@ -430,7 +434,7 @@ Three modes inside the function:
 
 **`OrderOffer` class:** `{ orderId: String, receivedAt: DateTime }` — emitted on `offerStream`.
 
-**Audio file:** `android/app/src/main/res/raw/driver_alarm.mp3` (Android), `ios/Runner/driver_alarm.wav` (iOS).
+**Audio file:** `android/app/src/main/res/raw/new_order.mp3` (Android), `ios/Runner/new_order.wav` (iOS). Same filename as the partner app — standardized across all 3 apps.
 
 **AndroidManifest permissions added:** `VIBRATE`, `USE_FULL_SCREEN_INTENT`, `TURN_SCREEN_ON`, `DISABLE_KEYGUARD`.
 
@@ -444,11 +448,10 @@ Standard FCM with `notification` block — system renders banners. Background ha
 
 ---
 
-## 13. Partner Dashboard — Active Orders Card
+## 13. Partner Dashboard & Orders — UI and Business Logic
 
-**File:** `cmandili_partner/lib/features/home/presentation/home_screen.dart` → `_buildOrderCard()`
-
-Each order card now shows:
+### Order card UI (Dashboard + Orders tab)
+Both `home_screen.dart` → `_buildOrderCard()` and `partner_orders_screen.dart` → `_OrderCard` show:
 - **Thumbnail (52×52):** `CachedNetworkImage` of the first cart item's image URL, with a `CircularProgressIndicator` placeholder and shopping-bag fallback icon (`_itemFallback()`).
 - **Title:** `firstItem.displayName` (includes variant suffix if selected) + `"+ N item(s)"` overflow if multiple items.
 - **Fallback title:** `#${order.id.substring(0, 8).toUpperCase()}` if `order.items` is empty.
@@ -457,6 +460,33 @@ Data source: `order_items(*, food_items(*), grocery_items(*))` join — already 
 
 **Critical bug fixed in `CartItem.fromJson` (partner app):**
 `_parseOrderItems` in the repository maps item images using camelCase key `'imageUrl'`. The `CartItem.fromJson` was reading `food['image_url']` (snake_case) → always `''`. Fixed to `food['imageUrl']` and `grocery['imageUrl']`.
+
+### Order Business Logic — Pending → Confirmed flow
+**The client never confirms their own order.** `cmandili_mobile` inserts orders with `status: 'pending'` only. The `confirmOrder()` call was removed from `checkout_screen.dart`. The full FSM is now:
+
+```
+pending  ──(partner Accepter)──▶  confirmed  ──▶  preparing  ──▶  ready  ──▶  pickedUp  ──▶  onTheWay  ──▶  delivered
+   └──(partner Refuser + Oui)──▶  cancelled
+```
+
+### Incoming Order Dialog (`incoming_order_dialog.dart`)
+**File:** `cmandili_partner/lib/features/orders/presentation/incoming_order_dialog.dart`
+
+Triggered the instant a new `pending` order appears in the realtime stream. The dialog is:
+- **Shown from `_HomeScreenState`** via `ref.listen<AsyncValue<List<Order>>>(partnerOrdersStreamProvider, ...)`.
+- **Deduped** using `_shownPendingIds = Set<String>` — each order ID triggers the dialog at most once per session, preventing duplicates on stream reconnect.
+- **Displayed via `addPostFrameCallback`** — safe to call during `build()`.
+- **`barrierDismissible: false`** — partner cannot dismiss by tapping outside.
+
+**Dialog content:** gradient header with bell icon, item thumbnail + order title, total, payment method, customer name, notes.
+
+**Audio:** `AudioAlertService` (`audioplayers`, looping `assets/audio/new_order.mp3`) is already started by `orderAlertProvider` when pending orders exist. The dialog calls `stopAlert()` proactively on user action for immediate silence.
+
+**Actions:**
+- **Accepter** → `stopAlert()` + `updateOrderStatus(confirmed)` + `Navigator.pop()`
+- **Refuser** → secondary `AlertDialog` ("Êtes-vous sûr ?"):
+  - **Oui** → `stopAlert()` + `updateOrderStatus(cancelled)` + pop both dialogs
+  - **Non** → pop confirmation only → back to main dialog (audio keeps playing)
 
 ---
 
@@ -496,7 +526,7 @@ deliveries.update({ current_lat, current_lng, updated_at }).eq('id', deliveryId)
 - Restaurant list → restaurant detail → food menu (with variants dialog)
 - Supermarket list → supermarket detail → grocery catalog
 - Cart: add/remove/qty, per-item text or voice customization, variant selection
-- **Checkout:** address selection, Mapbox distance calc, dynamic delivery fee (3.5 + 0.5/km), COD payment
+- **Checkout:** address selection, Mapbox distance calc, dynamic delivery fee (3.5 + 0.5/km), COD payment. Order inserted as `pending` — partner must accept before it becomes `confirmed`.
 - Voice note per order item → uploaded to `voice-messages` bucket at checkout
 - Order placement → real-time tracking (Supabase Realtime + Mapbox)
 - Order history
@@ -527,7 +557,9 @@ deliveries.update({ current_lat, current_lng, updated_at }).eq('id', deliveryId)
 - AI Menu Scanner (camera → OpenRouter Vision → bulk insert)
 - Order detail with customer voice note playback
 - Order tracking (Mapbox), reports/analytics, payout, business info screens
-- **FCM push: alarm-style new orders** — data-only FCM → background handler → `cmandili_orders_urgent_2` channel with `fullScreenIntent`, `FLAG_INSISTENT`, `AudioAttributesUsage.alarm`, `cancelOrderAlarm()` available
+- **FCM push: alarm-style new orders** — data-only FCM → background handler registered **before `runApp()`** → `cmandili_orders_urgent_2` channel with `fullScreenIntent`, `FLAG_INSISTENT`, `AudioAttributesUsage.alarm`
+- **Incoming Order Dialog** — `IncomingOrderDialog` shown on every new `pending` order via `ref.listen` in `HomeScreen`; loops `new_order.mp3` via `audioplayers`; Accept → `confirmed`, Reject → confirmation sub-dialog → `cancelled`
+- **Item image + name on all order cards** — both Dashboard and Commandes tab show `CachedNetworkImage` thumbnail + `firstItem.displayName`
 - **Forgot Password** — 8-digit OTP flow
 
 ---
@@ -577,7 +609,47 @@ Whenever the driver accepts an offer or the partner acknowledges a new order, **
 - Driver: `PushService.instance.cancelDeliveryAlarm()` — first line of `_acceptOrder()`
 - Partner: `PushService.instance.cancelOrderAlarm()` — call when partner accepts/confirms
 
-### 9. Standard coding conventions
+### 9. FCM background handler — register before `runApp()`
+`FirebaseMessaging.onBackgroundMessage(handler)` **must** be called before `runApp()` in `main()`. Android wires up the background Dart isolate entrypoint at launch time. If it is called later (e.g. in `addPostFrameCallback` or inside a service's `initialize()`), the plugin never registers it and all background/terminated-state data-only FCM messages are silently dropped — the alarm never fires. The rest of push init (token fetch, foreground listener) can remain deferred.
+
+```dart
+// ✅ Correct — in main(), before runApp()
+FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+runApp(...);
+
+// ❌ Wrong — too late, Android has already started
+WidgetsBinding.instance.addPostFrameCallback((_) {
+  FirebaseMessaging.onBackgroundMessage(...); // never wired up
+});
+```
+
+### 10. Partner incoming-order dialog — deduplication pattern
+When showing a dialog reactively from a Riverpod stream listener, always guard with a `Set<String>` of already-shown IDs and use `addPostFrameCallback` to avoid calling `showDialog` during a build pass:
+
+```dart
+final Set<String> _shownPendingIds = {};
+
+ref.listen(partnerOrdersStreamProvider, (_, next) {
+  next.whenData((orders) {
+    for (final order in orders) {
+      if (order.status == OrderStatus.pending && !_shownPendingIds.contains(order.id)) {
+        _shownPendingIds.add(order.id);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) showDialog(...);
+        });
+      }
+    }
+  });
+});
+```
+
+### 11. Two separate audio systems in the partner app
+- **`flutter_local_notifications`** + `RawResourceAndroidNotificationSound('new_order')` → reads `android/app/src/main/res/raw/new_order.mp3` → used for **background/terminated FCM** alarm notifications.
+- **`audioplayers`** + `AssetSource('audio/new_order.mp3')` → reads `assets/audio/new_order.mp3` (declared in `pubspec.yaml`) → used for **foreground in-app** audio in `IncomingOrderDialog`.
+
+Both files must exist. They serve different subsystems and cannot substitute for each other.
+
+### 12. Standard coding conventions
 - **Repository error handling:** always `try/catch`, log with `debugPrint`, return `null`/`[]`/`false`. Only `createOrder` rethrows.
 - **Responsive sizing:** `MediaQuery.of(context).size.width * 0.04` — never hardcoded pixels.
 - **Snackbar:** `behavior: SnackBarBehavior.floating`, `shape: RoundedRectangleBorder(borderRadius: 12)`.
@@ -620,16 +692,33 @@ Whenever the driver accepts an offer or the partner acknowledges a new order, **
 
 ## 20. Known Issues / Outstanding Work
 
-1. **Audio files missing** — `new_order.mp3` must be placed at `cmandili_partner/android/app/src/main/res/raw/new_order.mp3` and `driver_alarm.mp3` at `cmandili_driver/android/app/src/main/res/raw/driver_alarm.mp3`. iOS `.wav` files go in `ios/Runner/`. Without these files the alarm channel will ring with a silent/default sound.
+1. **iOS audio files** — copy `new_order.wav` to `cmandili_driver/ios/Runner/` and `cmandili_mobile/ios/Runner/` (max 30s). Android `new_order.mp3` is already present in all 3 apps' `res/raw/` directories. **Important:** Android's `res/raw/` directory rejects any file whose name contains uppercase letters, spaces, or non-underscore symbols — never place README/placeholder files there.
 
-2. **iOS critical alerts entitlement** — `InterruptionLevel.critical` on iOS requires an Apple-approved entitlement (`com.apple.developer.usernotifications.critical-alerts`). Without it iOS treats these as regular alerts. Apply at developer.apple.com → Certificates, IDs & Profiles.
+2. **Partner in-app audio asset** — copy `new_order.mp3` to `cmandili_partner/assets/audio/new_order.mp3`. This is the file used by `audioplayers` (`AssetSource`) for the foreground `IncomingOrderDialog` ringtone loop. It is separate from `res/raw/new_order.mp3` (used by FCM notifications). Both must exist.
 
-3. **`orders_with_customer` RLS** — driver repo has `catch {}` fallback for "RLS or migration not yet applied"; verify view + RLS policy exist in Supabase dashboard.
+3. **iOS critical alerts entitlement** — `InterruptionLevel.critical` on iOS requires an Apple-approved entitlement (`com.apple.developer.usernotifications.critical-alerts`). Without it iOS treats these as regular alerts. Apply at developer.apple.com → Certificates, IDs & Profiles.
 
-4. **Restaurant name missing on driver's available-orders list** — `availableOrdersProvider` streams raw `orders` without a `restaurants` join; `restaurantName` is always `''`. Fix: add restaurant name to the `orders_with_customer` view or enrich the stream with a secondary query.
+4. **Supabase Realtime — enable on `orders` table** — Supabase Realtime must be explicitly enabled for the `orders` table: Dashboard → Database → Replication → toggle `orders` ON. Without this, the partner's stream subscription never fires for new inserts/updates.
 
-5. **OpenRouter API key exposed in git** (commit d74ede3) — rotate at openrouter.ai and set a spending cap.
+5. **Partners RLS policy on `orders`** — the `orders` table needs a policy allowing partners to read orders for their own entity. Run once in Supabase SQL Editor:
+   ```sql
+   CREATE POLICY "Partners can read their own entity orders"
+   ON orders FOR SELECT
+   USING (
+     restaurant_id IN (
+       SELECT entity_id FROM partners WHERE user_id = auth.uid() AND partner_type = 'restaurant'
+     )
+     OR
+     supermarket_id IN (
+       SELECT entity_id FROM partners WHERE user_id = auth.uid() AND partner_type = 'supermarket'
+     )
+   );
+   ```
 
-6. **Promo code SQL migration** — `cmandili_mobile/supabase_promo_migration.sql` must be run once in the Supabase SQL editor before the promo code feature is live.
+6. **Restaurant name missing on driver's available-orders list** — `availableOrdersProvider` streams raw `orders` without a `restaurants` join; `restaurantName` is always `''`. Fix: add restaurant name to the `orders_with_customer` view or enrich the stream with a secondary query.
 
-7. **`USE_FULL_SCREEN_INTENT` Android 14+** — Google Play requires justification for this permission from API 34+. Declare intended use in the Play Console declaration form.
+7. **OpenRouter API key exposed in git** (commit d74ede3) — rotate at openrouter.ai and set a spending cap.
+
+8. **Promo code SQL migration** — `cmandili_mobile/supabase_promo_migration.sql` must be run once in the Supabase SQL editor before the promo code feature is live.
+
+9. **`USE_FULL_SCREEN_INTENT` Android 14+** — Google Play requires justification for this permission from API 34+. Declare intended use in the Play Console declaration form.

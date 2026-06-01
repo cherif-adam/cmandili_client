@@ -471,10 +471,33 @@ serve(async (req: Request) => {
     );
   }
   if (partnerUserId) {
-    const c = copyFor('partner', status);
-    results.partner = await pushToUsers(
-      supabase, accessToken, projectId, [partnerUserId], c.title, c.body, data,
-    );
+    if (status === 'pending' || status === 'confirmed') {
+      // Data-only so Flutter's firebaseMessagingBackgroundHandler fires and
+      // shows the alarm notification (new_order.mp3 + FLAG_INSISTENT).
+      // A standard push with a `notification` block is rendered by the OS,
+      // bypassing the Flutter handler and the alarm channel entirely.
+      //
+      // Both statuses are covered because the DB trigger fires on UPDATE only:
+      // the mobile inserts as 'pending' then immediately confirms to 'confirmed',
+      // so the trigger reliably fires with 'confirmed'. 'pending' is kept as a
+      // safety net in case the trigger is ever reconfigured to fire on INSERT.
+      const c = copyFor('partner', 'pending'); // always "New Order" copy
+      results.partner = await pushDataOnlyToUsers(
+        supabase, accessToken, projectId, [partnerUserId],
+        {
+          type: 'new_order',   // ← checked by firebaseMessagingBackgroundHandler
+          order_id,
+          status,
+          title: c.title,
+          body: c.body,
+        },
+      );
+    } else {
+      const c = copyFor('partner', status);
+      results.partner = await pushToUsers(
+        supabase, accessToken, projectId, [partnerUserId], c.title, c.body, data,
+      );
+    }
   }
   if (driverUserId) {
     const c = copyFor('driver', status);
