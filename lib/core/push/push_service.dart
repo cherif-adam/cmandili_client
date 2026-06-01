@@ -62,11 +62,14 @@ class PushService {
     ));
 
     // Urgent channel for on-the-way / arrival alerts.
-    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+    await androidPlugin?.createNotificationChannel(AndroidNotificationChannel(
       _kUrgentChannelId,
       _kUrgentChannelName,
       description: _kUrgentChannelDesc,
       importance: Importance.max,
+      playSound: true,
+      // File: android/app/src/main/res/raw/new_order.mp3
+      sound: const RawResourceAndroidNotificationSound('new_order'),
     ));
 
     await _fcm.setForegroundNotificationPresentationOptions(
@@ -126,8 +129,14 @@ class PushService {
           importance: isDriverAlert ? Importance.max : Importance.high,
           priority:   isDriverAlert ? Priority.max  : Priority.high,
           playSound: true,
+          sound: isDriverAlert
+              ? const RawResourceAndroidNotificationSound('new_order')
+              : null,
         ),
-        iOS: const DarwinNotificationDetails(presentSound: true),
+        iOS: DarwinNotificationDetails(
+          presentSound: true,
+          sound: isDriverAlert ? 'new_order.wav' : null,
+        ),
       ),
     );
   }

@@ -35,6 +35,7 @@ class ProfileRepository {
       if (userId == null) return false;
 
       final updates = <String, dynamic>{
+        'id': userId,
         'updated_at': DateTime.now().toIso8601String(),
       };
 
@@ -42,10 +43,15 @@ class ProfileRepository {
       if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
       if (phone != null) updates['phone'] = phone;
 
-      await _supabase.from('profiles').update(updates).eq('id', userId);
+      // upsert instead of update: if the profiles row was never created
+      // (e.g. the auth trigger failed), this creates it rather than silently
+      // matching 0 rows and returning success with nothing saved.
+      await _supabase
+          .from('profiles')
+          .upsert(updates, onConflict: 'id');
       return true;
-    } catch (e) {
-      debugPrint('Error updating profile: $e');
+    } catch (e, st) {
+      debugPrint('Error updating profile: $e\n$st');
       return false;
     }
   }

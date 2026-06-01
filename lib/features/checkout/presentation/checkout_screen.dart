@@ -245,7 +245,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         return;
       }
 
-      await ref.read(orderRepositoryProvider).confirmOrder(orderId);
+      // Order stays 'pending' — the partner must accept it before it moves
+      // to 'confirmed'. Do NOT call confirmOrder() here.
       ref.read(cartProvider.notifier).clearCart();
 
       Navigator.pushAndRemoveUntil(

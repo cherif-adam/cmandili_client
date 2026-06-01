@@ -31,14 +31,31 @@ class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-    final ok = await _profileRepo.updateProfile(phone: _phoneCtrl.text.trim());
-    if (!mounted) return;
-    setState(() => _saving = false);
-    if (ok) {
-      widget.onSaved();
-    } else {
+    try {
+      final ok = await _profileRepo.updateProfile(phone: _phoneCtrl.text.trim());
+      if (!mounted) return;
+      setState(() => _saving = false);
+      if (ok) {
+        widget.onSaved();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.failedToUpdateProfile),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.failedToUpdateProfile)),
+        SnackBar(
+          content: Text(e.toString()),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: Colors.red.shade700,
+        ),
       );
     }
   }
