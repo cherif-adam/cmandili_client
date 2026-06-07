@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:typed_data';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ── Channel IDs ──────────────────────────────────────────────────────────────
@@ -112,6 +113,17 @@ class PushService {
     _initialized = true;
 
     await _fcm.requestPermission(alert: true, badge: true, sound: true);
+
+    // On OEM Android (Xiaomi, Samsung, Huawei) battery optimization kills the
+    // background Dart isolate before it can show alarm notifications for new
+    // orders when the app is terminated. Requesting exemption keeps the app
+    // reachable so the alarm fires reliably.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final status = await Permission.ignoreBatteryOptimizations.status;
+      if (!status.isGranted) {
+        await Permission.ignoreBatteryOptimizations.request();
+      }
+    }
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(

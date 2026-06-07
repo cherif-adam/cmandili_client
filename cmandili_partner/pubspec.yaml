@@ -19,6 +19,7 @@ dependencies:
   firebase_core: ^2.27.0
   firebase_messaging: ^14.7.20
   flutter_local_notifications: ^17.0.0
+  permission_handler: ^11.1.0
   
   # Authentication (Removed for design-only mode)
   google_sign_in: ^6.1.6

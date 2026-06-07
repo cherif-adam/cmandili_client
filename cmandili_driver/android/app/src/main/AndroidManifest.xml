@@ -23,7 +23,7 @@
 
     <application
         android:label="Cmandili Driver"
-        android:name="${applicationName}"
+        android:name=".Application"
         android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
@@ -69,7 +69,23 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        
+
+        <!-- Remove the Flutter plugin's default FCM service. -->
+        <service
+            android:name="io.flutter.plugins.firebase.messaging.FlutterFirebaseMessagingService"
+            tools:node="remove" />
+
+        <!-- CmandiliMessagingService: native Kotlin alarm for delivery offers.
+             Works on terminated OEM Android. super.onMessageReceived() still
+             triggers the Dart offerStream for accept/reject modal on stock Android. -->
+        <service
+            android:name=".CmandiliMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <!-- flutter_background_service foreground service -->
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"

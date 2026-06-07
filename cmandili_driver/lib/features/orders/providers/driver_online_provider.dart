@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/background_location_service.dart';
+import '../../../core/utils/location_service.dart';
 import 'driver_orders_provider.dart';
 
 /// Public state for the driver's online/offline toggle. Reads the current
@@ -34,10 +36,32 @@ class DriverOnlineNotifier extends StateNotifier<bool> {
     final driverId = await _ref.read(currentDriverIdProvider.future);
     if (driverId == null) return;
     state = next;
-    await Supabase.instance.client
-        .from('drivers')
-        .update({'is_online': next})
-        .eq('id', driverId);
+
+    final Map<String, dynamic> payload = {'is_online': next};
+    if (next) {
+      debugPrint('[Online] Fetching GPS position...');
+      final position = await LocationService.getCurrentPosition();
+      debugPrint('[Online] Position result: $position');
+      if (position != null) {
+        debugPrint('[Online] lat=${position.latitude}, lng=${position.longitude}');
+        payload['current_lat'] = position.latitude;
+        payload['current_lng'] = position.longitude;
+        payload['last_location_update'] = DateTime.now().toIso8601String();
+      } else {
+        debugPrint('[Online] ⚠️ Position is NULL — coordinates will NOT be updated');
+      }
+    }
+
+    debugPrint('[Online] Supabase payload: $payload');
+    try {
+      await Supabase.instance.client
+          .from('drivers')
+          .update(payload)
+          .eq('id', driverId);
+      debugPrint('[Online] Supabase update SUCCESS');
+    } catch (e) {
+      debugPrint('[Online] ❌ Supabase update FAILED: $e');
+    }
 
     if (next) {
       await BackgroundLocationService.startOnlinePresence(driverId: driverId);

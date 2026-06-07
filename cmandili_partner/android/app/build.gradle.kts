@@ -69,4 +69,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Explicit Firebase Messaging dep so CmandiliMessagingService.kt can import
+    // RemoteMessage and FirebaseMessagingService directly without relying on
+    // transitive exposure from the Flutter plugin's AAR.
+    implementation("com.google.firebase:firebase-messaging:23.4.1")
 }

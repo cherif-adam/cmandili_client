@@ -127,6 +127,7 @@ async function sendFcm(
   title: string,
   body: string,
   data: Record<string, string>,
+  channelId = 'cmandili_orders',
 ) {
   const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
   await fetch(url, {
@@ -140,8 +141,24 @@ async function sendFcm(
         token,
         notification: { title, body },
         data,
-        android: { priority: 'high' },
-        apns: { headers: { 'apns-priority': '10' } },
+        android: {
+          priority: 'high',
+          notification: {
+            // Ensures Android routes to the correct channel even when the app
+            // has never been opened (before Flutter creates channels at runtime).
+            channel_id: channelId,
+            sound: 'default',
+          },
+        },
+        apns: {
+          headers: { 'apns-priority': '10' },
+          payload: {
+            aps: {
+              sound: 'default',
+              'interruption-level': 'time-sensitive',
+            },
+          },
+        },
       },
     }),
   });
@@ -212,12 +229,13 @@ async function pushToUsers(
   title: string,
   body: string,
   data: Record<string, string>,
+  channelId = 'cmandili_orders',
 ): Promise<number> {
   const all = await Promise.all(userIds.map(id => tokensForUser(supabase, id)));
   const tokens = Array.from(new Set(all.flat()));
   if (tokens.length === 0) return 0;
   await Promise.allSettled(
-    tokens.map(t => sendFcm(accessToken, projectId, t, title, body, data)),
+    tokens.map(t => sendFcm(accessToken, projectId, t, title, body, data, channelId)),
   );
   return tokens.length;
 }
@@ -431,7 +449,28 @@ serve(async (req: Request) => {
 
   if (!order) return new Response('Order not found', { status: 404 });
 
-  // Resolve partner user_id via partners table (partner_type + entity_id)
+  // ── Resolve venue is_open flag ─────────────────────────────────────────────
+  // The partner alarm must only fire when their venue is open. This guards
+  // against edge-cases where an order slips through while the venue is closed
+  // (e.g. the partner closed it mid-operation).
+  let venueIsOpen = true; // courier orders (no restaurant/supermarket) are always OK
+  if (order.restaurant_id) {
+    const { data: venue } = await supabase
+      .from('restaurants')
+      .select('is_open')
+      .eq('id', order.restaurant_id)
+      .maybeSingle();
+    venueIsOpen = venue?.is_open ?? true;
+  } else if (order.supermarket_id) {
+    const { data: venue } = await supabase
+      .from('supermarkets')
+      .select('is_open')
+      .eq('id', order.supermarket_id)
+      .maybeSingle();
+    venueIsOpen = venue?.is_open ?? true;
+  }
+
+  // ── Resolve partner user_id ────────────────────────────────────────────────
   let partnerUserId: string | null = null;
   if (order.restaurant_id) {
     const { data: p } = await supabase
@@ -451,7 +490,7 @@ serve(async (req: Request) => {
     partnerUserId = p?.user_id ?? null;
   }
 
-  // Resolve assigned driver user_id
+  // ── Resolve existing assigned driver user_id ───────────────────────────────
   let driverUserId: string | null = null;
   if (order.driver_id) {
     const { data: d } = await supabase
@@ -462,48 +501,100 @@ serve(async (req: Request) => {
     driverUserId = d?.user_id ?? null;
   }
 
-  const results: Record<string, number> = {};
+  const results: Record<string, number | string> = {};
 
+  // ── Customer ───────────────────────────────────────────────────────────────
   if (order.user_id) {
     const c = copyFor('customer', status);
     results.customer = await pushToUsers(
       supabase, accessToken, projectId, [order.user_id], c.title, c.body, data,
     );
   }
+
+  // ── Partner ────────────────────────────────────────────────────────────────
   if (partnerUserId) {
-    if (status === 'pending' || status === 'confirmed') {
-      // Data-only so Flutter's firebaseMessagingBackgroundHandler fires and
-      // shows the alarm notification (new_order.mp3 + FLAG_INSISTENT).
-      // A standard push with a `notification` block is rendered by the OS,
-      // bypassing the Flutter handler and the alarm channel entirely.
-      //
-      // Both statuses are covered because the DB trigger fires on UPDATE only:
-      // the mobile inserts as 'pending' then immediately confirms to 'confirmed',
-      // so the trigger reliably fires with 'confirmed'. 'pending' is kept as a
-      // safety net in case the trigger is ever reconfigured to fire on INSERT.
-      const c = copyFor('partner', 'pending'); // always "New Order" copy
+    if (status === 'pending' && venueIsOpen) {
+      // INSERT trigger fires with 'pending' — this is the new-order alarm.
+      // Data-only so the Flutter background handler (and the native Kotlin
+      // CmandiliMessagingService) take over display with alarm sound + FLAG_INSISTENT.
+      // A notification-block message would be rendered by the OS, bypassing both.
+      // is_open guard: never alarm a closed venue.
+      const c = copyFor('partner', 'pending');
       results.partner = await pushDataOnlyToUsers(
         supabase, accessToken, projectId, [partnerUserId],
         {
-          type: 'new_order',   // ← checked by firebaseMessagingBackgroundHandler
+          type: 'new_order',
           order_id,
           status,
           title: c.title,
-          body: c.body,
+          body:  c.body,
         },
       );
-    } else {
+    } else if (status === 'pending' && !venueIsOpen) {
+      console.log(`Partner alarm skipped — venue is closed (order ${order_id})`);
+    } else if (status !== 'pending') {
+      // All other status changes: standard banner to partner (they are already
+      // aware of the order; no alarm needed).
       const c = copyFor('partner', status);
-      results.partner = await pushToUsers(
-        supabase, accessToken, projectId, [partnerUserId], c.title, c.body, data,
-      );
+      if (c.title) {
+        results.partner = await pushToUsers(
+          supabase, accessToken, projectId, [partnerUserId], c.title, c.body, data,
+          'cmandili_orders',
+        );
+      }
     }
   }
-  if (driverUserId) {
+
+  // ── Auto-dispatch: find nearest available driver when order is confirmed ───
+  // Triggered when the partner taps "Accepter" (status: pending → confirmed).
+  // dispatch_driver_for_order atomically assigns the driver and returns their
+  // IDs so we can send the alarm FCM in-process (no second HTTP round-trip).
+  if (status === 'confirmed') {
+    const { data: dispatch } = await supabase
+      .rpc('dispatch_driver_for_order', {
+        p_order_id:    order_id,
+        p_radius_km:   fanoutRadius,
+        p_window_secs: 30,
+      });
+
+    if (dispatch && dispatch.length > 0) {
+      const { driver_id, user_id: dispatchedUserId, distance_km } = dispatch[0] as {
+        driver_id: string;
+        user_id:   string;
+        distance_km: number;
+      };
+
+      await pushDataOnlyToUsers(
+        supabase, accessToken, projectId, [dispatchedUserId],
+        {
+          event:       'offer_to_driver',
+          order_id,
+          status:      'confirmed',
+          urgent:      '1',
+          distance_km: distance_km?.toFixed(1) ?? '',
+          title:       '🔔 Nouvelle livraison',
+          body:        'Acceptez dans les 30 secondes.',
+        },
+      );
+
+      results.driver_dispatched = driver_id;
+      console.log(`Dispatched driver ${driver_id} (${distance_km?.toFixed(1)} km) for order ${order_id}`);
+    } else {
+      console.log(`No available driver for order ${order_id} at confirmed — cron will retry`);
+    }
+  }
+
+  // ── Existing assigned driver: status-update banner ─────────────────────────
+  // Only for statuses after assignment (pickedUp, onTheWay, delivered, cancelled).
+  // Skip 'confirmed' — we just dispatched a new driver above; the assigned driver
+  // hasn't accepted yet and doesn't need a status-update banner.
+  if (driverUserId && status !== 'confirmed') {
     const c = copyFor('driver', status);
-    results.driver = await pushToUsers(
-      supabase, accessToken, projectId, [driverUserId], c.title, c.body, data,
-    );
+    if (c.title) {
+      results.driver = await pushToUsers(
+        supabase, accessToken, projectId, [driverUserId], c.title, c.body, data,
+      );
+    }
   }
 
   return new Response(JSON.stringify({ mode: 'status', ...results }), {
