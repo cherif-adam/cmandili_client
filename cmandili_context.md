@@ -1,6 +1,6 @@
 # CMANDILI_CONTEXT.md
 > **Purpose:** AI session bootstrap. Read this file at the start of every session to understand the full project and continue immediately without reading every file.
-> **Last updated:** 2026-06-07
+> **Last updated:** 2026-06-08
 
 ---
 
@@ -61,7 +61,10 @@ All three apps share the **same Supabase project** (same DB, Auth, Storage).
 | `id` | Primary key |
 | `status` | `pending` → `confirmed` → `ready` → `picked_up` → `delivered` / `cancelled` |
 | `driver_id` | FK → drivers.id (null until assigned) |
-| `assigned_driver_id` | Driver dispatched to this order before acceptance |
+| `assigned_driver_id` | Driver dispatched to this order before acceptance (added in session 2) |
+| `assignment_expires_at` | Timestamp when the current driver assignment offer expires (added in session 2) |
+| `passed_driver_ids` | Array of driver IDs that already declined/timed out (added in session 2) |
+| `distance_km` | Delivery distance in km (added in session 2) |
 | `user_id` | Customer's auth.uid() |
 | `restaurant_id` | FK → restaurants |
 | `delivery_fee` | Dynamic, set at order creation |
@@ -113,16 +116,66 @@ All three apps share the **same Supabase project** (same DB, Auth, Storage).
 - Removed 5-minute throttle rule that was suppressing push notifications.
 - Added RLS policies so the Edge Function (service role) can read `device_tokens`.
 
+### Fix 5 — Windows Smart App Control blocking dartaotruntime.exe
+- **Problem:** Flutter SDK moved from `C:\Users\user\Downloads\flutter_windows_3.41.1-stable` to `C:\flutter`. Windows Smart App Control flagged `dartaotruntime.exe` as an unrecognized executable and blocked it, preventing any Flutter/Dart command from running.
+- **Fix:**
+  1. Disabled Smart App Control in Windows Security → App & browser control → Smart App Control → Off.
+  2. Moved Flutter SDK to `C:\flutter` (final location).
+  3. Updated PATH to `C:\flutter\flutter\bin`.
+
+### Fix 6 — Flutter pub cache corrupted after SDK move
+- **Problem:** After relocating the Flutter SDK, hundreds of compile errors appeared in cached pub packages (`BinaryMessenger isn't a type`, `MethodChannel isn't a type`, `Widget isn't a type`). These were not app code errors — the pub cache was stale/broken.
+- **Fix:** Ran in order:
+  ```
+  flutter clean
+  flutter pub cache repair   → reinstalled 417 packages
+  flutter pub get
+  ```
+
+### Fix 7 — orders table missing 4 columns for driver dispatch
+- **Problem:** `order_repository.dart` and `courier_screen.dart` referenced `assigned_driver_id`, `assignment_expires_at`, `passed_driver_ids`, and `distance_km` but these columns didn't exist in the DB, causing runtime errors.
+- **Fix:**
+  - Ran migration SQL in Supabase SQL editor to add all 4 columns to the `orders` table.
+  - `distance_km` was also referenced in `order_repository.dart` and `courier_screen.dart` but couldn't be populated reliably — removed those specific lines from both files.
+- **Affected files:** `cmandili_driver/lib/features/orders/data/order_repository.dart`, `cmandili_mobile/lib/features/courier/presentation/courier_screen.dart`
+
+### Fix 8 — Overflow UI bugs
+- **Problem 1:** `SliverAppBar` in driver `home_screen.dart` had `expandedHeight: 180` — content was clipping/overflowing.
+- **Fix:** Changed to `expandedHeight: 200`.
+- **Problem 2:** Address picker text in `checkout_screen.dart` (mobile app) was overflowing its row.
+- **Fix:** Wrapped the address text widget in an `Expanded` widget.
+- **Affected files:** `cmandili_driver/lib/features/home/presentation/home_screen.dart`, `cmandili_mobile/lib/features/checkout/presentation/checkout_screen.dart`
+
+### Fix 9 — Restaurant coordinates all 0
+- **Problem:** All restaurants had `latitude=0, longitude=0` in the DB, so restaurant map pins were appearing in the ocean.
+- **Fix:** Ran in Supabase SQL editor:
+  ```sql
+  UPDATE restaurants SET latitude=35.6781, longitude=10.0994 WHERE latitude=0;
+  ```
+  (Sousse, Tunisia coordinates — where the test restaurants are located.)
+
+### Fix 10 — driver_online_provider updating by wrong ID
+- **Problem:** `driver_online_provider.dart` was calling `.eq('id', driverId)` (using `drivers.id`) instead of matching on `user_id`. This conflicted with the RLS UPDATE policy which checks `user_id = auth.uid()`, so GPS writes were silently blocked.
+- **Fix:** Changed the Supabase update to use `.eq('user_id', userId)` where `userId = supabase.auth.currentUser!.uid`. GPS coordinates now save correctly to Supabase.
+- **Affected file:** `cmandili_driver/lib/features/orders/providers/driver_online_provider.dart`
+
 ---
 
-## 4. CURRENT STATUS (as of 2026-06-07)
+## 4. CURRENT STATUS (as of 2026-06-08)
 
-All known GPS fixes are applied and confirmed working:
-- GPS coordinates fetched correctly (debug logs: `lat=35.66, lng=10.10`)
-- Supabase update returns SUCCESS in logs
-- RLS UPDATE policy applied to production
+| Feature | Status |
+|---|---|
+| GPS fix (driver goes online → coordinates saved) | ✅ WORKING |
+| Restaurant coordinates | ✅ FIXED (35.6781, 10.0994) |
+| orders table columns (4 dispatch columns added) | ✅ FIXED |
+| Flutter pub cache | ✅ FIXED (417 packages repaired) |
+| Flutter SDK location | `C:\flutter\flutter\bin` |
+| Windows Smart App Control | ✅ DISABLED |
+| Overflow UI bugs | ✅ FIXED |
 
-**If coordinates still show 0 in the Supabase dashboard after all fixes:**
+**Next step:** Connect phone via USB and run `flutter run` to test full notification flow end to end.
+
+**If GPS coordinates still show 0 in the Supabase dashboard:**
 1. Hard-kill and restart the driver app (not just background)
 2. Refresh the Supabase dashboard — it can show stale data
 3. Confirm the RLS migration applied: run in Supabase SQL editor:
@@ -169,7 +222,7 @@ All known GPS fixes are applied and confirmed working:
 | Setting | Value |
 |---|---|
 | **OS** | Windows 11 Pro |
-| **Flutter** | 3.41.1 |
+| **Flutter** | 3.41.1 — SDK at `C:\flutter\flutter\bin` |
 | **IDE** | VS Code with Claude Code |
 | **Test device** | Xiaomi 2201117TG (Android) |
 | **Supabase project** | cmandili (production — live data) |

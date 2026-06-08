@@ -21,12 +21,12 @@ class DriverOnlineNotifier extends StateNotifier<bool> {
   }
 
   Future<void> _init() async {
-    final driverId = await _ref.read(currentDriverIdProvider.future);
-    if (driverId == null) return;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
     final row = await Supabase.instance.client
         .from('drivers')
         .select('is_online')
-        .eq('id', driverId)
+        .eq('user_id', userId)
         .maybeSingle();
     if (mounted) state = row?['is_online'] as bool? ?? false;
   }
@@ -52,13 +52,23 @@ class DriverOnlineNotifier extends StateNotifier<bool> {
       }
     }
 
+    final authUid = Supabase.instance.client.auth.currentUser?.id;
+    debugPrint('[Online] driverId (drivers.id)=$driverId  auth.uid()=$authUid');
     debugPrint('[Online] Supabase payload: $payload');
     try {
-      await Supabase.instance.client
+      // Filter by user_id = auth.uid() so the WHERE clause matches the RLS
+      // UPDATE policy exactly. Filtering by drivers.id alone can silently affect
+      // 0 rows if RLS blocks the row (Supabase returns 200 with no error).
+      final updated = await Supabase.instance.client
           .from('drivers')
           .update(payload)
-          .eq('id', driverId);
-      debugPrint('[Online] Supabase update SUCCESS');
+          .eq('user_id', authUid!)
+          .select('id, current_lat, current_lng');
+      if ((updated as List).isEmpty) {
+        debugPrint('[Online] ⚠️ UPDATE affected 0 rows — RLS may be blocking or user_id mismatch');
+      } else {
+        debugPrint('[Online] Supabase update SUCCESS → $updated');
+      }
     } catch (e) {
       debugPrint('[Online] ❌ Supabase update FAILED: $e');
     }
