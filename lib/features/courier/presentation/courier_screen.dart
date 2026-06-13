@@ -149,7 +149,6 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
         'recipient_phone': _recipientPhoneController.text.trim(),
         'package_description': _packageDescController.text.trim(),
         'estimated_delivery_time': DateTime.now().add(const Duration(minutes: 45)).toIso8601String(),
-        if (distanceKm != null) 'distance_km': distanceKm,
       }).select('id').single();
 
       final orderId = response['id'] as String;

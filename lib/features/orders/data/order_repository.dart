@@ -43,7 +43,6 @@ class OrderRepository {
         'notes': notes,
         'delivery_address': deliveryAddress.toJson(),
         'order_type': orderType.toString().split('.').last,
-        if (distanceKm != null) 'distance_km': distanceKm,
       }).select().single();
 
       final orderId = orderResponse['id'] as String;
