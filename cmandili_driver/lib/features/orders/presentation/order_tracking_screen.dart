@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,6 +33,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   double? _myLat;
   double? _myLng;
   String? _activeDeliveryId;
+  bool _uploadingReceipt = false;
   final _supabase = Supabase.instance.client;
 
   @override
@@ -125,6 +128,47 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     super.dispose();
   }
 
+  Future<void> _uploadReceipt() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 80,
+    );
+    if (picked == null) return;
+
+    setState(() => _uploadingReceipt = true);
+    try {
+      final driverId = await ref.read(currentDriverIdProvider.future);
+      final path = '${driverId ?? 'driver'}/${widget.orderId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final bytes = await File(picked.path).readAsBytes();
+      await _supabase.storage.from('receipts').uploadBinary(path, bytes);
+      final url = _supabase.storage.from('receipts').getPublicUrl(path);
+      await _supabase
+          .from('orders')
+          .update({'receipt_photo_url': url})
+          .eq('id', widget.orderId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reçu uploadé avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur upload: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingReceipt = false);
+    }
+  }
+
   Future<void> _markPickedUp() async {
     await _supabase
         .from('orders')
@@ -215,6 +259,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       ),
       data: (order) => _buildScreen(order),
     );
+  }
+
+  String _billTypeLabel(String? type) {
+    return switch (type?.toLowerCase()) {
+      'topnet' => '🌐 Topnet',
+      'steg'   => '⚡ STEG',
+      'sonede' => '💧 SONEDE',
+      _        => '🧾 Autre',
+    };
   }
 
   Widget _buildScreen(Order order) {
@@ -372,6 +425,54 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                       ],
                     ),
 
+                    // Bill payment details
+                    if (order.type == OrderType.billPayment) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.receipt_long_rounded, color: Colors.orange, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _billTypeLabel(order.billType),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (order.billReference != null) ...[
+                              const SizedBox(height: 6),
+                              Text('Réf: ${order.billReference}',
+                                  style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+                            ],
+                            if (order.billAmount != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Montant à collecter: ${order.billAmount!.toStringAsFixed(3)} TND',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.deepOrange,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+
                     if (order.notes != null && order.notes!.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Container(
@@ -446,6 +547,46 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                           ),
                         ),
                       ),
+
+                    // Receipt upload for bill payment orders
+                    if (order.type == OrderType.billPayment &&
+                        order.status == OrderStatus.onTheWay) ...[
+                      const SizedBox(height: 12),
+                      order.receiptPhotoUrl != null && order.receiptPhotoUrl!.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                order.receiptPhotoUrl!,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: OutlinedButton.icon(
+                                onPressed: _uploadingReceipt ? null : _uploadReceipt,
+                                icon: _uploadingReceipt
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.camera_alt_rounded),
+                                label: Text(_uploadingReceipt
+                                    ? 'Upload en cours…'
+                                    : 'Prendre photo du reçu'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.orange,
+                                  side: const BorderSide(color: Colors.orange),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ],
 
                     // Confirm delivery button
                     if (order.status == OrderStatus.onTheWay)

@@ -45,8 +45,17 @@ class Order {
   final DeliveryAddress? pickupAddress;
   final String? recipientName;
   final String? recipientPhone;
+  final String? senderPhone;
   final String? packageDescription;
+  final String? packagePhotoUrl;
   final bool isRecipientAccepted;
+
+  // Bill payment (facture) fields
+  final String? billType;
+  final String? billReference;
+  final double? billAmount;
+  final String? billPhotoUrl;
+  final String? receiptPhotoUrl;
 
   // Customer display info resolved by orders_with_customer view.
   final String? customerName;
@@ -76,8 +85,15 @@ class Order {
     this.pickupAddress,
     this.recipientName,
     this.recipientPhone,
+    this.senderPhone,
     this.packageDescription,
+    this.packagePhotoUrl,
     this.isRecipientAccepted = false,
+    this.billType,
+    this.billReference,
+    this.billAmount,
+    this.billPhotoUrl,
+    this.receiptPhotoUrl,
     this.customerName,
     this.customerPhone,
   });
@@ -120,8 +136,15 @@ class Order {
           : null,
       recipientName: json['recipientName'],
       recipientPhone: json['recipientPhone'],
+      senderPhone: json['senderPhone'],
       packageDescription: json['packageDescription'],
+      packagePhotoUrl: json['packagePhotoUrl'],
       isRecipientAccepted: json['isRecipientAccepted'] ?? false,
+      billType: json['billType'] as String?,
+      billReference: json['billReference'] as String?,
+      billAmount: (json['billAmount'] as num?)?.toDouble(),
+      billPhotoUrl: json['billPhotoUrl'] as String?,
+      receiptPhotoUrl: json['receiptPhotoUrl'] as String?,
       customerName: json['customerName'] as String?,
       customerPhone: json['customerPhone'] as String?,
     );
@@ -152,8 +175,15 @@ class Order {
       'pickupAddress': pickupAddress?.toJson(),
       'recipientName': recipientName,
       'recipientPhone': recipientPhone,
+      'senderPhone': senderPhone,
       'packageDescription': packageDescription,
+      'packagePhotoUrl': packagePhotoUrl,
       'isRecipientAccepted': isRecipientAccepted,
+      'billType': billType,
+      'billReference': billReference,
+      'billAmount': billAmount,
+      'billPhotoUrl': billPhotoUrl,
+      'receiptPhotoUrl': receiptPhotoUrl,
     };
   }
 

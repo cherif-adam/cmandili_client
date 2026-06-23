@@ -47,10 +47,12 @@ final availableOrdersProvider = StreamProvider<List<Order>>((ref) async* {
       .from('orders')
       .stream(primaryKey: ['id'])
       .order('created_at', ascending: false)) {
+    // Only offer orders the restaurant has marked 'ready' (food cooked) and
+    // that no driver has claimed yet. 'pending' was previously included, which
+    // let a driver grab an order before the restaurant even accepted it.
     final available = rows
         .where((row) =>
-            (row['status'] == 'pending' || row['status'] == 'ready') &&
-            row['driver_id'] == null)
+            row['status'] == 'ready' && row['driver_id'] == null)
         .toList();
     if (available.isEmpty) {
       yield <Order>[];
@@ -157,8 +159,15 @@ Map<String, dynamic> _mapOrderRow(Map<String, dynamic> row) {
     'pickupAddress': row['pickup_address'],
     'recipientName': row['recipient_name'],
     'recipientPhone': row['recipient_phone'],
+    'senderPhone': row['sender_phone'],
     'packageDescription': row['package_description'],
+    'packagePhotoUrl': row['package_photo_url'],
     'isRecipientAccepted': false,
+    'billType': row['bill_type'],
+    'billReference': row['bill_reference'],
+    'billAmount': row['bill_amount'] != null ? (row['bill_amount'] as num).toDouble() : null,
+    'billPhotoUrl': row['bill_photo_url'],
+    'receiptPhotoUrl': row['receipt_photo_url'],
     'customerName': row['customer_name'],
     'customerPhone': row['customer_phone'],
   };
