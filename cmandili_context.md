@@ -1,6 +1,60 @@
 # CMANDILI_CONTEXT.md
 > **Purpose:** AI session bootstrap. Read this file at the start of every session to understand the full project and continue immediately without reading every file.
-> **Last updated:** 2026-06-08
+> **Last updated:** 2026-06-24
+
+---
+
+## ⚠️ MIGRATION RULES — READ BEFORE WRITING ANY SQL
+
+### PostgreSQL version
+Supabase runs **PostgreSQL 15**. PG15 does **NOT** support `CREATE POLICY IF NOT EXISTS` (that's PG17+ syntax). Using it will cause the migration to fail at deploy time.
+
+### Required pattern for all policy creation in migrations
+Always guard `CREATE POLICY` statements with a `DO $$` block that checks `pg_policies` first:
+
+```sql
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'schema_name'
+      AND tablename  = 'table_name'
+      AND policyname = 'policy_name'
+  ) THEN
+    EXECUTE $p$
+      CREATE POLICY "policy_name"
+      ON schema_name.table_name FOR <command>
+      TO <role>
+      USING/WITH CHECK (...)
+    $p$;
+  END IF;
+END $$;
+```
+
+This applies to **all** policies — table RLS policies, storage policies, everything. Never write bare `CREATE POLICY IF NOT EXISTS`.
+
+---
+
+## ⚠️ ORDER STATUS RULES — READ BEFORE ADDING ANY NEW ORDER TYPE
+
+### The driver filter
+`availableOrdersProvider` in `cmandili_driver` shows ONLY orders where `status == 'ready' && driver_id == null`. Orders stuck at `'pending'` are **permanently invisible** to drivers.
+
+### Which status to use at order creation
+
+| Order type | Partner involved? | Create with status |
+|---|---|---|
+| `food` | Yes — restaurant accepts & cooks | `'pending'` ✅ |
+| `supermarket` | Yes — supermarket picks & packs | `'pending'` ✅ |
+| `courier` | No — goes straight to driver | `'ready'` ✅ (fixed 2026-06-24) |
+| `facture` | No — goes straight to driver | `'ready'` ✅ (fixed 2026-06-24) |
+| Any future direct-to-driver type | No | `'ready'` |
+
+### Rule
+> If the order has **no** `restaurant_id` or `supermarket_id`, it must be created with `status: 'ready'`. No partner = no one to transition it to ready.
+
+### Dead code note
+`bill_payment_screen.dart` writes `order_type: 'billPayment'` with `status: 'pending'` but nothing navigates to it — it is unreachable dead code. The active screen for bill orders is `facture_screen.dart`.
 
 ---
 
@@ -69,6 +123,12 @@ All three apps share the **same Supabase project** (same DB, Auth, Storage).
 | `restaurant_id` | FK → restaurants |
 | `delivery_fee` | Dynamic, set at order creation |
 | `current_lat / current_lng` | Live driver position mirrored here during active delivery |
+| `order_type` | `food` / `courier` / `supermarket` — determines dispatch flow |
+| `pickup_address` | JSONB — sender address for courier orders (lat/lng via `pickup_address->>'lat'`) |
+| `package_description` | Free-text description of the parcel (courier orders) |
+| `package_size` | `petit` / `moyen` / `grand` (courier orders, added 2026-06-18) |
+| `recipient_name` | Recipient contact name (courier orders) |
+| `recipient_phone` | Recipient phone (courier orders) |
 
 ---
 
@@ -161,7 +221,7 @@ All three apps share the **same Supabase project** (same DB, Auth, Storage).
 
 ---
 
-## 4. CURRENT STATUS (as of 2026-06-08)
+## 4. CURRENT STATUS (as of 2026-06-18)
 
 | Feature | Status |
 |---|---|
@@ -172,8 +232,17 @@ All three apps share the **same Supabase project** (same DB, Auth, Storage).
 | Flutter SDK location | `C:\flutter\flutter\bin` |
 | Windows Smart App Control | ✅ DISABLED |
 | Overflow UI bugs | ✅ FIXED |
+| **P2P Colis feature** | ✅ BUILT (2026-06-18) |
 
-**Next step:** Connect phone via USB and run `flutter run` to test full notification flow end to end.
+### P2P Colis feature (session 3 — 2026-06-18)
+- **What was built:** "Envoyer un colis" service in `cmandili_mobile` — lets a customer send any parcel from point A to point B.
+- **Entry point:** Home screen → "📦 Colis" tab in the ServiceSelector.
+- **Screen:** `cmandili_mobile/lib/features/courier/presentation/courier_screen.dart` (fully rewritten).
+- **Features:** Pickup + dropoff address selection (reuses `AddressSelectionScreen`), package description (optional), package size selector (Petit/Moyen/Grand), live price estimation via Mapbox Directions API, confirm button with price shown inline.
+- **Pricing formula:** 3.500 TND base (0–3 km) + 0.500 TND per km above 3 km — same `calculateDeliveryFee()` as food orders.
+- **DB:** Creates a row in `orders` with `order_type='courier'`, `subtotal=0`, `delivery_fee=<calculated>`, `total=<calculated>`, `pickup_address=<JSONB>`, `package_size=<petit|moyen|grand>`. Same dispatch flow as food orders.
+- **Migration:** `supabase/migrations/20260618_colis_package_size.sql` — adds `package_size TEXT CHECK (IN ('petit','moyen','grand'))` to the `orders` table. **Apply this to production before releasing.**
+- **ServiceCategory:** Added `courier` entry to `ServiceCategory.categories` in `core/models/service_category.dart` (was missing — courier tab wasn't showing).
 
 **If GPS coordinates still show 0 in the Supabase dashboard:**
 1. Hard-kill and restart the driver app (not just background)

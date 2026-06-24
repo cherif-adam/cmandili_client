@@ -167,7 +167,7 @@ Map<String, dynamic> _mapOrderRow(Map<String, dynamic> row) {
     'billReference': row['bill_reference'],
     'billAmount': row['bill_amount'] != null ? (row['bill_amount'] as num).toDouble() : null,
     'billPhotoUrl': row['bill_photo_url'],
-    'receiptPhotoUrl': row['receipt_photo_url'],
+    'receiptPhotoUrl': row['bill_receipt_url'],
     'customerName': row['customer_name'],
     'customerPhone': row['customer_phone'],
   };

@@ -209,7 +209,7 @@ class _OrderCard extends ConsumerWidget {
             const SizedBox(height: 12),
 
             // Bill payment (facture) orders
-            if (order.type == OrderType.billPayment) ...[
+            if (order.type == OrderType.billPayment || order.type == OrderType.facture) ...[
               _BillTypeBadge(billType: order.billType),
               const SizedBox(height: 8),
               if (order.billReference != null && order.billReference!.isNotEmpty)
@@ -243,12 +243,20 @@ class _OrderCard extends ConsumerWidget {
                 const SizedBox(height: 4),
                 _InfoRow(
                   icon: Icons.home_outlined,
-                  label: 'Chez le client',
+                  label: '1. Chez le client',
                   value: order.pickupAddress!.fullAddress.isNotEmpty
                       ? order.pickupAddress!.fullAddress
                       : order.pickupAddress!.label,
                 ),
               ],
+              const SizedBox(height: 4),
+              _InfoRow(
+                icon: Icons.business_outlined,
+                label: '2. Bureau de paiement',
+                value: order.deliveryAddress.fullAddress.isNotEmpty
+                    ? order.deliveryAddress.fullAddress
+                    : order.deliveryAddress.label,
+              ),
               const SizedBox(height: 8),
             ] else if (order.type == OrderType.courier) ...[
               _PhoneRow(

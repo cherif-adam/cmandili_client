@@ -17,6 +17,7 @@ enum OrderType {
   supermarket,
   courier,
   billPayment,
+  facture,
 }
 
 class Order {
