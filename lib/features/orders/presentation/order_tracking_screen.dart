@@ -139,17 +139,22 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   Widget _buildTracking(Order order) {
     final isCourier = order.type == OrderType.courier;
-    final showMap = order.status == OrderStatus.onTheWay && _driverLat != null && _driverLng != null;
+    final isFacture = order.type == OrderType.facture;
+    final showMap = (order.status == OrderStatus.onTheWay || order.status == OrderStatus.pickedUp) &&
+        _driverLat != null &&
+        _driverLng != null;
 
-    // Fetch route once when driver location first becomes available
+    // Fetch route once when driver location first becomes available.
+    // For facture: when driver is going to customer (onTheWay → pickupAddress)
+    // or going to office (pickedUp → deliveryAddress).
     if (showMap && !_routeFetched) {
       _routeFetched = true;
+      final destination = isFacture && order.status == OrderStatus.onTheWay && order.pickupAddress != null
+          ? (lat: order.pickupAddress!.latitude, lng: order.pickupAddress!.longitude)
+          : (lat: order.deliveryAddress.latitude, lng: order.deliveryAddress.longitude);
       _fetchRoute(
         origin: (lat: _driverLat!, lng: _driverLng!),
-        destination: (
-          lat: order.deliveryAddress.latitude,
-          lng: order.deliveryAddress.longitude,
-        ),
+        destination: destination,
       );
     }
 
@@ -170,15 +175,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   latitude: order.deliveryAddress.latitude,
                   longitude: order.deliveryAddress.longitude,
                   kind: AppMapMarkerKind.delivery,
-                  title: 'Delivery Location',
+                  title: isFacture ? 'Bureau de paiement' : 'Delivery Location',
                 ),
-                if (isCourier && order.pickupAddress != null)
+                if ((isCourier || isFacture) && order.pickupAddress != null)
                   AppMapMarker(
                     id: 'pickup',
                     latitude: order.pickupAddress!.latitude,
                     longitude: order.pickupAddress!.longitude,
                     kind: AppMapMarkerKind.pickup,
-                    title: 'Pickup Location',
+                    title: isFacture ? 'Votre adresse' : 'Pickup Location',
                   ),
                 AppMapMarker(
                   id: 'driver',
@@ -194,7 +199,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               color: AppColors.background,
               child: Center(
                 child: Icon(
-                  isCourier ? Icons.local_shipping : Icons.restaurant,
+                  isFacture
+                      ? Icons.receipt_long_rounded
+                      : isCourier
+                          ? Icons.local_shipping
+                          : Icons.restaurant,
                   size: 100,
                   color: AppColors.textLight.withOpacity(0.3),
                 ),
@@ -314,7 +323,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         ),
                       ),
 
-                    _OrderTimeline(status: order.status, isCourier: isCourier),
+                    _OrderTimeline(status: order.status, isCourier: isCourier, isFacture: isFacture),
 
                     const SizedBox(height: 24),
 
@@ -370,12 +379,59 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
                     // Order Details
                     Text(
-                      isCourier ? AppLocalizations.of(context)!.packageDetails : 'Order Details',
+                      isFacture
+                          ? 'Détails de la facture'
+                          : isCourier
+                              ? AppLocalizations.of(context)!.packageDetails
+                              : 'Order Details',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
 
-                    if (isCourier) ...[
+                    if (isFacture) ...[
+                      _DetailRow(label: 'Type', value: _billTypeLabel(order.billType)),
+                      _DetailRow(label: 'Référence', value: order.billReference ?? 'N/A'),
+                      _DetailRow(label: 'Montant', value: order.billAmount != null ? '${order.billAmount!.toStringAsFixed(3)} TND' : 'N/A'),
+                      if (order.senderPhone != null)
+                        _DetailRow(label: 'Téléphone', value: order.senderPhone!),
+                      const SizedBox(height: 16),
+                      // Show bill photo if customer uploaded one
+                      if (order.billPhotoUrl != null) ...[
+                        const Text('Photo de la facture', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () => _showFullScreenImage(context, order.billPhotoUrl!),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              order.billPhotoUrl!,
+                              height: 140,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      // Show receipt photo if driver uploaded one
+                      if (order.billReceiptUrl != null) ...[
+                        const Text('Reçu de paiement', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.success)),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () => _showFullScreenImage(context, order.billReceiptUrl!),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              order.billReceiptUrl!,
+                              height: 140,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ] else if (isCourier) ...[
                       _DetailRow(label: AppLocalizations.of(context)!.recipient, value: order.recipientName ?? 'N/A'),
                       _DetailRow(label: AppLocalizations.of(context)!.phone, value: order.recipientPhone ?? 'N/A'),
                       _DetailRow(label: AppLocalizations.of(context)!.item, value: order.packageDescription ?? 'Package'),
@@ -441,6 +497,36 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     );
   }
 
+  String _billTypeLabel(String? billType) {
+    switch (billType) {
+      case 'steg': return 'STEG (Électricité)';
+      case 'sonede': return 'SONEDE (Eau)';
+      case 'topnet': return 'Topnet (Internet)';
+      case 'autre': return 'Autre';
+      default: return billType ?? 'N/A';
+    }
+  }
+
+  void _showFullScreenImage(BuildContext context, String url) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: Image.network(url, fit: BoxFit.contain),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   String _formatTime(DateTime time) {
     final difference = time.difference(DateTime.now());
     if (difference.inMinutes < 60) return '${difference.inMinutes} minutes';
@@ -500,12 +586,36 @@ class _DetailRow extends StatelessWidget {
 class _OrderTimeline extends StatelessWidget {
   final OrderStatus status;
   final bool isCourier;
+  final bool isFacture;
 
-  const _OrderTimeline({required this.status, this.isCourier = false});
+  const _OrderTimeline({required this.status, this.isCourier = false, this.isFacture = false});
 
   @override
   Widget build(BuildContext context) {
-    final steps = isCourier
+    final steps = isFacture
+        ? [
+            _TimelineStep(
+              title: 'Commande confirmée',
+              isCompleted: status.index >= OrderStatus.confirmed.index,
+              icon: Icons.check_circle,
+            ),
+            _TimelineStep(
+              title: 'Livreur en route chez vous',
+              isCompleted: status.index >= OrderStatus.onTheWay.index,
+              icon: Icons.directions_bike,
+            ),
+            _TimelineStep(
+              title: 'Espèces collectées',
+              isCompleted: status.index >= OrderStatus.pickedUp.index,
+              icon: Icons.payments_rounded,
+            ),
+            _TimelineStep(
+              title: 'Facture payée',
+              isCompleted: status.index >= OrderStatus.delivered.index,
+              icon: Icons.receipt_long_rounded,
+            ),
+          ]
+        : isCourier
         ? [
             _TimelineStep(
               title: 'Request Confirmed',

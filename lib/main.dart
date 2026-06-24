@@ -16,10 +16,17 @@ import 'core/push/push_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize timezone database for scheduled bill reminder notifications.
+  tz_data.initializeTimeZones();
+  // Default to local device timezone.
+  tz.setLocalLocation(tz.getLocation('Africa/Tunis'));
 
   // dotenv MUST resolve first — SupabaseConfig and the Mapbox token both
   // read from it. Then run Supabase + Firebase in parallel.

@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
+import '../../bills/services/bill_reminder_service.dart';
 
 // ── Bill types ────────────────────────────────────────────────────────────────
 
@@ -195,7 +196,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
           .insert({
             'user_id': user.id,
             'order_type': 'facture',
-            'status': 'pending',
+            'status': 'ready',
             'pickup_address': _customerAddress!.toJson(),
             'delivery_address': _officeAddress!.toJson(),
             'bill_type': _selectedBillType!.dbValue,
@@ -212,6 +213,12 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
           .single();
 
       if (!mounted) return;
+
+      // Schedule a reminder ~28 days from now for the same bill type.
+      BillReminderService.instance.scheduleReminder(
+        billType: _selectedBillType!.dbValue,
+        billLabel: _selectedBillType!.label,
+      ).catchError((_) {});
 
       Navigator.pushReplacement(
         context,

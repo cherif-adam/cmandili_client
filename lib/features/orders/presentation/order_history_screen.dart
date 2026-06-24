@@ -337,6 +337,8 @@ class _OrderCard extends StatelessWidget {
         return Icons.local_shipping;
       case OrderType.billPayment:
         return Icons.receipt;
+      case OrderType.facture:
+        return Icons.electric_bolt_rounded;
     }
   }
 
@@ -350,6 +352,8 @@ class _OrderCard extends StatelessWidget {
         return Colors.indigo;
       case OrderType.billPayment:
         return Colors.teal;
+      case OrderType.facture:
+        return const Color(0xFFFF9500);
     }
   }
 
@@ -363,6 +367,8 @@ class _OrderCard extends StatelessWidget {
         return 'Courier Delivery';
       case OrderType.billPayment:
         return 'Bill Payment';
+      case OrderType.facture:
+        return 'Paiement de facture';
     }
   }
 }

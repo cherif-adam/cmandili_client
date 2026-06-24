@@ -15,6 +15,8 @@ import '../../../core/providers/theme_provider.dart';
 import 'edit_profile_screen.dart';
 import '../../notifications/presentation/notification_screen.dart';
 import '../../orders/presentation/order_history_screen.dart';
+import '../../bills/presentation/mes_factures_screen.dart';
+import '../../bills/services/bill_reminder_service.dart';
 import 'saved_addresses_screen.dart';
 import 'payment_methods_screen.dart';
 import 'help_support_screen.dart';
@@ -29,6 +31,15 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _profileRepo = ProfileRepository();
   final _imagePicker = ImagePicker();
+  bool _billRemindersEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    BillReminderService.instance.isEnabled().then((v) {
+      if (mounted) setState(() => _billRemindersEnabled = v);
+    });
+  }
 
   /// Tracks whether an upload is in progress so we can show the loading
   /// overlay and prevent double-taps.
@@ -160,6 +171,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 _buildProfileItem(
                   context,
+                  icon: Icons.electric_bolt_rounded,
+                  title: 'Mes factures',
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const MesFacturesScreen())),
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+                _buildProfileItem(
+                  context,
                   icon: Icons.person_outline_rounded,
                   title: AppLocalizations.of(context)!.editProfile,
                   onTap: () => Navigator.push(context,
@@ -194,6 +214,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: AppLocalizations.of(context)!.notifications,
                   onTap: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+                _buildProfileSwitch(
+                  context,
+                  icon: Icons.alarm_rounded,
+                  title: 'Rappels de factures',
+                  value: _billRemindersEnabled,
+                  onChanged: (v) async {
+                    setState(() => _billRemindersEnabled = v);
+                    await BillReminderService.instance.setEnabled(v);
+                  },
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),
@@ -400,6 +432,62 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ref.read(localizationProvider.notifier).setLocale(Locale(code));
         Navigator.pop(context);
       },
+    );
+  }
+
+  Widget _buildProfileSwitch(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required double screenWidth,
+    required double screenHeight,
+  }) {
+    return Container(
+      margin: EdgeInsets.only(bottom: screenHeight * 0.02),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(screenWidth * 0.05),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: screenWidth * 0.025,
+            offset: Offset(0, screenHeight * 0.006),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(screenWidth * 0.04),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(screenWidth * 0.025),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.primary, size: screenWidth * 0.055),
+            ),
+            SizedBox(width: screenWidth * 0.04),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: screenWidth * 0.04,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+            ),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: AppColors.primary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 

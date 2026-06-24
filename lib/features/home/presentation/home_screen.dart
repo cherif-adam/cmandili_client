@@ -23,6 +23,8 @@ import '../../orders/providers/order_provider.dart';
 import '../../orders/data/models/order.dart';
 import '../../ai_search/presentation/ai_search_screen.dart';
 import '../../../screens/ai_chat_screen.dart';
+import '../../courier/presentation/courier_screen.dart';
+import '../../facture/presentation/facture_screen.dart';
 
 import '../../restaurant/providers/restaurant_provider.dart';
 
@@ -672,7 +674,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             screenWidth: screenWidth,
             screenHeight: screenHeight,
           ),
-        
+
+        // Courier / Colis
+        if (selectedService == ServiceType.courier)
+          SliverToBoxAdapter(
+            child: CourierScreen(
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
+            ),
+          ),
+
+        // Facture / Bill payment
+        if (selectedService == ServiceType.billPayments)
+          SliverToBoxAdapter(
+            child: FactureScreen(
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
+            ),
+          ),
+
       ],
     ),
     );

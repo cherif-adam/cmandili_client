@@ -65,6 +65,9 @@ dependencies:
   # Phone call / external launches
   url_launcher: ^6.2.5
 
+  # Timezone support for scheduling local bill-reminder notifications
+  timezone: ^0.9.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

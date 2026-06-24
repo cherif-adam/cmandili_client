@@ -15,3 +15,9 @@ final userOrdersProvider = FutureProvider<List<Order>>((ref) async {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.getUserOrders();
 });
+
+// Future provider for fetching facture (bill payment) orders only
+final billOrdersProvider = FutureProvider<List<Order>>((ref) async {
+  final repository = ref.watch(orderRepositoryProvider);
+  return repository.getBillOrders();
+});

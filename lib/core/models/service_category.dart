@@ -30,7 +30,7 @@ class ServiceCategory {
       type: ServiceType.foodDelivery,
       nameEn: 'Food Delivery',
       nameAr: 'توصيل الطعام',
-      nameFr: 'Livraison de nourriture',
+      nameFr: 'Livraison',
       icon: '🍕',
       colorHex: '#FF6B35',
     ),
@@ -42,6 +42,24 @@ class ServiceCategory {
       nameFr: 'Supermarché',
       icon: '🛒',
       colorHex: '#4CAF50',
+    ),
+    ServiceCategory(
+      id: 'courier',
+      type: ServiceType.courier,
+      nameEn: 'Send Parcel',
+      nameAr: 'إرسال طرد',
+      nameFr: 'Colis',
+      icon: '📦',
+      colorHex: '#6C3DE1',
+    ),
+    ServiceCategory(
+      id: 'facture',
+      type: ServiceType.billPayments,
+      nameEn: 'Pay Bill',
+      nameAr: 'دفع الفاتورة',
+      nameFr: 'Facture',
+      icon: '🧾',
+      colorHex: '#FF9500',
     ),
   ];
 }

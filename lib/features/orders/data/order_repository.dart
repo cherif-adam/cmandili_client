@@ -217,6 +217,28 @@ class OrderRepository {
       'recipientPhone': dbJson['recipient_phone'],
       'packageDescription': dbJson['package_description'],
       'isRecipientAccepted': false,
+      'billType': dbJson['bill_type'],
+      'billReference': dbJson['bill_reference'],
+      'billAmount': dbJson['bill_amount'],
+      'billPhotoUrl': dbJson['bill_photo_url'],
+      'billReceiptUrl': dbJson['bill_receipt_url'],
+      'senderPhone': dbJson['sender_phone'],
     };
+  }
+
+  Future<List<Order>> getBillOrders() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    final response = await _supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('order_type', 'facture')
+        .order('created_at', ascending: false);
+
+    return (response as List)
+        .map((json) => Order.fromJson(_mapOrderFromDb(json)))
+        .toList();
   }
 }

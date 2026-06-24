@@ -17,6 +17,7 @@ enum OrderType {
   supermarket,
   courier,
   billPayment,
+  facture,
 }
 
 class Order {
@@ -48,6 +49,14 @@ class Order {
   final String? packageDescription;
   final bool isRecipientAccepted;
 
+  // Facture-specific fields
+  final String? billType;        // 'topnet' | 'steg' | 'sonede' | 'autre'
+  final String? billReference;   // contract / reference number
+  final double? billAmount;      // amount to be paid in cash
+  final String? billPhotoUrl;    // photo of bill uploaded by customer
+  final String? billReceiptUrl;  // payment receipt uploaded by driver
+  final String? senderPhone;     // customer phone for driver
+
   Order({
     required this.id,
     required this.userId,
@@ -74,6 +83,12 @@ class Order {
     this.recipientPhone,
     this.packageDescription,
     this.isRecipientAccepted = false,
+    this.billType,
+    this.billReference,
+    this.billAmount,
+    this.billPhotoUrl,
+    this.billReceiptUrl,
+    this.senderPhone,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -116,6 +131,12 @@ class Order {
       recipientPhone: json['recipientPhone'],
       packageDescription: json['packageDescription'],
       isRecipientAccepted: json['isRecipientAccepted'] ?? false,
+      billType: json['billType'],
+      billReference: json['billReference'],
+      billAmount: (json['billAmount'] as num?)?.toDouble(),
+      billPhotoUrl: json['billPhotoUrl'],
+      billReceiptUrl: json['billReceiptUrl'],
+      senderPhone: json['senderPhone'],
     );
   }
 
@@ -146,6 +167,12 @@ class Order {
       'recipientPhone': recipientPhone,
       'packageDescription': packageDescription,
       'isRecipientAccepted': isRecipientAccepted,
+      'billType': billType,
+      'billReference': billReference,
+      'billAmount': billAmount,
+      'billPhotoUrl': billPhotoUrl,
+      'billReceiptUrl': billReceiptUrl,
+      'senderPhone': senderPhone,
     };
   }
 
