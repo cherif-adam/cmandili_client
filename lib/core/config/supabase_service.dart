@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,51 +28,55 @@ class SupabaseService {
     bool ascending = true,
   }) async {
     try {
-      var query = client.from(table).select(select ?? '*');
-      
+      var filter = client.from(table).select(select ?? '*');
+
       if (eq != null) {
         eq.forEach((key, value) {
-          query = query.eq(key, value);
+          filter = filter.eq(key, value);
         });
       }
-      
-      if (limit != null) {
-        query = query.limit(limit);
-      }
-      
+
+      // .order()/.limit() return a PostgrestTransformBuilder, so widen the
+      // type before applying them rather than reassigning the filter variable.
+      PostgrestTransformBuilder<PostgrestList> transform = filter;
       if (orderBy != null) {
-        query = query.order(orderBy, ascending: ascending);
+        transform = transform.order(orderBy, ascending: ascending);
       }
-      
-      final response = await query;
+      if (limit != null) {
+        transform = transform.limit(limit);
+      }
+
+      final response = await transform;
       return response;
     } catch (e) {
-      throw Exception('Query failed: e');
+      throw Exception('Query failed: $e');
     }
   }
   
   // Real-time subscriptions
   RealtimeChannel subscribe(String table, String event, Function(dynamic) callback) {
     final channel = client.channel('custom-channel');
-    
-    channel.on(
-      RealtimeListenTypes.postgresChanges,
-      ChannelFilter(event: '*', schema: 'public', table: table),
-      (payload, [ref]) {
+
+    channel.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: table,
+      callback: (payload) {
         callback(payload);
       },
     ).subscribe();
-    
+
     return channel;
   }
   
   // File storage operations
   Future<String> uploadFile(String bucket, String path, String filePath) async {
     try {
-      final response = await client.storage.from(bucket).upload(path, filePath);
+      final response =
+          await client.storage.from(bucket).upload(path, File(filePath));
       return response;
     } catch (e) {
-      throw Exception('File upload failed: e');
+      throw Exception('File upload failed: $e');
     }
   }
   
