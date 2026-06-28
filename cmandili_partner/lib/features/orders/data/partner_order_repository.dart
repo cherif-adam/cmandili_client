@@ -94,6 +94,59 @@ class PartnerOrderRepository {
     return controller.stream;
   }
 
+  /// Stream a single order in real-time for the tracking screen.
+  ///
+  /// Supabase's `.stream()` can't join, so we listen for Postgres changes on
+  /// this order's row and re-fetch the full record (with items) on each change.
+  /// The first value is emitted immediately on subscribe.
+  Stream<Order> streamOrder(String orderId) {
+    final controller = StreamController<Order>();
+    bool inFlight = false;
+
+    Future<void> refresh() async {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        final row = await _supabase
+            .from('orders_with_customer')
+            .select('*, order_items(*, food_items(*), grocery_items(*))')
+            .eq('id', orderId)
+            .maybeSingle();
+        if (row != null && !controller.isClosed) {
+          controller.add(Order.fromJson(_mapOrderFromDb(row)));
+        }
+      } catch (e) {
+        if (!controller.isClosed) controller.addError(e);
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    unawaited(refresh());
+
+    final channel = _supabase
+        .channel('partner_order_$orderId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'orders',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: orderId,
+          ),
+          callback: (_) => refresh(),
+        )
+        .subscribe();
+
+    controller.onCancel = () {
+      _supabase.removeChannel(channel);
+      controller.close();
+    };
+
+    return controller.stream;
+  }
+
   /// Update the status of an order.
   ///
   /// Returns true on success, false on failure. The error is also rethrown so
@@ -212,7 +265,21 @@ class PartnerOrderRepository {
       'isRecipientAccepted': false,
       'customerName': dbJson['customer_name'],
       'customerPhone': dbJson['customer_phone'],
+      'selfDelivery': dbJson['self_delivery'] ?? false,
+      'noDriverNotifiedAt': dbJson['no_driver_notified_at'],
     };
+  }
+
+  /// Mark an order as partner-self-delivered.
+  ///
+  /// Sets self_delivery = true and advances status to 'on_the_way' so the
+  /// partner can use the existing "mark as delivered" flow to complete it.
+  /// driver_fee_cut will be 0 when the settlement trigger fires on delivery.
+  Future<void> confirmSelfDelivery(String orderId) async {
+    await _supabase.from('orders').update({
+      'self_delivery': true,
+      'status': 'on_the_way',
+    }).eq('id', orderId);
   }
 
   /// Parse the nested `order_items` array returned by the join.

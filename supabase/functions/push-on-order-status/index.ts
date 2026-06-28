@@ -342,6 +342,57 @@ serve(async (req: Request) => {
     });
   }
 
+  // ── Mode D: no drivers available → notify partner to self-deliver ──────────
+  // Triggered by notify_partner_no_drivers() DB function after the waterfall
+  // exhausts all nearby drivers. Sends a standard (non-alarm) push to the
+  // partner with an actionable message.
+  if (event === 'no_drivers') {
+    const { data: noDriverOrder } = await supabase
+      .from('orders')
+      .select('restaurant_id, supermarket_id')
+      .eq('id', order_id)
+      .maybeSingle();
+
+    if (!noDriverOrder) return new Response('Order not found', { status: 404 });
+
+    let noDriverPartnerUserId: string | null = null;
+    if (noDriverOrder.restaurant_id) {
+      const { data: p } = await supabase
+        .from('partners')
+        .select('user_id')
+        .eq('partner_type', 'restaurant')
+        .eq('entity_id', noDriverOrder.restaurant_id)
+        .maybeSingle();
+      noDriverPartnerUserId = p?.user_id ?? null;
+    } else if (noDriverOrder.supermarket_id) {
+      const { data: p } = await supabase
+        .from('partners')
+        .select('user_id')
+        .eq('partner_type', 'supermarket')
+        .eq('entity_id', noDriverOrder.supermarket_id)
+        .maybeSingle();
+      noDriverPartnerUserId = p?.user_id ?? null;
+    }
+
+    if (!noDriverPartnerUserId) {
+      return new Response('No partner found for order', { status: 200 });
+    }
+
+    const shortId = (order_id as string).slice(0, 8).toUpperCase();
+    const sent = await pushToUsers(
+      supabase, accessToken, projectId,
+      [noDriverPartnerUserId],
+      '🚫 Aucun livreur disponible',
+      `Aucun livreur n'a accepté la commande #${shortId}. Voulez-vous la livrer vous-même ?`,
+      { event: 'no_drivers', order_id, status: 'no_drivers' },
+      'cmandili_orders',
+    );
+
+    return new Response(JSON.stringify({ mode: 'no_drivers', sent }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   // ── Mode B: fan out to nearby online drivers (legacy / fallback) ───────────
   if (event === 'driver_fanout') {
     // Look up the order to get pickup coords via its restaurant/supermarket.

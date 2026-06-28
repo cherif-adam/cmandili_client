@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_partner/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -75,6 +76,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(l.warningAvatarFailed), backgroundColor: AppColors.warning),
         );
+      }
+
+      // Sync the picture to the customer-facing entity so the client app's
+      // restaurant/supermarket card shows it. The client reads
+      // restaurants.image_url; profiles.avatar_url is partner-only, so the new
+      // logo must be mirrored here too.
+      if (newAvatarUrl != null &&
+          profile != null &&
+          profile.entityId.isNotEmpty) {
+        final table =
+            profile.partnerType == 'restaurant' ? 'restaurants' : 'supermarkets';
+        try {
+          await Supabase.instance.client
+              .from(table)
+              .update({'image_url': newAvatarUrl})
+              .eq('id', profile.entityId);
+        } catch (e) {
+          debugPrint('Could not sync logo to $table.image_url: $e');
+        }
       }
 
       if (profile != null) {
