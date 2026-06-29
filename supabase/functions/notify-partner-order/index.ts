@@ -97,7 +97,9 @@ serve(async (req) => {
               type: "new_order",
               title: "Nouvelle commande !",
               body: `Commande #${payload.record.id.substring(0, 8).toUpperCase()} en attente d'acceptation.`,
-              orderId: payload.record.id,
+              // Key must be `order_id` to match CmandiliMessagingService.kt
+              // (reads data["order_id"]) and the rest of the codebase.
+              order_id: payload.record.id,
             },
             // Note: On N'INCLUT PAS le champ "notification" ici.
             // On veut que le message soit un "data message" pour que Flutter 

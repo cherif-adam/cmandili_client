@@ -31,7 +31,16 @@
           "package_name": "com.cmandili.mobile"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "785469526658-s2h25l0l7ijc85r9eiava5uq3oehev0c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cmandili.mobile",
+            "certificate_hash": "57cfd0d949cf691c437f79b8ab1be52ccc080dca"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCxJormHyNaQHljybifi1g5hRmRjBhX2oM"

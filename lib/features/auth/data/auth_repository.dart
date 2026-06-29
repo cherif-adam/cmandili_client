@@ -37,7 +37,7 @@ class User {
 class AuthRepository {
   final _supabase = supabase.Supabase.instance.client;
   final _googleSignIn = GoogleSignIn(
-    serverClientId: '1047309149711-09in2f2qoce5upqcno61ekuevp2e5hjk.apps.googleusercontent.com',
+    serverClientId: '785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com',
   );
   
   // Get current user
