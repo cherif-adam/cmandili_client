@@ -108,6 +108,127 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     super.dispose();
   }
 
+  static const _cancelReasons = [
+    'Erreur de commande',
+    'Délai trop long',
+    "J'ai changé d'avis",
+    'Autre',
+  ];
+
+  Future<void> _showCancelDialog(Order order) async {
+    String? selectedReason;
+    final hasDriver = order.driverId != null;
+
+    final confirmed = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlgState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text(
+              'Annuler la commande',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (hasDriver)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.orange.shade300),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.warning_amber_rounded,
+                              color: Colors.orange.shade700, size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Un livreur est déjà assigné à votre commande. '
+                              'Voulez-vous vraiment annuler ?',
+                              style: TextStyle(fontSize: 13, height: 1.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const Text(
+                    "Raison de l'annulation :",
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._cancelReasons.map(
+                    (r) => RadioListTile<String>(
+                      title: Text(r, style: const TextStyle(fontSize: 14)),
+                      value: r,
+                      groupValue: selectedReason,
+                      dense: true,
+                      activeColor: AppColors.primary,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (val) => setDlgState(() => selectedReason = val),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Retour'),
+              ),
+              ElevatedButton(
+                onPressed: selectedReason == null
+                    ? null
+                    : () => Navigator.pop(ctx, selectedReason),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Confirmer'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (confirmed == null || !mounted) return;
+
+    final success = await ref
+        .read(orderRepositoryProvider)
+        .cancelOrderByCustomer(widget.orderId, confirmed);
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Commande annulée avec succès.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Impossible d\'annuler — la commande est déjà en cours de préparation.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
   Future<void> _confirmReceipt() async {
     await ref
         .read(orderRepositoryProvider)
@@ -487,6 +608,63 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                             style: const TextStyle(color: AppColors.textSecondary)),
                       ],
                     ),
+
+                    // ── Cancellation section ──────────────────────────────
+                    if (order.status == OrderStatus.pending ||
+                        order.status == OrderStatus.confirmed) ...[
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _showCancelDialog(order),
+                          icon: const Icon(Icons.cancel_outlined,
+                              color: Colors.red, size: 18),
+                          label: const Text(
+                            'Annuler la commande',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ] else if (order.status != OrderStatus.cancelled &&
+                        order.status != OrderStatus.delivered &&
+                        order.status.index >= OrderStatus.pickedUp.index) ...[
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.info_outline,
+                                size: 18, color: AppColors.textSecondary),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'La commande est déjà en route. '
+                                'Pour annuler, contactez le support.',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
                   ],
                 ),
               );

@@ -152,6 +152,34 @@ class OrderRepository {
     }
   }
 
+  /// Customer-initiated cancellation. Only succeeds if the order belongs to the
+  /// current user AND is still in a cancellable status ('pending' or 'confirmed').
+  /// Returns true if a row was actually updated (i.e. cancellation was applied).
+  Future<bool> cancelOrderByCustomer(String orderId, String reason) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      final result = await _supabase
+          .from('orders')
+          .update({
+            'status': 'cancelled',
+            'cancellation_reason': reason,
+            'cancelled_by': 'customer',
+            'cancelled_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', orderId)
+          .eq('user_id', userId)
+          .inFilter('status', ['pending', 'confirmed'])
+          .select('id');
+
+      return (result as List).isNotEmpty;
+    } catch (e) {
+      debugPrint('Error cancelling order by customer: $e');
+      return false;
+    }
+  }
+
   // Stream order updates
   Stream<Order> streamOrder(String orderId) {
     return _supabase
