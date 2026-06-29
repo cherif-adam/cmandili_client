@@ -1,0 +1,25 @@
+project_id = "hoqlxxtphskgxktqjpfu"
+
+# ── Edge Functions ────────────────────────────────────────────────────────────
+# Every function REQUIRES a valid Supabase JWT (verify_jwt = true). This is the
+# platform default, but pinning it here makes it enforced-in-code so a future
+# `supabase functions deploy --no-verify-jwt` can't silently expose an endpoint.
+#
+# Why this is safe for each function:
+#   - ai-search:           the app invokes it via supabase.functions.invoke(),
+#                          which attaches the user's JWT (or anon key). It calls
+#                          OpenRouter (costs money per request) — leaving it
+#                          public would be a billing/abuse risk.
+#   - push-on-order-status: called from DB triggers with
+#                          `Authorization: Bearer <anon-key>` (app.edge_function_secret).
+#                          The anon key is a valid JWT, so verify_jwt accepts it.
+#   - notify-partner-order: same trigger-with-anon-key invocation pattern.
+
+[functions.ai-search]
+verify_jwt = true
+
+[functions.push-on-order-status]
+verify_jwt = true
+
+[functions.notify-partner-order]
+verify_jwt = true
