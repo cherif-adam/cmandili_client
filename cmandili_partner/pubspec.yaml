@@ -1,0 +1,94 @@
+name: cmandili_partner
+description: A premium food delivery partner application
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  
+  # State Management
+  flutter_riverpod: ^2.4.9
+  
+  # Firebase push notifications
+  firebase_core: ^2.27.0
+  firebase_messaging: ^14.7.20
+  flutter_local_notifications: ^17.0.0
+  permission_handler: ^11.1.0
+  
+  # Authentication (Removed for design-only mode)
+  google_sign_in: ^6.1.6
+  # sign_in_with_apple: ^5.0.0
+  supabase_flutter: ^2.3.0
+  
+  # Maps & Location (only used in order_tracking_screen)
+  mapbox_maps_flutter: ^2.3.0
+  geolocator: ^10.1.0
+
+  # UI & Images
+  cached_network_image: ^3.3.0
+  image_picker: ^1.0.7
+
+  # Utilities
+  intl: any
+  uuid: ^4.2.2
+  shared_preferences: ^2.2.2
+  flutter_dotenv: ^5.1.0
+
+  # HTTP — direct OpenRouter calls for the AI menu scanner
+  http: ^1.2.0
+
+  # Phone call / external launches
+  url_launcher: ^6.2.5
+
+  # Audio playback (customer voice notes attached to order items)
+  audioplayers: ^5.2.1
+
+  # Icons
+  cupertino_icons: ^1.0.6
+
+  # Code generation annotations
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+  freezed: ^2.4.5
+  build_runner: ^2.4.6
+  json_serializable: ^6.7.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo_partner.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+
+flutter:
+  generate: true
+  uses-material-design: true
+  
+  assets:
+    - .env
+    - assets/images/
+    - assets/animations/
+    - assets/icons/
+    - assets/audio/
+  
+  # fonts:
+  #   - family: Poppins
+  #     fonts:
+  #       - asset: assets/fonts/Poppins-Regular.ttf
+  #       - asset: assets/fonts/Poppins-Medium.ttf
+  #         weight: 500
+  #       - asset: assets/fonts/Poppins-SemiBold.ttf
+  #         weight: 600
+  #       - asset: assets/fonts/Poppins-Bold.ttf
+  #         weight: 700

@@ -787,7 +787,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
               Switch(
                 value: _saveRecipient,
                 onChanged: (v) => setState(() => _saveRecipient = v),
-                activeThumbColor: _purple,
+                activeColor: _purple,
                 activeTrackColor: _purple.withValues(alpha: 0.5),
               ),
             ],
