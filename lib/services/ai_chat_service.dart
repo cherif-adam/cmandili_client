@@ -31,7 +31,7 @@ class AiChatService {
   // Use a vision-capable model for image support
   static String get _model =>
       dotenv.env['OPENROUTER_CHAT_MODEL'] ??
-      'google/gemini-2.0-flash-001'; // ← vision-capable
+      'google/gemini-2.5-flash'; // ← vision-capable
 
   // ── Supabase ──────────────────────────────────────────────────────────────
 
