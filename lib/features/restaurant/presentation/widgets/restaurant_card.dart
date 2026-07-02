@@ -37,7 +37,7 @@ class RestaurantCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(screenWidth * 0.06),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: screenWidth * 0.038,
               offset: Offset(0, screenHeight * 0.006),
             ),
@@ -91,11 +91,11 @@ class RestaurantCard extends StatelessWidget {
                         vertical: screenHeight * 0.008,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(screenWidth * 0.05),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: screenWidth * 0.01,
                             offset: Offset(0, screenHeight * 0.0025),
                           ),
@@ -136,7 +136,7 @@ class RestaurantCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(screenWidth * 0.05),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: screenWidth * 0.01,
                             offset: Offset(0, screenHeight * 0.0025),
                           ),
@@ -161,7 +161,7 @@ class RestaurantCard extends StatelessWidget {
                           Text(
                             ' (${restaurant.reviewCount})',
                             style: TextStyle(
-                              color: AppColors.textSecondary.withOpacity(0.8),
+                              color: AppColors.textSecondary.withValues(alpha: 0.8),
                               fontSize: screenWidth * 0.03,
                             ),
                           ),
@@ -197,7 +197,7 @@ class RestaurantCard extends StatelessWidget {
                             vertical: screenHeight * 0.005,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.1),
+                            color: AppColors.success.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(screenWidth * 0.02),
                           ),
                           child: Text(
@@ -272,7 +272,7 @@ class RestaurantCard extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: screenWidth * 0.03,
-                color: AppColors.textSecondary.withOpacity(0.8),
+                color: AppColors.textSecondary.withValues(alpha: 0.8),
               ),
             ),
           ],

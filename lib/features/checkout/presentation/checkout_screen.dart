@@ -14,7 +14,6 @@ import '../../cart/providers/cart_provider.dart';
 import '../../orders/data/models/order.dart';
 import '../../orders/providers/order_provider.dart';
 import '../../promo/providers/promo_provider.dart';
-import '../../promo/data/promo_repository.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   final double subtotal;
@@ -379,7 +378,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -392,7 +391,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         hintText: AppLocalizations.of(context)!
                             .specialDeliveryInstructions,
                         hintStyle: TextStyle(
-                            color: AppColors.textLight.withOpacity(0.5)),
+                            color: AppColors.textLight.withValues(alpha: 0.5)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
@@ -464,7 +463,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   const BorderRadius.vertical(top: Radius.circular(32)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 20,
                   offset: const Offset(0, -5),
                 ),
@@ -480,7 +479,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     elevation: 8,
-                    shadowColor: AppColors.primary.withOpacity(0.4),
+                    shadowColor: AppColors.primary.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -531,7 +530,7 @@ class _AddressPicker extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -582,7 +581,7 @@ class _AddressPicker extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -640,7 +639,7 @@ class _ContactCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -721,7 +720,7 @@ class _PromoCodeField extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -844,7 +843,7 @@ class _PromoBadge extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
       ),
       child: Row(
@@ -894,7 +893,7 @@ class _OrderSummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -977,7 +976,7 @@ class _PaymentOption extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -988,7 +987,7 @@ class _PaymentOption extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
+                color: iconColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: iconColor),

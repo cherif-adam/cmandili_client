@@ -106,7 +106,7 @@ class _SupermarketCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(screenWidth * 0.06),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: screenWidth * 0.038,
               offset: Offset(0, screenHeight * 0.006),
             ),
@@ -155,7 +155,7 @@ class _SupermarketCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(screenWidth * 0.05),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: screenWidth * 0.01,
                           offset: Offset(0, screenHeight * 0.0025),
                         ),
@@ -196,7 +196,7 @@ class _SupermarketCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(screenWidth * 0.05),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: screenWidth * 0.01,
                           offset: Offset(0, screenHeight * 0.0025),
                         ),
@@ -221,7 +221,7 @@ class _SupermarketCard extends StatelessWidget {
                         Text(
                           ' (${supermarket.reviewCount})',
                           style: TextStyle(
-                            color: AppColors.textSecondary.withOpacity(0.8),
+                            color: AppColors.textSecondary.withValues(alpha: 0.8),
                             fontSize: screenWidth * 0.03,
                           ),
                         ),
@@ -258,7 +258,7 @@ class _SupermarketCard extends StatelessWidget {
                             vertical: screenHeight * 0.005,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withOpacity(0.1),
+                            color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(screenWidth * 0.02),
                           ),
                           child: Text(
@@ -333,7 +333,7 @@ class _SupermarketCard extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: screenWidth * 0.03,
-                color: AppColors.textSecondary.withOpacity(0.8),
+                color: AppColors.textSecondary.withValues(alpha: 0.8),
               ),
             ),
           ],

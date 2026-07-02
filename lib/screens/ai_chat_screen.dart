@@ -182,7 +182,7 @@ class _AiChatScreenState extends State<AiChatScreen>
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _kOrange.withOpacity(0.1),
+                  color: _kOrange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.camera_alt_rounded, color: _kOrange),
@@ -195,7 +195,7 @@ class _AiChatScreenState extends State<AiChatScreen>
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _kOrange.withOpacity(0.1),
+                  color: _kOrange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.photo_library_rounded, color: _kOrange),
@@ -352,8 +352,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.white,
-                    border: Border.all(color: Colors.white.withOpacity(0.6), width: 2),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 8, offset: const Offset(0, 2))],
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.6), width: 2),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Image.asset(
@@ -387,9 +387,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                     ],
                   ),
                 ),
-                _Pill(emoji: '🍽️', label: 'Food'),
+                const _Pill(emoji: '🍽️', label: 'Food'),
                 const SizedBox(width: 6),
-                _Pill(emoji: '📦', label: 'P2P'),
+                const _Pill(emoji: '📦', label: 'P2P'),
               ],
             ),
           ),
@@ -428,7 +428,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                         height: 140,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          boxShadow: [BoxShadow(color: _kOrange.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                          boxShadow: [BoxShadow(color: _kOrange.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -459,7 +459,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: isUser ? _kOrange.withOpacity(0.28) : _kAiBubbleShadow,
+                            color: isUser ? _kOrange.withValues(alpha: 0.28) : _kAiBubbleShadow,
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                           ),
@@ -570,12 +570,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                 border: Border.all(
                   color: _isListening
                       ? Colors.red.shade300
-                      : _kOrange.withOpacity(0.5),
+                      : _kOrange.withValues(alpha: 0.5),
                   width: 1.8,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: (_isListening ? Colors.red : _kOrange).withOpacity(0.08),
+                    color: (_isListening ? Colors.red : _kOrange).withValues(alpha: 0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -592,7 +592,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                   prefixIcon: Icon(
                     Icons.chat_bubble_outline_rounded,
-                    color: _kOrange.withOpacity(0.7),
+                    color: _kOrange.withValues(alpha: 0.7),
                     size: 20,
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
@@ -627,7 +627,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: _kOrange.withOpacity(0.45),
+                    color: _kOrange.withValues(alpha: 0.45),
                     blurRadius: 14,
                     offset: const Offset(0, 4),
                   ),
@@ -657,9 +657,9 @@ class _InputActionBtn extends StatelessWidget {
       child: Container(
         width: 42, height: 42,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           shape: BoxShape.circle,
-          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
         ),
         child: Icon(icon, color: color, size: 20),
       ),
@@ -688,9 +688,9 @@ class _MicButton extends StatelessWidget {
         child: Container(
           width: 42, height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFFFF9800).withOpacity(0.1),
+            color: const Color(0xFFFF9800).withValues(alpha: 0.1),
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.3), width: 1.5),
+            border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3), width: 1.5),
           ),
           child: const Icon(Icons.mic_rounded, color: Color(0xFFFF9800), size: 20),
         ),
@@ -712,7 +712,7 @@ class _MicButton extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.red.withOpacity(0.4 + pulseController.value * 0.2),
+                    color: Colors.red.withValues(alpha: 0.4 + pulseController.value * 0.2),
                     blurRadius: 12 + pulseController.value * 6,
                     spreadRadius: pulseController.value * 3,
                   ),
@@ -763,7 +763,7 @@ class _ListeningBanner extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(horizontal: 2),
                   width: 5, height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.red.shade600.withOpacity(0.3 + t * 0.7),
+                    color: Colors.red.shade600.withValues(alpha: 0.3 + t * 0.7),
                     shape: BoxShape.circle,
                   ),
                 );
@@ -822,9 +822,9 @@ class _AiAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white,
-        border: Border.all(color: const Color(0xFFFF9800).withOpacity(0.3), width: 1.5),
+        border: Border.all(color: const Color(0xFFFF9800).withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
-          BoxShadow(color: const Color(0xFFFF9800).withOpacity(0.15), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(color: const Color(0xFFFF9800).withValues(alpha: 0.15), blurRadius: 6, offset: const Offset(0, 2)),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -851,7 +851,7 @@ class _AppBarBtn extends StatelessWidget {
       child: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, color: Colors.white, size: 18),
@@ -872,9 +872,9 @@ class _Pill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.22),
+        color: Colors.white.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.35), width: 1),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -946,7 +946,7 @@ class _BouncingDot extends StatelessWidget {
           transform: Matrix4.translationValues(0, offset, 0),
           width: 8, height: 8,
           decoration: BoxDecoration(
-            color: _kOrange.withOpacity(0.55 + 0.45 * math.sin(t * math.pi)),
+            color: _kOrange.withValues(alpha: 0.55 + 0.45 * math.sin(t * math.pi)),
             shape: BoxShape.circle,
           ),
         );
@@ -1000,7 +1000,7 @@ class _FoodCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(colors: [_kOrangeLight, _kOrange]),
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [BoxShadow(color: _kOrange.withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2))],
+                          boxShadow: [BoxShadow(color: _kOrange.withValues(alpha: 0.4), blurRadius: 6, offset: const Offset(0, 2))],
                         ),
                         child: Text(
                           product.price == 0.0 ? 'Gratuit' : '${product.price.toStringAsFixed(3)} TND',
@@ -1025,14 +1025,14 @@ class _FoodCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.storefront_rounded, size: 11, color: _kTextMid.withOpacity(0.7)),
+                            Icon(Icons.storefront_rounded, size: 11, color: _kTextMid.withValues(alpha: 0.7)),
                             const SizedBox(width: 3),
                             Expanded(
                               child: Text(
                                 product.sourceName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(fontSize: 10, color: _kTextMid.withOpacity(0.7)),
+                                style: TextStyle(fontSize: 10, color: _kTextMid.withValues(alpha: 0.7)),
                               ),
                             ),
                           ],
@@ -1043,10 +1043,10 @@ class _FoodCard extends StatelessWidget {
                         ],
                         // ── Tap hint ───────────────────────────────────────
                         const Spacer(),
-                        Row(
+                        const Row(
                           children: [
-                            const Icon(Icons.touch_app_rounded, size: 11, color: _kOrange),
-                            const SizedBox(width: 3),
+                            Icon(Icons.touch_app_rounded, size: 11, color: _kOrange),
+                            SizedBox(width: 3),
                             Text('Commander', style: TextStyle(fontSize: 10, color: _kOrange, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -1144,12 +1144,12 @@ class _DeliveryCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFF1A1A2E), Color(0xFF16213E)], begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: _kOrange.withOpacity(0.28), blurRadius: 20, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: _kOrange.withValues(alpha: 0.28), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Stack(
         children: [
-          Positioned(right: -18, top: -18, child: _DecorCircle(size: 110, opacity: 0.05)),
-          Positioned(right: 20, bottom: -28, child: _DecorCircle(size: 85, opacity: 0.05)),
+          const Positioned(right: -18, top: -18, child: _DecorCircle(size: 110, opacity: 0.05)),
+          const Positioned(right: 20, bottom: -28, child: _DecorCircle(size: 85, opacity: 0.05)),
           Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -1159,7 +1159,7 @@ class _DeliveryCard extends StatelessWidget {
                   children: [
                     Container(
                       width: 46, height: 46,
-                      decoration: BoxDecoration(color: _kOrange.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
+                      decoration: BoxDecoration(color: _kOrange.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
                       child: const Center(child: Text('📦', style: TextStyle(fontSize: 24))),
                     ),
                     const SizedBox(width: 10),
@@ -1188,8 +1188,8 @@ class _DeliveryCard extends StatelessWidget {
                   style: TextStyle(color: Colors.white60, fontSize: 12, height: 1.5),
                 ),
                 const Spacer(),
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     _Feature(icon: '📍', label: 'Suivi live'),
                     SizedBox(width: 12),
                     _Feature(icon: '⚡', label: 'Express'),
@@ -1214,7 +1214,7 @@ class _DeliveryCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(colors: [_kOrangeLight, _kOrangeDark], begin: Alignment.centerLeft, end: Alignment.centerRight),
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [BoxShadow(color: _kOrange.withOpacity(0.45), blurRadius: 12, offset: const Offset(0, 4))],
+                      boxShadow: [BoxShadow(color: _kOrange.withValues(alpha: 0.45), blurRadius: 12, offset: const Offset(0, 4))],
                     ),
                     child: const Center(
                       child: Text('Créer une livraison  →', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
@@ -1257,7 +1257,7 @@ class _DecorCircle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: size, height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(opacity)),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: opacity)),
     );
   }
 }

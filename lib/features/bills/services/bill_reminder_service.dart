@@ -70,7 +70,7 @@ class BillReminderService {
       'Rappel facture $billLabel',
       'Votre facture $billLabel arrive peut-être à échéance. Payez-la facilement avec Amena !',
       fireAt,
-      NotificationDetails(
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           _kChannelId,
           _kChannelName,
@@ -79,7 +79,7 @@ class BillReminderService {
           priority: Priority.defaultPriority,
           icon: '@mipmap/ic_launcher',
         ),
-        iOS: const DarwinNotificationDetails(),
+        iOS: DarwinNotificationDetails(),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation:

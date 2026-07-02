@@ -108,7 +108,7 @@ class OrderHistoryScreen extends ConsumerWidget {
           Container(
             padding: EdgeInsets.all(sw * 0.06),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -159,7 +159,7 @@ class _OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(sw * 0.04),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: sw * 0.025,
             offset: Offset(0, sh * 0.005),
           ),
@@ -188,7 +188,7 @@ class _OrderCard extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(sw * 0.025),
                       decoration: BoxDecoration(
-                        color: _getTypeColor().withOpacity(0.1),
+                        color: _getTypeColor().withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(sw * 0.03),
                       ),
                       child: Icon(
@@ -288,10 +288,10 @@ class _OrderCard extends StatelessWidget {
         vertical: sw * 0.012,
       ),
       decoration: BoxDecoration(
-        color: _getStatusColor().withOpacity(0.1),
+        color: _getStatusColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(sw * 0.05),
         border: Border.all(
-          color: _getStatusColor().withOpacity(0.3),
+          color: _getStatusColor().withValues(alpha: 0.3),
           width: 1,
         ),
       ),

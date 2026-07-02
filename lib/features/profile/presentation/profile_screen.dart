@@ -306,7 +306,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               height: outerSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
               ),
             ),
 
@@ -324,7 +324,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 height: radius * 2,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.45),
+                  color: Colors.black.withValues(alpha: 0.45),
                 ),
                 child: const Center(
                   child: SizedBox(
@@ -353,7 +353,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     border: Border.all(color: Colors.white, width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -451,7 +451,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(screenWidth * 0.05),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: screenWidth * 0.025,
             offset: Offset(0, screenHeight * 0.006),
           ),
@@ -464,7 +464,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             Container(
               padding: EdgeInsets.all(screenWidth * 0.025),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: AppColors.primary, size: screenWidth * 0.055),
@@ -528,7 +528,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(screenWidth * 0.05),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: screenWidth * 0.025,
             offset: Offset(0, screenHeight * 0.006),
           ),
@@ -546,7 +546,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Container(
                   padding: EdgeInsets.all(screenWidth * 0.025),
                   decoration: BoxDecoration(
-                    color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+                    color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -575,7 +575,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           .textTheme
                           .bodyMedium
                           ?.color
-                          ?.withOpacity(0.6),
+                          ?.withValues(alpha: 0.6),
                       fontSize: screenWidth * 0.035,
                     ),
                   ),
@@ -588,7 +588,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         .textTheme
                         .bodyMedium
                         ?.color
-                        ?.withOpacity(0.4),
+                        ?.withValues(alpha: 0.4),
                   ),
                 ],
               ],

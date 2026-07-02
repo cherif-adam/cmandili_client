@@ -73,7 +73,7 @@ class MesFacturesScreen extends ConsumerWidget {
           Container(
             padding: EdgeInsets.all(sw * 0.06),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF9500).withOpacity(0.1),
+              color: const Color(0xFFFF9500).withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.receipt_long_outlined, size: sw * 0.15, color: const Color(0xFFFF9500)),
@@ -109,7 +109,7 @@ class _FactureCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(sw * 0.04),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: sw * 0.025,
             offset: Offset(0, sh * 0.005),
           ),
@@ -133,7 +133,7 @@ class _FactureCard extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(sw * 0.03),
                       decoration: BoxDecoration(
-                        color: billInfo.color.withOpacity(0.12),
+                        color: billInfo.color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(sw * 0.03),
                       ),
                       child: Icon(billInfo.icon, color: billInfo.color, size: sw * 0.07),
@@ -241,9 +241,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: sw * 0.025, vertical: sw * 0.012),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(sw * 0.05),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,

@@ -92,7 +92,7 @@ class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
                   width: size.width * 0.22,
                   height: size.width * 0.22,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.phone_outlined, size: 56, color: AppColors.primary),

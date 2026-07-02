@@ -75,7 +75,7 @@ class _RestaurantDetailScreenState
             leading: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 shape: BoxShape.circle,
               ),
               child: IconButton(
@@ -90,7 +90,7 @@ class _RestaurantDetailScreenState
                   return Container(
                     margin: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -117,7 +117,7 @@ class _RestaurantDetailScreenState
               Container(
                 margin: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
@@ -160,7 +160,7 @@ class _RestaurantDetailScreenState
                           end: Alignment.bottomCenter,
                           colors: [
                             Colors.transparent,
-                            Colors.black.withOpacity(0.7),
+                            Colors.black.withValues(alpha: 0.7),
                           ],
                         ),
                       ),
@@ -225,7 +225,7 @@ class _RestaurantDetailScreenState
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -299,11 +299,11 @@ class _RestaurantDetailScreenState
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                             side: BorderSide(
-                              color: isSelected ? Colors.transparent : AppColors.textLight.withOpacity(0.2),
+                              color: isSelected ? Colors.transparent : AppColors.textLight.withValues(alpha: 0.2),
                             ),
                           ),
                           elevation: isSelected ? 4 : 0,
-                          shadowColor: AppColors.primary.withOpacity(0.4),
+                          shadowColor: AppColors.primary.withValues(alpha: 0.4),
                         ),
                       ),
                     );
@@ -358,7 +358,7 @@ class _RestaurantDetailScreenState
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
@@ -410,7 +410,7 @@ class _RestaurantDetailScreenState
         Text(
           label,
           style: TextStyle(
-            color: AppColors.textSecondary.withOpacity(0.8),
+            color: AppColors.textSecondary.withValues(alpha: 0.8),
             fontSize: 12,
           ),
         ),
@@ -422,7 +422,7 @@ class _RestaurantDetailScreenState
     return Container(
       height: 30,
       width: 1,
-      color: AppColors.textLight.withOpacity(0.2),
+      color: AppColors.textLight.withValues(alpha: 0.2),
     );
   }
 }
@@ -463,7 +463,7 @@ class _FoodItemCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -526,7 +526,7 @@ class _FoodItemCard extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.1),
+                                color: AppColors.success.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -610,7 +610,7 @@ class _FoodItemCard extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.1),
+                                color: AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
@@ -856,7 +856,7 @@ class _FoodItemCard extends ConsumerWidget {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 20,
                       offset: const Offset(0, -5),
                     ),
@@ -904,7 +904,7 @@ class _FoodItemCard extends ConsumerWidget {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        disabledBackgroundColor: AppColors.primary.withOpacity(0.4),
+                        disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.4),
                         disabledForegroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),

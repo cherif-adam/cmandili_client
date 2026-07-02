@@ -313,7 +313,7 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     elevation: 8,
-                    shadowColor: AppColors.primary.withOpacity(0.4),
+                    shadowColor: AppColors.primary.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(screenWidth * 0.04),
                     ),
@@ -341,7 +341,7 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
         borderRadius: BorderRadius.circular(screenWidth * 0.05),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: screenWidth * 0.025,
             offset: Offset(0, screenHeight * 0.006),
           ),
@@ -357,7 +357,7 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
         decoration: InputDecoration(
           hintText: AppLocalizations.of(context)!.typeInstructionsHint,
           hintStyle: TextStyle(
-            color: AppColors.textSecondary.withOpacity(0.5),
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
             fontSize: screenWidth * 0.038,
           ),
           border: OutlineInputBorder(
@@ -381,7 +381,7 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
               borderRadius: BorderRadius.circular(screenWidth * 0.05),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: screenWidth * 0.025,
                   offset: Offset(0, screenHeight * 0.006),
                 ),
@@ -451,14 +451,14 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
                         boxShadow: _isRecording
                             ? [
                                 BoxShadow(
-                                  color: AppColors.error.withOpacity(0.4 * _pulseController.value),
+                                  color: AppColors.error.withValues(alpha: 0.4 * _pulseController.value),
                                   blurRadius: 20 + (20 * _pulseController.value),
                                   spreadRadius: 5 * _pulseController.value,
                                 ),
                               ]
                             : [
                                 BoxShadow(
-                                  color: AppColors.primary.withOpacity(0.3),
+                                  color: AppColors.primary.withValues(alpha: 0.3),
                                   blurRadius: 20,
                                 ),
                               ],

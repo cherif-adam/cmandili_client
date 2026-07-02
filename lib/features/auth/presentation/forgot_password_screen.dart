@@ -108,12 +108,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
           Positioned(
             top: -sh * 0.12,
             right: -sw * 0.2,
-            child: _circle(sw * 0.6, Colors.white.withOpacity(0.12)),
+            child: _circle(sw * 0.6, Colors.white.withValues(alpha: 0.12)),
           ),
           Positioned(
             bottom: -sh * 0.08,
             left: -sw * 0.15,
-            child: _circle(sw * 0.5, Colors.white.withOpacity(0.10)),
+            child: _circle(sw * 0.5, Colors.white.withValues(alpha: 0.10)),
           ),
 
           // ── Content ───────────────────────────────────────────────────
@@ -144,7 +144,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                               Container(
                                 padding: EdgeInsets.all(sw * 0.05),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -169,7 +169,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: sw * 0.038,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                   height: 1.5,
                                 ),
                               ),
@@ -186,16 +186,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                   child: Container(
                                     padding: EdgeInsets.all(sw * 0.06),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.92),
+                                      color: Colors.white.withValues(alpha: 0.92),
                                       borderRadius:
                                           BorderRadius.circular(sw * 0.07),
                                       border: Border.all(
-                                        color: Colors.white.withOpacity(0.3),
+                                        color: Colors.white.withValues(alpha: 0.3),
                                         width: 1.5,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.12),
+                                          color: Colors.black.withValues(alpha: 0.12),
                                           blurRadius: sw * 0.07,
                                           offset: Offset(0, sh * 0.012),
                                         ),
@@ -238,7 +238,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                                 foregroundColor: Colors.white,
                                                 elevation: 8,
                                                 shadowColor: AppColors.primary
-                                                    .withOpacity(0.4),
+                                                    .withValues(alpha: 0.4),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(
@@ -337,18 +337,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
-          color: AppColors.textSecondary.withOpacity(0.8),
+          color: AppColors.textSecondary.withValues(alpha: 0.8),
           fontSize: sw * 0.038,
         ),
         prefixIcon: Icon(icon,
-            color: AppColors.primary.withOpacity(0.7), size: sw * 0.06),
+            color: AppColors.primary.withValues(alpha: 0.7), size: sw * 0.06),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
                   isObscure
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondary.withOpacity(0.5),
+                  color: AppColors.textSecondary.withValues(alpha: 0.5),
                   size: sw * 0.055,
                 ),
                 onPressed: onToggle,
@@ -363,7 +363,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(sw * 0.04),
           borderSide: BorderSide(
-              color: AppColors.textLight.withOpacity(0.1), width: 1.5),
+              color: AppColors.textLight.withValues(alpha: 0.1), width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(sw * 0.04),

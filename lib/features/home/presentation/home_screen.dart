@@ -74,7 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           heroTag: 'ai_chat_fab',
           onPressed: () => Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => AiChatScreen()),  // ← no const
+            MaterialPageRoute(builder: (_) => const AiChatScreen()),  // ← no const
           ),
           backgroundColor: const Color(0xFF6C3DE1),
           tooltip: 'AI Chat',
@@ -107,7 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 borderRadius: BorderRadius.circular(screenWidth * 0.06),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: screenWidth * 0.05,
                     offset: Offset(0, screenHeight * 0.012),
                   ),
@@ -221,7 +221,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       SizedBox(width: screenWidth * 0.01),
                                       Icon(
                                         Icons.keyboard_arrow_down,
-                                        color: Colors.white.withOpacity(0.8),
+                                        color: Colors.white.withValues(alpha: 0.8),
                                         size: screenWidth * 0.05,
                                       ),
                                     ],
@@ -232,7 +232,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(screenWidth * 0.03),
                             ),
                             child: Stack(
@@ -304,7 +304,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(screenWidth * 0.04),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: screenWidth * 0.025,
                       offset: Offset(0, screenHeight * 0.006),
                     ),
@@ -324,7 +324,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   decoration: InputDecoration(
                     hintText: AppLocalizations.of(context)!.searchRestaurants,
                     hintStyle: TextStyle(
-                      color: AppColors.textSecondary.withOpacity(0.5),
+                      color: AppColors.textSecondary.withValues(alpha: 0.5),
                       fontSize: screenWidth * 0.038,
                     ),
                     prefixIcon: Icon(
@@ -395,7 +395,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFFF9500).withOpacity(0.4),
+                      color: const Color(0xFFFF9500).withValues(alpha: 0.4),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -409,7 +409,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: Icon(
                         Icons.local_offer,
                         size: 150,
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                       ),
                     ),
                     Padding(
@@ -526,11 +526,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(screenWidth * 0.05),
                           side: BorderSide(
-                            color: isSelected ? Colors.transparent : AppColors.textLight.withOpacity(0.2),
+                            color: isSelected ? Colors.transparent : AppColors.textLight.withValues(alpha: 0.2),
                           ),
                         ),
                         elevation: isSelected ? 4 : 0,
-                        shadowColor: AppColors.primary.withOpacity(0.4),
+                        shadowColor: AppColors.primary.withValues(alpha: 0.4),
                       ),
                     ),
                   );
@@ -712,7 +712,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         duration: const Duration(milliseconds: 300),
         padding: EdgeInsets.all(screenWidth * 0.03),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(screenWidth * 0.04),
         ),
         child: Icon(
@@ -750,9 +750,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Container(
                 padding: EdgeInsets.all(sw * 0.04),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(sw * 0.04),
-                  border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
                 ),
                 child: Row(
                   children: [
@@ -807,7 +807,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             duration: const Duration(milliseconds: 300),
             padding: EdgeInsets.all(screenWidth * 0.03),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+              color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : Colors.transparent,
               borderRadius: BorderRadius.circular(screenWidth * 0.04),
             ),
             child: Icon(

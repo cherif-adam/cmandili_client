@@ -40,14 +40,14 @@ class FavoritesScreen extends ConsumerWidget {
                   Icon(
                     Icons.favorite_border_rounded,
                     size: screenWidth * 0.2,
-                    color: AppColors.textLight.withOpacity(0.5),
+                    color: AppColors.textLight.withValues(alpha: 0.5),
                   ),
                   SizedBox(height: screenHeight * 0.02),
                   Text(
                     AppLocalizations.of(context)!.noFavoritesYet,
                     style: TextStyle(
                       fontSize: screenWidth * 0.045,
-                      color: AppColors.textSecondary.withOpacity(0.8),
+                      color: AppColors.textSecondary.withValues(alpha: 0.8),
                       fontWeight: FontWeight.w600,
                     ),
                   ),

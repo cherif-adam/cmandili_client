@@ -155,7 +155,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 8,
               ),
             ],
@@ -206,7 +206,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6C3DE1).withOpacity(0.12),
+              color: const Color(0xFF6C3DE1).withValues(alpha: 0.12),
               blurRadius: 20,
               offset: const Offset(0, 6),
             ),
@@ -294,7 +294,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                 borderRadius: BorderRadius.circular(16),
                 gradient: LinearGradient(
                   colors: [
-                    Colors.black.withOpacity(0.5),
+                    Colors.black.withValues(alpha: 0.5),
                     Colors.transparent,
                   ],
                   begin: Alignment.bottomCenter,
@@ -392,7 +392,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF6C3DE1).withOpacity(0.1),
+                        color: const Color(0xFF6C3DE1).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(c,
@@ -466,7 +466,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.error.withOpacity(0.1),
+              color: AppColors.error.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child:
@@ -509,7 +509,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6C3DE1).withOpacity(0.3),
+                  color: const Color(0xFF6C3DE1).withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -627,7 +627,7 @@ class _AnimatedIconButtonState extends State<_AnimatedIconButton> {
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: widget.color.withOpacity(0.08),
+              color: widget.color.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: Icon(widget.icon, color: widget.color, size: 22),
@@ -713,10 +713,10 @@ class _SourceTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFF6C3DE1).withOpacity(0.08),
+          color: const Color(0xFF6C3DE1).withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: const Color(0xFF6C3DE1).withOpacity(0.2)),
+              color: const Color(0xFF6C3DE1).withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
@@ -747,7 +747,7 @@ class _ConfidenceBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -764,17 +764,17 @@ class _AiSpinner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return const SizedBox(
       width: 56,
       height: 56,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const CircularProgressIndicator(
+          CircularProgressIndicator(
             strokeWidth: 3,
             valueColor: AlwaysStoppedAnimation(Color(0xFF6C3DE1)),
           ),
-          const Icon(Icons.auto_awesome_rounded,
+          Icon(Icons.auto_awesome_rounded,
               color: Color(0xFF6C3DE1), size: 20),
         ],
       ),
@@ -808,12 +808,12 @@ class _ExampleQuery extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isImageOption
-                ? const Color(0xFF6C3DE1).withOpacity(0.3)
-                : Colors.grey.withOpacity(0.15),
+                ? const Color(0xFF6C3DE1).withValues(alpha: 0.3)
+                : Colors.grey.withValues(alpha: 0.15),
           ),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04), blurRadius: 8),
+                color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
           ],
         ),
         child: Row(
@@ -841,7 +841,7 @@ class _ExampleQuery extends StatelessWidget {
                   ? Icons.camera_alt_rounded
                   : Icons.north_west_rounded,
               size: 16,
-              color: const Color(0xFF6C3DE1).withOpacity(0.5),
+              color: const Color(0xFF6C3DE1).withValues(alpha: 0.5),
             ),
           ],
         ),
