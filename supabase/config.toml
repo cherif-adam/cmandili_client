@@ -10,12 +10,18 @@ project_id = "hoqlxxtphskgxktqjpfu"
 #                          which attaches the user's JWT (or anon key). It calls
 #                          OpenRouter (costs money per request) — leaving it
 #                          public would be a billing/abuse risk.
+#   - ai-chat:             same as ai-search — the in-app assistant FAB. Holds the
+#                          OpenRouter key server-side; public access would expose
+#                          the paid account to abuse.
 #   - push-on-order-status: called from DB triggers with
 #                          `Authorization: Bearer <anon-key>` (app.edge_function_secret).
 #                          The anon key is a valid JWT, so verify_jwt accepts it.
 #   - notify-partner-order: same trigger-with-anon-key invocation pattern.
 
 [functions.ai-search]
+verify_jwt = true
+
+[functions.ai-chat]
 verify_jwt = true
 
 [functions.push-on-order-status]

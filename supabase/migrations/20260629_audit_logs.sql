@@ -16,3 +16,5 @@ CREATE INDEX IF NOT EXISTS audit_logs_created_at_idx  ON public.audit_logs(creat
 
 -- Only the service_role key can write; no RLS policies = no anon/user access
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+cd C:\Users\user\Desktop\cmandili\admin
+npm run dev
