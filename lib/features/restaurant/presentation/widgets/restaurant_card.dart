@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/venue_hours.dart';
 import '../../../home/data/models/restaurant.dart';
 import '../restaurant_detail_screen.dart';
 
@@ -15,7 +16,10 @@ class RestaurantCard extends StatelessWidget {
     final size = MediaQuery.of(context).size;
     final screenHeight = size.height;
     final screenWidth = size.width;
-    
+    // "Ouvre à HH:MM" hint — null when open or when no hours are configured.
+    final opensAt =
+        restaurant.isOpen ? null : nextOpeningLabel(restaurant.openingTime);
+
     return GestureDetector(
       onTap: () async {
         final result = await Navigator.push(
@@ -80,7 +84,53 @@ class RestaurantCard extends StatelessWidget {
                           child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
                         ),
                   ),
-                  
+
+                  // Closed state: dim the image + centered "Fermé" pill.
+                  // Closed venues stay tappable — browsing is allowed, ordering
+                  // is blocked in the detail screen (ghost-order fix).
+                  if (!restaurant.isOpen)
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(screenWidth * 0.06),
+                          topRight: Radius.circular(screenWidth * 0.06),
+                        ),
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          alignment: Alignment.center,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.04,
+                              vertical: screenHeight * 0.01,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              borderRadius: BorderRadius.circular(screenWidth * 0.06),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.lock_rounded,
+                                  size: screenWidth * 0.04,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: screenWidth * 0.015),
+                                Text(
+                                  'Fermé',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: screenWidth * 0.035,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Status Badge
                   Positioned(
                     top: screenHeight * 0.02,
@@ -121,6 +171,52 @@ class RestaurantCard extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  // Category Badge (first category, e.g. "Pâtisseries") —
+                  // placed after the closed-state overlay so it stays visible
+                  // above the dim, like the time and rating badges.
+                  if (restaurant.categories.isNotEmpty)
+                    Positioned(
+                      bottom: screenHeight * 0.02,
+                      left: screenWidth * 0.04,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.03,
+                          vertical: screenHeight * 0.008,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(screenWidth * 0.05),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: screenWidth * 0.01,
+                              offset: Offset(0, screenHeight * 0.0025),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              restaurant.categories.first == 'Pâtisseries'
+                                  ? Icons.cake_rounded
+                                  : Icons.restaurant_menu_rounded,
+                              size: screenWidth * 0.035,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(width: screenWidth * 0.01),
+                            Text(
+                              restaurant.categories.first,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.03,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
 
                   // Rating Badge
                   Positioned(
@@ -211,6 +307,27 @@ class RestaurantCard extends StatelessWidget {
                         ),
                     ],
                   ),
+                  if (opensAt != null) ...[
+                    SizedBox(height: screenHeight * 0.006),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          size: screenWidth * 0.035,
+                          color: AppColors.error,
+                        ),
+                        SizedBox(width: screenWidth * 0.015),
+                        Text(
+                          opensAt,
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontSize: screenWidth * 0.032,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   SizedBox(height: screenHeight * 0.01),
                   Text(
                     restaurant.description,

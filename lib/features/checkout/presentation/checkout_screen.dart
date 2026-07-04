@@ -15,6 +15,13 @@ import '../../orders/data/models/order.dart';
 import '../../orders/providers/order_provider.dart';
 import '../../promo/providers/promo_provider.dart';
 
+/// Shown when the cart's restaurant/supermarket is closed at placement time —
+/// either caught by the fresh `_venueStillOpen()` re-check or mapped from the
+/// server's `enforce_venue_open` trigger ('VENUE_CLOSED'). French fallback;
+/// full localization is tracked as a separate task.
+const String _kVenueClosedMessage =
+    'Ce commerce est actuellement fermé et ne peut pas accepter de commande.';
+
 class CheckoutScreen extends ConsumerStatefulWidget {
   final double subtotal;
   final double deliveryFee;
@@ -89,6 +96,40 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   // ── Order placement ────────────────────────────────────────────────────────
 
+  /// Fresh server check that the cart's venue is still open, moments before we
+  /// place the order — defends against the venue closing (or the auto-close
+  /// cron firing) while the user lingered in the cart. Colis/facture never
+  /// reach this screen. Returns true when ordering may proceed; on a network
+  /// error it returns true and lets the `enforce_venue_open` DB trigger be the
+  /// authoritative backstop.
+  Future<bool> _venueStillOpen() async {
+    final cartItems = ref.read(cartProvider);
+    if (cartItems.isEmpty) return true;
+    final first = cartItems.first;
+    final restaurantId = first.foodItem?.restaurantId;
+    final supermarketId = first.groceryItem?.supermarketId;
+    try {
+      if (restaurantId != null) {
+        final r = await Supabase.instance.client
+            .from('restaurants')
+            .select('is_open')
+            .eq('id', restaurantId)
+            .maybeSingle();
+        return (r?['is_open'] as bool?) ?? true;
+      } else if (supermarketId != null) {
+        final s = await Supabase.instance.client
+            .from('supermarkets')
+            .select('is_open')
+            .eq('id', supermarketId)
+            .maybeSingle();
+        return (s?['is_open'] as bool?) ?? true;
+      }
+    } catch (_) {
+      return true; // DB trigger is the authoritative guard
+    }
+    return true;
+  }
+
   Future<void> _placeOrder() async {
     // ── Address validation ───────────────────────────────────────────────
     if (_selectedAddress == null) {
@@ -105,6 +146,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     setState(() => _isPlacingOrder = true);
 
     try {
+      // ── P0 ghost-order guard ───────────────────────────────────────────
+      // Fresh check that the venue is still open BEFORE committing the promo
+      // or inserting the order (so we never consume a promo then abort, and
+      // never silently clear the user's cart). The enforce_venue_open DB
+      // trigger is the authoritative backstop if the venue closes in the race.
+      if (!await _venueStillOpen()) {
+        if (!mounted) return;
+        _showSnack(_kVenueClosedMessage);
+        return; // `finally` resets _isPlacingOrder; cart is left untouched.
+      }
+
       // ── Promo commit ───────────────────────────────────────────────────
       // If the user previewed a promo code (dry-run was successful), we now
       // call apply_promo_code with p_dry_run = FALSE to commit the usage and
@@ -257,7 +309,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      _showSnack('Error: $e');
+      // The enforce_venue_open DB trigger raises 'VENUE_CLOSED' if the venue
+      // closed in the race between our re-check and the insert. Map it to the
+      // friendly message instead of surfacing a raw error string.
+      _showSnack(
+        e.toString().contains('VENUE_CLOSED') ? _kVenueClosedMessage : 'Error: $e',
+      );
     } finally {
       if (mounted) setState(() => _isPlacingOrder = false);
     }

@@ -320,7 +320,10 @@ class _RestaurantDetailScreenState
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final item = filteredItems[index];
-                  return _FoodItemCard(foodItem: item);
+                  return _FoodItemCard(
+                    foodItem: item,
+                    isOpen: widget.restaurant.isOpen,
+                  );
                 },
                 childCount: filteredItems.length,
               ),
@@ -451,8 +454,10 @@ class _StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
 
 class _FoodItemCard extends ConsumerWidget {
   final FoodItem foodItem;
+  // Open/closed state of the parent restaurant — gates add-to-cart (P0).
+  final bool isOpen;
 
-  const _FoodItemCard({required this.foodItem});
+  const _FoodItemCard({required this.foodItem, required this.isOpen});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -871,6 +876,10 @@ class _FoodItemCard extends ConsumerWidget {
                   final variants = variantsAsync.value ?? const <ItemVariant>[];
                   final hasVariants = variants.isNotEmpty;
                   final mustPick = hasVariants && selectedVariant == null;
+                  // P0 ghost-order guard: never allow adding from a closed
+                  // restaurant. `isOpen` is the same flag shown in the badge,
+                  // passed down from the parent restaurant.
+                  final restaurantClosed = !isOpen;
                   final unitPrice = selectedVariant != null
                       ? applyPlatformMarkup(selectedVariant!.price)
                       : item.clientPrice;
@@ -878,7 +887,7 @@ class _FoodItemCard extends ConsumerWidget {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: mustPick
+                      onPressed: (mustPick || restaurantClosed)
                           ? null
                           : () {
                               ref.read(cartProvider.notifier).addItem(
@@ -914,13 +923,15 @@ class _FoodItemCard extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            mustPick ? 'Choose an option' : 'Add to Cart',
+                            restaurantClosed
+                                ? 'Restaurant fermé'
+                                : (mustPick ? 'Choose an option' : 'Add to Cart'),
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          if (!mustPick)
+                          if (!mustPick && !restaurantClosed)
                             Text(
                               CurrencyFormatter.formatPrice(unitPrice * quantity),
                               style: const TextStyle(

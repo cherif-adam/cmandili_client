@@ -12,6 +12,10 @@ class Supermarket {
   final double latitude;
   final double longitude;
 
+  /// Raw Postgres TIME string ('08:30:00') — null when the venue has no
+  /// configured hours. Used only for the "Ouvre à HH:MM" hint on cards.
+  final String? openingTime;
+
   const Supermarket({
     required this.id,
     required this.name,
@@ -25,5 +29,6 @@ class Supermarket {
     required this.isOpen,
     required this.latitude,
     required this.longitude,
+    this.openingTime,
   });
 }

@@ -154,7 +154,10 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final item = filteredItems[index];
-                      return _ProductCard(item: item);
+                      return _ProductCard(
+                        item: item,
+                        isOpen: widget.supermarket.isOpen,
+                      );
                     },
                     childCount: filteredItems.length,
                   ),
@@ -253,8 +256,10 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
 
 class _ProductCard extends ConsumerWidget {
   final GroceryItem item;
+  // Open/closed state of the parent supermarket — gates add-to-cart (P0).
+  final bool isOpen;
 
-  const _ProductCard({required this.item});
+  const _ProductCard({required this.item, required this.isOpen});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -408,6 +413,19 @@ class _ProductCard extends ConsumerWidget {
     WidgetRef ref,
     GroceryItem item,
   ) async {
+    // P0 ghost-order guard: block adding from a closed supermarket. This single
+    // check covers BOTH the fast-add (no variants) and variant-picker paths.
+    if (!isOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ce supermarché est fermé pour le moment.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final variants = await ref.read(groceryItemVariantsProvider(item.id).future);
 
     if (variants.isEmpty) {

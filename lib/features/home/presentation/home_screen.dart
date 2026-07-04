@@ -44,8 +44,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _searchQuery = '';
   int _selectedIndex = 0;
 
+  // Chip labels are also the canonical values stored in restaurants.categories
+  // (the admin dashboard writes these exact strings — keep byte-identical).
   final List<String> _categories = [
     'All',
+    'Pâtisseries',
     'Pizza',
     'Burgers',
     'Sushi',
@@ -595,11 +598,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     r.categories.any((c) => c.toLowerCase() == _selectedCategory.toLowerCase())
                   ).toList();
                 }
-                // Filter by search query
+                // Filter by search query (name, description, or category —
+                // so typing "pâtisseries" finds tagged venues too)
                 if (_searchQuery.isNotEmpty) {
                   filtered = filtered.where((r) =>
                     r.name.toLowerCase().contains(_searchQuery) ||
-                    r.description.toLowerCase().contains(_searchQuery)
+                    r.description.toLowerCase().contains(_searchQuery) ||
+                    r.categories.any((c) => c.toLowerCase().contains(_searchQuery))
                   ).toList();
                 }
 

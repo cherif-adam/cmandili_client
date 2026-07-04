@@ -55,6 +55,7 @@ class SupermarketRepository {
       isOpen: dbJson['is_open'] ?? true,
       latitude: (dbJson['latitude'] ?? 0).toDouble(),
       longitude: (dbJson['longitude'] ?? 0).toDouble(),
+      openingTime: dbJson['opening_time'] as String?,
     );
   }
 
