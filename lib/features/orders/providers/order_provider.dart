@@ -21,3 +21,9 @@ final billOrdersProvider = FutureProvider<List<Order>>((ref) async {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.getBillOrders();
 });
+
+// Future provider for the customer's lifetime loyalty delivered-order count
+final loyaltyProgressProvider = FutureProvider<int>((ref) async {
+  final repository = ref.watch(orderRepositoryProvider);
+  return repository.getLoyaltyDeliveredCount();
+});

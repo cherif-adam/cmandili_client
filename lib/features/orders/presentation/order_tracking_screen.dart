@@ -394,6 +394,38 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       ),
 
+                    if (order.status == OrderStatus.delivered &&
+                        order.loyaltyMilestoneType != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.celebration, color: Colors.green),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                order.loyaltyMilestoneType == 'free'
+                                    ? '🎉 Livraison gratuite appliquée — merci de votre fidélité !'
+                                    : '🎉 -50% sur la livraison appliqué — merci de votre fidélité !',
+                                style: const TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     const SizedBox(height: 24),
 
                     // Confirm receipt button for courier
