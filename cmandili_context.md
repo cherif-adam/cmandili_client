@@ -1,6 +1,6 @@
 # CMANDILI_CONTEXT.md
 > **Purpose:** AI session bootstrap. Read this file at the start of every session to understand the full project and continue immediately without reading every file.
-> **Last updated:** 2026-07-04 (post-audit fix session — see §7 status table)
+> **Last updated:** 2026-07-06 (loyalty program + settlement FK fix session — see §7 status table)
 
 ---
 
@@ -61,7 +61,8 @@ All apps share one Supabase project (production, live data).
 
 - **`drivers`**: `id` ≠ `auth.uid()`; `user_id` = auth.uid(). ALL driver RLS uses `user_id = auth.uid()`.
 - **`partners`**: `user_id`, `entity_id` (**UUID in live DB — schema file says TEXT**; always compare `entity_id::text = x::text`), `partner_type` ('restaurant'|'supermarket'), `commission_rate`, `is_blocked`. NO `partner_id` on restaurants — the link is `partners.entity_id = restaurants.id`.
-- **`orders`** (key cols): `status` (see canonical table), `driver_id` (null until accepted), `assigned_driver_id`+`assignment_expires_at`+`passed_driver_ids` (waterfall), `self_delivery`, `no_driver_notified_at`, `platform_fee`, `driver_fee_cut` (0 for self-delivery), `order_type` ∈ `food|courier|supermarket|facture`, cancellation cols (`cancellation_reason`, `cancelled_by` ∈ customer|admin|system, `cancelled_at`), `bill_*` (facture), `bill_receipt_url` (driver upload; `receipt_photo_url` does NOT exist live).
+- **`orders`** (key cols): `status` (see canonical table), `driver_id` (`drivers.id`, null until accepted — **not** `auth.users.id`), `assigned_driver_id`+`assignment_expires_at`+`passed_driver_ids` (waterfall), `self_delivery`, `no_driver_notified_at`, `platform_fee`, `driver_fee_cut` (0 for self-delivery), `order_type` ∈ `food|courier|supermarket|facture`, cancellation cols (`cancellation_reason`, `cancelled_by` ∈ customer|admin|system, `cancelled_at`), `bill_*` (facture), `bill_receipt_url` (driver upload; `receipt_photo_url` does NOT exist live), `loyalty_milestone_type`/`loyalty_discount_amount` (F20, trigger-only).
+- **`loyalty_customer_progress`** (customer_id PK, delivered_count) and **`loyalty_driver_payouts`** (order_id UNIQUE, driver_id→`drivers(id)`, amount_owed, status pending/settled) — F20, see §10.
 - **`restaurants`/`supermarkets`**: `is_open` (+ trigger-enforced, §7 F13), `opening_time`/`closing_time` TIME (single daily slot; pg_cron auto-close every 5 min when `auto_close_enabled`; auto-OPEN does not exist — partners open manually), `is_ghost_restaurant`, `categories` TEXT[] (restaurants only — see §10 category recipe).
 - **`profiles`**: `is_admin` (dashboard gate + RLS admin scope), `is_blocked` (blocked customers can't INSERT orders).
 - **`global_settings`**: `default_restaurant_commission_rate` 0.10, `default_driver_commission_rate` 0.23.
@@ -93,7 +94,7 @@ Functions (all SECURITY DEFINER owned by postgres → bypass RLS + column guard)
 
 ## 6. MIGRATION STATE
 
-Everything through **`20260703140000_fix_settlements_entity_cast.sql` is applied to production** and recorded in migration history (via `db query --file` + `migration repair`). Edge functions deployed: `push-on-order-status` (Modes A/B/D), `ai-chat` (Gemini fallback; OPENROUTER_API_KEY secret is a dead truncated paste), `ai-search`, `notify-partner-order`. All edge functions pinned `verify_jwt=true`.
+Everything through **`20260706171000_loyalty_program.sql` is applied to production** and recorded in migration history (via `db query --file` + `migration repair`). Edge functions deployed: `push-on-order-status` (Modes A/B/D), `ai-chat` (Gemini fallback; OPENROUTER_API_KEY secret is a dead truncated paste), `ai-search`, `notify-partner-order`. All edge functions pinned `verify_jwt=true`.
 
 ---
 
@@ -109,6 +110,8 @@ Everything through **`20260703140000_fix_settlements_entity_cast.sql` is applied
 | F17a | Self-delivery wrote invalid `'on_the_way'` status → CHECK violation | ✅ live + E2E-verified | partner `partner_order_repository.dart`; admin `OrdersTable.tsx` + `commandes/page.tsx` (dead snake_case display keys) |
 | F17b | Settlements trigger `uuid=text` crash — **aborted every cash order's `delivered` transition** | ✅ live + E2E-verified (settlement rows + fee0 asserted) | `20260703140000_fix_settlements_entity_cast.sql` |
 | F18 | Pâtisseries category (activated dormant `categories` TEXT[] system) | ✅ code+SQL verified — **needs manual venue tagging (§8)** | mobile `home_screen.dart`, `restaurant_card.dart`, `favorites_provider.dart`; admin `api/restaurants/categories/route.ts`, `RestaurantRow.tsx`, `restaurants/page.tsx` |
+| F19 | Driver settlement P0: `settlements.user_id` got `drivers.id` instead of the driver's `auth.uid()` (FK type mismatch) — **aborted every non-self-delivery cash order's `delivered` transition**, `settlements` had 0 rows ever, `driver_fee_cut` stuck at 0 | ✅ live + rolled-back-verified on 2 real affected orders | `20260706170000_fix_driver_settlement_user_id.sql` |
+| F20 | Loyalty program: unified lifetime delivered-count (food/courier/facture) → 5th order =50% off delivery, 10th=free; driver settlement untouched; admin payout ledger + net-per-driver view; mobile progress badge | ✅ live + 6-scenario rolled-back harness (see §10) | `20260706171000_loyalty_program.sql`; admin `dashboard/fidelite/`, `api/loyalty/settle/`, `LoyaltyPayoutRow.tsx`; mobile `orders/` (model, repo, provider, history + tracking screens) |
 | — | Earlier-session pending work committed in this wrap-up: partner/driver auth + l10n updates, `ai-chat` edge function source, audit_logs + operating-hours migrations | committed, see git history | various |
 
 Historical fixes 1–12 (MP3 sound, Java 17, GPS-0, FCM setup, pub cache, dispatch columns, overflow UI, Sousse coords, finance overcount, restaurant blocking, promo schema) — all shipped, details in git history.
@@ -123,6 +126,9 @@ Historical fixes 1–12 (MP3 sound, Java 17, GPS-0, FCM setup, pub cache, dispat
 - [ ] **`cmandili_admin/` stale checkout**: decide — delete it or fast-forward to `admin/`'s head. It still contains the pre-F17 snake_case status display bugs.
 - [ ] **OPENROUTER_API_KEY** Supabase secret is a dead truncated paste — replace it or remove it (ai-chat currently survives via GEMINI_API_KEY fallback).
 - [ ] Consider a follow-up "open-first" sort in listings (deliberately out of F15 scope).
+- [ ] **F20 loyalty program — not visually tested**: verified via `flutter analyze` (clean) + admin `next build` (clean) + DB rolled-back harness only. Nobody has looked at the progress card, milestone badge, celebration banner, or `/dashboard/fidelite` page rendered in an emulator/browser. Do that before considering F20 fully done.
+- [ ] **Root repo (`cmandili_client`) diverged from `origin/main`** (ahead 3 / behind 5 as of 2026-07-06) — needs a deliberate merge/rebase decision before the next push; do not blindly push or pull.
+- [ ] **`admin/` repo branch ambiguity**: local checkout tracks `master` (matches `origin/master` exactly), but GitHub's default branch is `origin/main`, which has diverged 148 files from `master`. Confirm which branch is actually the live one Vercel/hosting deploys from before pushing further admin work to `master`.
 
 ---
 
@@ -145,7 +151,8 @@ Historical fixes 1–12 (MP3 sound, Java 17, GPS-0, FCM setup, pub cache, dispat
 - **Column guard (F16)**: trigger `aa_guard_orders_column_scope` BEFORE UPDATE, SECURITY INVOKER, deny-by-default OLD/NEW jsonb diff. Allowed: customer→`status,cancellation_reason,cancelled_by,cancelled_at`; partner→`status,self_delivery`; driver→`status,bill_receipt_url` (+`driver_id` claim NULL→own); admin unrestricted; bypass when `current_user NOT IN ('authenticated','anon')`. **The `aa_` prefix is load-bearing** — BEFORE triggers fire alphabetically and the guard must precede `order_cancelled_at`/`order_status_timestamps`; never add a BEFORE UPDATE trigger on orders sorting before `aa_`. `driver_fee_cut` is intentionally NOT client-writable (settlements trigger stamps it).
 - **Category system recipe (F18)**: canonical values live in `ALLOWED_CATEGORIES` (`admin/app/api/restaurants/categories/route.ts`) and must stay byte-identical (accents!) with mobile `home_screen.dart _categories` — the chip filter is `toLowerCase()` equality. To add a category: add to both lists (+ optional icon case in `restaurant_card.dart`), tag venues in admin. Card badge = first category, only renders when non-empty. No schema change needed.
 - **Closed-venue UX (F13+F15)**: DB trigger `enforce_venue_open` (BEFORE INSERT, `RAISE 'VENUE_CLOSED'`) is the source of truth; detail screens gate add-to-cart; checkout re-checks and maps the error; list cards dim + "Fermé" + `nextOpeningLabel()` (Africa/Tunis fixed UTC+1, returns null for missing/invalid hours). Closed venues stay visible and tappable — browsing allowed, ordering blocked.
-- **Settlements**: `generate_settlements_on_delivery()` fires on cash orders' `status→delivered`; stamps `platform_fee`/`driver_fee_cut`; partner earning row; driver deduction row only if `driver_id IS NOT NULL AND NOT self_delivery`.
+- **Settlements**: `generate_settlements_on_delivery()` fires on cash orders' `status→delivered`; stamps `platform_fee`/`driver_fee_cut`; partner earning row; driver deduction row only if `driver_id IS NOT NULL AND NOT self_delivery`. **`orders.driver_id` is `drivers.id`, NEVER `auth.users.id`** — any code inserting it into a column FK'd to `auth.users` (like `settlements.user_id`) must resolve it first via `SELECT user_id FROM drivers WHERE id = <driver_id>` (F19 bug — this was broken live for months, silently discarding every driver-delivered cash order's `delivered` transition).
+- **Loyalty program (F20)**: `apply_loyalty_program()` / trigger `on_order_delivered_loyalty`, `AFTER UPDATE OF status ON orders`, same shape/ordering as the settlements trigger — fires on `food`/`courier`/`facture` only (not `supermarket`, product decision). Increments `loyalty_customer_progress.delivered_count` (customer_id PK; **intentionally not a `profiles` column** — `profiles_update` RLS has no column-scope guard, so a counter there would be client-forgeable; this table has SELECT-own RLS only, zero write policies, only the SECURITY DEFINER trigger writes it). On the 5th/10th order it stamps `orders.loyalty_milestone_type`/`loyalty_discount_amount` (deny-by-default guard already blocks all 4 client roles — no guard changes needed) and inserts a row in `loyalty_driver_payouts` (`driver_id` → `drivers(id)`, same convention as `orders.driver_id`, admin-only, no RLS policies). **Never touches `delivery_fee`/`subtotal`** — that's why the driver settlement is provably unaffected (settlements trigger reads those same untouched columns). **Discount is determined at delivery time, not checkout** (COD — the charged amount only becomes real once the driver marks it delivered) — this is a deliberate deviation from a literal "show at checkout" read, not a bug to "fix" later. Admin: `admin/app/dashboard/fidelite/` (pending payouts + settle action + net-per-driver = commission owed − payouts). Mobile: progress card + milestone badge on `order_history_screen.dart`, celebration banner on `order_tracking_screen.dart`.
 - **State management**: Riverpod everywhere. **Background GPS**: foreground Android service streams to Supabase every 30 m.
 
 ---
@@ -160,6 +167,8 @@ Historical fixes 1–12 (MP3 sound, Java 17, GPS-0, FCM setup, pub cache, dispat
 | `supabase/migrations/20260703120000_tighten_orders_update_rls.sql` | 5 scoped UPDATE policies (F14) |
 | `supabase/migrations/20260703130000_guard_orders_column_scope.sql` | Column guard trigger (F16) |
 | `supabase/migrations/20260703140000_fix_settlements_entity_cast.sql` | Settlements uuid=text fix (F17b) |
+| `supabase/migrations/20260706170000_fix_driver_settlement_user_id.sql` | Settlements driver_id/user_id FK fix (F19) |
+| `supabase/migrations/20260706171000_loyalty_program.sql` | Loyalty program schema+trigger (F20) |
 | `cmandili_mobile/lib/core/utils/venue_hours.dart` | `nextOpeningLabel()` helper (+ `test/venue_hours_test.dart`) |
 | `cmandili_mobile/lib/features/restaurant/presentation/widgets/restaurant_card.dart` | Shared venue card: closed state + category badge |
 | `cmandili_partner/lib/features/orders/data/partner_order_repository.dart` | `confirmSelfDelivery()` (canonical `onTheWay`) |
