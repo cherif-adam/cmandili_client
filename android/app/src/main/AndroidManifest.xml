@@ -15,7 +15,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:label="Cmandili"
+        android:label="Amana"
         android:name=".Application"
         android:icon="@mipmap/launcher_icon">
         <activity

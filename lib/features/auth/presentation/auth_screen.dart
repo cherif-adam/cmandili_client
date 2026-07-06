@@ -165,9 +165,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFFFF6B35),
-                  Color(0xFFF7931E),
-                  Color(0xFFFFB800),
+                  Color(0xFF059669),
+                  Color(0xFF0D9488),
+                  Color(0xFF0F766E),
                 ],
               ),
             ),
@@ -402,7 +402,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                           controller: _tabController,
                                           indicator: BoxDecoration(
                                             gradient: const LinearGradient(
-                                              colors: [Color(0xFFFF6B35), Color(0xFFF7931E)],
+                                              colors: [Color(0xFF059669), Color(0xFF0D9488)],
                                             ),
                                             borderRadius: BorderRadius.circular(screenWidth * 0.08),
                                             boxShadow: [

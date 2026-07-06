@@ -31,15 +31,6 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // Ship only 64-bit ARM. Real Android phones since 2019 are arm64-v8a;
-        // x86_64 is emulator-only, armeabi-v7a is legacy 32-bit. Dropping both
-        // removes ~2/3 of the native-lib payload (Mapbox, flutter_sound,
-        // Firebase, etc. each ship one .so per ABI), shrinking the default
-        // universal APK from ~150 MB to ~50 MB.
-        ndk {
-            abiFilters += listOf("arm64-v8a")
-        }
-
         // Drop unused locale resources from bundled libraries (Firebase, Play
         // Services, Mapbox). We only ship en/ar/fr; everything else is dead
         // weight. resourceConfigurations is the AGP <8.5 spelling of
@@ -48,7 +39,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Debug keeps all ABIs so the app runs on x86_64 emulators.
+        }
         release {
+            // Ship only 64-bit ARM. Real Android phones since 2019 are arm64-v8a;
+            // x86_64 is emulator-only, armeabi-v7a is legacy 32-bit. Dropping both
+            // removes ~2/3 of the native-lib payload (Mapbox, flutter_sound,
+            // Firebase, etc. each ship one .so per ABI), shrinking the default
+            // universal APK from ~150 MB to ~50 MB.
+            ndk {
+                abiFilters += listOf("arm64-v8a")
+            }
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")

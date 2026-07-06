@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
@@ -93,18 +93,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // ── Gradient background (matches AuthScreen) ──────────────────
+          // â”€â”€ Gradient background (matches AuthScreen) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFFF6B35), Color(0xFFF7931E), Color(0xFFFFB800)],
+                colors: [Color(0xFF059669), Color(0xFF0D9488), Color(0xFF0F766E)],
               ),
             ),
           ),
 
-          // ── Decorative circles ────────────────────────────────────────
+          // â”€â”€ Decorative circles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Positioned(
             top: -sh * 0.12,
             right: -sw * 0.2,
@@ -116,7 +116,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
             child: _circle(sw * 0.5, Colors.white.withValues(alpha: 0.10)),
           ),
 
-          // ── Content ───────────────────────────────────────────────────
+          // â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           SafeArea(
             child: Column(
               children: [
@@ -176,7 +176,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
 
                               SizedBox(height: sh * 0.04),
 
-                              // ── Glassmorphic card ──────────────────────
+                              // â”€â”€ Glassmorphic card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                               ClipRRect(
                                 borderRadius:
                                     BorderRadius.circular(sw * 0.07),
@@ -284,7 +284,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                   ),
                                 ),
                                 child: Text(
-                                  'Already have a code? Enter it →',
+                                  'Already have a code? Enter it â†’',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,

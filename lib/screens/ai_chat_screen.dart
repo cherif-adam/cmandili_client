@@ -369,7 +369,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Cmandili Assistant',
+                        'Amana Assistant',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700),

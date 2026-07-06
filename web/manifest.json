@@ -1,11 +1,11 @@
 {
-    "name": "cmandili_mobile",
-    "short_name": "cmandili_mobile",
+    "name": "Amana",
+    "short_name": "Amana",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#059669",
+    "theme_color": "#059669",
+    "description": "Amana - Food delivery you can trust.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

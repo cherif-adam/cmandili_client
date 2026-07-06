@@ -310,7 +310,7 @@ class AiChatService {
         price: 0.0,
         currency: 'TND',
         imageUrl: null,
-        sourceName: 'Cmandili Courier',
+        sourceName: 'Amana Courier',
         rating: null,
       );
 

@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Colors - Vibrant food-themed palette
-  static const primary = Color(0xFFFF6B35);
-  static const primaryDark = Color(0xFFE85A2B);
-  static const primaryLight = Color(0xFFFF8C61);
-  
-  // Secondary Colors
-  static const secondary = Color(0xFFF7931E);
-  static const secondaryDark = Color(0xFFE07B0A);
-  static const secondaryLight = Color(0xFFFFA94D);
-  
-  // Accent Colors
-  static const accent = Color(0xFF4ECDC4);
-  static const accentDark = Color(0xFF3AB8AF);
-  static const accentLight = Color(0xFF6FD9D1);
+  // Primary Colors - Amana emerald palette (trust + freshness)
+  static const primary = Color(0xFF059669);
+  static const primaryDark = Color(0xFF047857);
+  static const primaryLight = Color(0xFF34D399);
+
+  // Secondary Colors - warm amber accent from the logo dot
+  static const secondary = Color(0xFFF59E0B);
+  static const secondaryDark = Color(0xFFD97706);
+  static const secondaryLight = Color(0xFFFBBF24);
+
+  // Accent Colors - deep teal companion
+  static const accent = Color(0xFF14B8A6);
+  static const accentDark = Color(0xFF0D9488);
+  static const accentLight = Color(0xFF2DD4BF);
   
   // Neutral Colors
   static const background = Color(0xFFF8F9FA);
@@ -39,7 +39,7 @@ class AppColors {
   
   // Gradients
   static const primaryGradient = LinearGradient(
-    colors: [primary, secondaryDark],
+    colors: [primary, accentDark],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,7 +62,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
     super.dispose();
   }
 
-  // ── Core logic ────────────────────────────────────────────────────────────
+  // â”€â”€ Core logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<void> _resetPassword() async {
     if (!_formKey.currentState!.validate()) return;
@@ -71,7 +71,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
     final repo = ref.read(authRepositoryProvider);
 
     try {
-      // Step 2: verify OTP → establishes a recovery session in Supabase
+      // Step 2: verify OTP â†’ establishes a recovery session in Supabase
       await repo.verifyPasswordResetOtp(
         email: widget.email,
         token: _otpController.text.trim(),
@@ -170,7 +170,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +186,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFFF6B35), Color(0xFFF7931E), Color(0xFFFFB800)],
+                colors: [Color(0xFF059669), Color(0xFF0D9488), Color(0xFF0F766E)],
               ),
             ),
           ),
@@ -258,7 +258,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
 
                               SizedBox(height: sh * 0.035),
 
-                              // ── Card ────────────────────────────────────
+                              // â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(sw * 0.07),
                                 child: BackdropFilter(
@@ -288,12 +288,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                         crossAxisAlignment:
                                             CrossAxisAlignment.stretch,
                                         children: [
-                                          // ── 8-digit OTP field ────────
+                                          // â”€â”€ 8-digit OTP field â”€â”€â”€â”€â”€â”€â”€â”€
                                           _buildOtpField(sw, sh),
 
                                           SizedBox(height: sh * 0.02),
 
-                                          // ── New password ─────────────
+                                          // â”€â”€ New password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                                           _buildField(
                                             controller: _passwordController,
                                             label: 'New password',
@@ -318,7 +318,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
 
                                           SizedBox(height: sh * 0.02),
 
-                                          // ── Confirm password ─────────
+                                          // â”€â”€ Confirm password â”€â”€â”€â”€â”€â”€â”€â”€â”€
                                           _buildField(
                                             controller: _confirmController,
                                             label: 'Confirm password',
@@ -340,7 +340,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
 
                                           SizedBox(height: sh * 0.03),
 
-                                          // ── Submit ────────────────────
+                                          // â”€â”€ Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                                           SizedBox(
                                             height: sh * 0.065,
                                             child: ElevatedButton(
@@ -402,7 +402,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
     );
   }
 
-  // ── Sub-widgets ───────────────────────────────────────────────────────────
+  // â”€â”€ Sub-widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /// Large, centered OTP input field styled to look like a code entry.
   Widget _buildOtpField(double sw, double sh) {

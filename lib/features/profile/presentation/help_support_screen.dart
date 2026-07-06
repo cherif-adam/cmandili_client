@@ -121,7 +121,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
               const _ContactOption(
                 icon: Icons.email_outlined,
                 title: 'Email Us',
-                subtitle: 'support@cmandili.com',
+                subtitle: 'support@amana.tn',
               ),
               const _ContactOption(
                 icon: Icons.phone_outlined,
