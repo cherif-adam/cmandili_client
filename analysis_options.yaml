@@ -9,6 +9,13 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # Ad-hoc developer scratch scripts at the repo root (not app code, not
+    # unit tests). They use print()/unused locals by design; keep them out
+    # of `flutter analyze` instead of shipping lint noise for throwaway files.
+    - test_*.dart
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

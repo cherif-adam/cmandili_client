@@ -139,7 +139,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.08),
+                        color: Colors.orange.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: Colors.orange.shade300),
                       ),
@@ -326,7 +326,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                           ? Icons.local_shipping
                           : Icons.restaurant,
                   size: 100,
-                  color: AppColors.textLight.withOpacity(0.3),
+                  color: AppColors.textLight.withValues(alpha: 0.3),
                 ),
               ),
             ),
@@ -342,7 +342,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                       color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8),
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
                       ],
                     ),
                     child: IconButton(
@@ -375,7 +375,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.textLight.withOpacity(0.3),
+                          color: AppColors.textLight.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -393,6 +393,38 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         'Estimated delivery: ${_formatTime(order.estimatedDeliveryTime!)}',
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       ),
+
+                    if (order.status == OrderStatus.delivered &&
+                        order.loyaltyMilestoneType != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.celebration, color: Colors.green),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                order.loyaltyMilestoneType == 'free'
+                                    ? '🎉 Livraison gratuite appliquée — merci de votre fidélité !'
+                                    : '🎉 -50% sur la livraison appliqué — merci de votre fidélité !',
+                                style: const TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 24),
 
@@ -423,7 +455,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         margin: const EdgeInsets.only(bottom: 24),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.1),
+                          color: AppColors.success.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.success),
                         ),
@@ -646,8 +678,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Row(
-                          children: const [
+                        child: const Row(
+                          children: [
                             Icon(Icons.info_outline,
                                 size: 18, color: AppColors.textSecondary),
                             SizedBox(width: 8),
@@ -894,7 +926,7 @@ class _TimelineItem extends StatelessWidget {
                 height: 40,
                 color: step.isCompleted
                     ? AppColors.primary
-                    : AppColors.textLight.withOpacity(0.3),
+                    : AppColors.textLight.withValues(alpha: 0.3),
               ),
           ],
         ),

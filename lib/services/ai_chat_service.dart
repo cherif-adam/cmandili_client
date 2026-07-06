@@ -1,37 +1,28 @@
 // lib/services/ai_chat_service.dart
 //
-// Cmandili AI Chat — fully client-side implementation.
+// Cmandili AI Chat — client for the `ai-chat` Supabase Edge Function.
+//
+// The LLM call lives SERVER-SIDE (supabase/functions/ai-chat) so no AI
+// provider key ever ships inside the app. This service sends the user's
+// message (+ optional image + conversation history) to the function and maps
+// the structured intent it returns; the food/grocery queries and product
+// cards below still run client-side against plain RLS-guarded tables.
 //
 // Supports:
 //   - Text messages (trilingual: FR / EN / Derja)
-//   - Image messages (base64 Vision via Gemini-1.5-flash)
+//   - Image messages (base64 Vision)
 //   - Intents: search_food | delivery_request | shop_search | greeting | general
 
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/chat_message.dart';
 
 class AiChatService {
-  // ── OpenRouter config ─────────────────────────────────────────────────────
+  // ── Edge Function config ──────────────────────────────────────────────────
 
-  static const String _endpoint =
-      'https://openrouter.ai/api/v1/chat/completions';
-
-  static String get _apiKey {
-    final key = dotenv.env['OPENROUTER_API_KEY'] ?? '';
-    // Reject placeholder values that were left in the .env template
-    if (key.isEmpty || key.contains('xxx') || key == 'YOUR_KEY_HERE') return '';
-    return key;
-  }
-
-  // Use a vision-capable model for image support
-  static String get _model =>
-      dotenv.env['OPENROUTER_CHAT_MODEL'] ??
-      'google/gemini-2.0-flash-001'; // ← vision-capable
+  static const String _functionName = 'ai-chat';
 
   // ── Supabase ──────────────────────────────────────────────────────────────
 
@@ -41,82 +32,9 @@ class AiChatService {
       'https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/';
 
   // ── System prompt ─────────────────────────────────────────────────────────
+  // Lives SERVER-SIDE in supabase/functions/ai-chat/index.ts (SYSTEM_PROMPT),
+  // ported verbatim from the old client-side implementation.
 
-  static String _buildSystemPrompt() => r'''
-You are "Cmandili Assistant", the AI helper for the Cmandili platform in Tunisia.
-The platform has 3 services: Food (restaurants & pastry shops), P2P Logistics (courier delivery), and Shops (retail stores).
-
-━━━ CRITICAL LANGUAGE RULE ━━━
-You are STRICTLY TRILINGUAL. Detect the user's language and reply ONLY in that SAME language.
-- French (bonjour, je veux, tu parles...) → Reply in fluent, professional French.
-- English (hello, I want, find...) → Reply in professional English.
-- Tunisian Derja (aaslema, n7eb, chnoua...) → Reply in authentic warm Derja.
-NEVER mix languages. NEVER use formal Arabic (Fusha). Default to French if unsure.
-
-━━━ VISION / IMAGE RULE ━━━
-If the user provides an IMAGE:
-1. Carefully analyze the food/item shown in the image.
-2. Identify what it is (e.g., "pizza", "salade", "burger", "patisserie").
-3. Set "intent": "search_food" and "keyword": "<name_of_identified_food>".
-4. In "message", confirm what you saw and tell the user you are searching for it.
-   Example: "Je vois une pizza dans votre photo ! 🍕 Je vous cherche les meilleures pizzas disponibles !"
-5. If the image is NOT food, set "intent": "general" and explain you only handle food/delivery/shops.
-
-━━━ PHOTO/IMAGES REQUEST RULE ━━━
-If the user asks to "see photos", "show images", "donner les photos", "أعطيني الصور" or similar:
-- They want to SEE the food cards with images, NOT literal photos from the internet.
-- Set intent: "search_food" (or "shop_search") and search for the last mentioned item.
-- In message: confirm you are showing them the available items.
-
-━━━ PLATFORM SERVICES ━━━
-1. FOOD (search_food): Restaurants, pastry shops, sandwiches, Tunisian food
-2. P2P DELIVERY (delivery_request): Send packages to friends/family via our drivers
-3. SHOPS (shop_search): Retail stores, supermarkets, pharmacies
-
-━━━ OUTPUT FORMAT ━━━
-Respond with RAW JSON ONLY. No markdown, no backticks.
-{
-  "message": string,
-  "intent": "greeting" | "search_food" | "delivery_request" | "shop_search" | "general",
-  "category": string | null,
-  "spicy": boolean | null,
-  "vegetarian": boolean | null,
-  "max_price": number | null,
-  "min_price": number | null,
-  "delivery_time": "fast" | "any" | null,
-  "keyword": string | null
-}
-
-"message": Same language as user. Max 150 chars. End with 1 emoji.
-"category": pizza/burger/patisserie/couscous/salade/sandwich/pharmacie/supermarche or null.
-"keyword": specific item name (from image or text) or null.
-"spicy"/"vegetarian": true only if explicitly mentioned.
-"delivery_time": "fast" only if user wants quick delivery.
-"max_price"/"min_price": price in TND as number or null.
-
-━━━ EXAMPLES ━━━
-
-[FR] "bonjour"
-→ {"message":"Bonsoir ! Comment puis-je vous aider ? 😊","intent":"greeting","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
-
-[FR] "je veux une pizza thon"
-→ {"message":"Voici les pizzas au thon disponibles ! 🍕","intent":"search_food","category":"pizza","spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"thon"}
-
-[FR] "donnez-moi les photos des salades"
-→ {"message":"Voici les salades disponibles dans nos restaurants ! 🥗","intent":"search_food","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"salade"}
-
-[EN] "hello"
-→ {"message":"Hey there! How can I help you today? 😊","intent":"greeting","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
-
-[TN] "aaslema"
-→ {"message":"Ayh sidi, aaslema! Chnoua t7eb elloum? 🍽️","intent":"greeting","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
-
-[TN] "n7eb pizza 7arra w ma tfoutch 15 dinar"
-→ {"message":"Hani jitech bel pizzas el 7arrin! 🌶️🍕","intent":"search_food","category":"pizza","spicy":true,"vegetarian":null,"max_price":15,"min_price":null,"delivery_time":null,"keyword":null}
-
-[IMAGE - pizza photo]
-→ {"message":"Je vois une pizza dans votre photo ! 🍕 Voici les meilleures pizzas disponibles !","intent":"search_food","category":"pizza","spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"pizza"}
-''';
 
   // ── Public API ────────────────────────────────────────────────────────────
 
@@ -128,9 +46,9 @@ Respond with RAW JSON ONLY. No markdown, no backticks.
   }) async {
     final _AiIntent intent;
     try {
-      intent = await _callOpenRouter(userText, imageFile: imageFile);
+      intent = await _callChatFunction(userText, history, imageFile: imageFile);
     } catch (e) {
-      debugPrint('AiChatService – OpenRouter error: $e');
+      debugPrint('AiChatService – ai-chat function error: $e');
       return ChatMessage(
         text: 'Une erreur est survenue 😕 Veuillez réessayer !',
         isUser: false,
@@ -167,98 +85,64 @@ Respond with RAW JSON ONLY. No markdown, no backticks.
     );
   }
 
-  // ── OpenRouter call (text + optional vision) ──────────────────────────────
+  // ── Edge Function call (text + optional vision) ───────────────────────────
 
-  Future<_AiIntent> _callOpenRouter(
-    String userText, {
+  Future<_AiIntent> _callChatFunction(
+    String userText,
+    List<Map<String, dynamic>> history, {
     File? imageFile,
   }) async {
-    if (_apiKey.isEmpty) {
-      throw Exception('OPENROUTER_API_KEY is missing in .env');
-    }
-
-    // Build the user content — text only, or text + image for Vision
-    final List<Map<String, dynamic>> userContent;
+    String? imageBase64;
+    String? mimeType;
 
     if (imageFile != null) {
-      // Convert image to base64
       final bytes = await imageFile.readAsBytes();
-      final base64Image = base64Encode(bytes);
+      imageBase64 = base64Encode(bytes);
 
       // Detect MIME type from extension
       final ext = imageFile.path.split('.').last.toLowerCase();
-      final mimeType = switch (ext) {
+      mimeType = switch (ext) {
         'jpg' || 'jpeg' => 'image/jpeg',
         'png' => 'image/png',
         'webp' => 'image/webp',
         'gif' => 'image/gif',
         _ => 'image/jpeg',
       };
-
-      userContent = [
-        // Text part (can be empty when only image is sent)
-        if (userText.isNotEmpty)
-          {'type': 'text', 'text': userText},
-        // Image part — OpenRouter/Gemini Vision format
-        {
-          'type': 'image_url',
-          'image_url': {
-            'url': 'data:$mimeType;base64,$base64Image',
-          },
-        },
-      ];
-    } else {
-      userContent = [
-        {'type': 'text', 'text': userText},
-      ];
     }
 
-    final body = jsonEncode({
-      'model': _model,
-      'response_format': {'type': 'json_object'},
-      'messages': [
-        {'role': 'system', 'content': _buildSystemPrompt()},
-        {'role': 'user', 'content': userContent},
-      ],
-      'temperature': 0.4,
-      'max_tokens': 512,
-    });
-
-    final http.Response response;
+    final FunctionResponse response;
     try {
-      response = await http
-          .post(
-            Uri.parse(_endpoint),
-            headers: {
-              'Authorization': 'Bearer $_apiKey',
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://cmandili.com',
-              'X-Title': 'Cmandili Mobile',
+      response = await _supabase.functions
+          .invoke(
+            _functionName,
+            body: {
+              'text': userText,
+              // Gemini-style history [{role, parts:[{text}]}] — the function
+              // converts it, giving the assistant real conversation memory.
+              'history': history,
+              if (imageBase64 != null) 'imageBase64': imageBase64,
+              if (mimeType != null) 'mimeType': mimeType,
             },
-            body: body,
           )
-          .timeout(const Duration(seconds: 45)); // longer for vision
+          .timeout(const Duration(seconds: 60)); // longer for vision
+    } on FunctionException catch (e) {
+      throw Exception(
+        'ai-chat Edge Function HTTP ${e.status}: ${e.details ?? e.reasonPhrase}',
+      );
     } catch (e) {
       throw Exception('Network error: $e');
     }
 
-    if (response.statusCode != 200) {
-      debugPrint('OpenRouter HTTP ${response.statusCode}: ${response.body}');
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        throw Exception('Invalid or missing OPENROUTER_API_KEY (HTTP ${response.statusCode})');
-      }
-      throw Exception('OpenRouter error (${response.statusCode})');
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw Exception('ai-chat returned an unexpected payload: $data');
+    }
+    if (data.containsKey('error')) {
+      final details = data['details'];
+      throw Exception('${data['error']}${details != null ? '\n$details' : ''}');
     }
 
-    final envelope = jsonDecode(response.body) as Map<String, dynamic>;
-    final content =
-        envelope['choices']?[0]?['message']?['content'] as String?;
-
-    if (content == null || content.trim().isEmpty) {
-      throw Exception('OpenRouter returned an empty response.');
-    }
-
-    return _AiIntent.parse(content);
+    return _AiIntent.fromJson(data);
   }
 
   // ── Persist messages ──────────────────────────────────────────────────────
@@ -281,6 +165,17 @@ Respond with RAW JSON ONLY. No markdown, no backticks.
 
   // ── Query food_items ──────────────────────────────────────────────────────
 
+  // Maps a health_goal to keyword terms for OR-based ilike search
+  static String? _healthGoalKeyword(String? goal) => switch (goal) {
+        'diet' => 'grillé,salade,poulet,poisson,légumes,light,mchwi',
+        'sport' => 'poulet,viande,thon,œufs,légumineuses,protéine',
+        'diabetes' => 'grillé,légumes,poisson,salade,fibres,mchwi',
+        'cholesterol' => 'poisson,légumes,salade,grillé,mchwi',
+        'vegetarian' => 'légumes,salade,végétarien,fromage,œufs',
+        'iftar' => 'chorba,brik,harissa,dattes,lablabi',
+        _ => null,
+      };
+
   Future<List<ProductResult>> _queryFoodItems(_AiIntent intent) async {
     try {
       var query = _supabase.from('food_items').select('''
@@ -290,17 +185,41 @@ Respond with RAW JSON ONLY. No markdown, no backticks.
       ''').eq('is_available', true);
 
       if (intent.spicy == true) query = query.eq('is_spicy', true);
-      if (intent.vegetarian == true) query = query.eq('is_vegetarian', true);
+      // Force vegetarian filter for vegetarian health goal or explicit flag
+      if (intent.vegetarian == true || intent.healthGoal == 'vegetarian') {
+        query = query.eq('is_vegetarian', true);
+      }
       if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
       if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
       if (intent.deliveryFast) query = query.lte('preparation_time', 20);
       if (intent.category != null && intent.category!.isNotEmpty) {
         query = query.ilike('category', '%${intent.category}%');
       }
+
+      // Build OR filter: explicit keyword + health-goal semantic terms
+      final keywordParts = <String>[];
       if (intent.keyword != null && intent.keyword!.isNotEmpty) {
-        query = query.or(
-          'name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%',
-        );
+        for (final term in intent.keyword!.split(',')) {
+          final t = term.trim();
+          if (t.isNotEmpty) {
+            keywordParts.add('name.ilike.%$t%');
+            keywordParts.add('description.ilike.%$t%');
+          }
+        }
+      }
+      final goalTerms = _healthGoalKeyword(intent.healthGoal);
+      if (goalTerms != null && keywordParts.isEmpty) {
+        // Only use goal terms if there's no explicit keyword (avoid over-broadening)
+        for (final term in goalTerms.split(',')) {
+          final t = term.trim();
+          if (t.isNotEmpty) {
+            keywordParts.add('name.ilike.%$t%');
+            keywordParts.add('description.ilike.%$t%');
+          }
+        }
+      }
+      if (keywordParts.isNotEmpty) {
+        query = query.or(keywordParts.join(','));
       }
 
       final rows = await query.order('price', ascending: true).limit(20)
@@ -411,6 +330,7 @@ Respond with RAW JSON ONLY. No markdown, no backticks.
 class _AiIntent {
   final String message;
   final String intentRaw;
+  final String? healthGoal;
   final String? category;
   final String? keyword;
   final bool? spicy;
@@ -424,6 +344,7 @@ class _AiIntent {
   const _AiIntent({
     required this.message,
     required this.intentRaw,
+    this.healthGoal,
     this.category,
     this.keyword,
     this.spicy,
@@ -433,31 +354,14 @@ class _AiIntent {
     this.deliveryTime,
   });
 
-  factory _AiIntent.parse(String raw) {
-    var cleaned = raw.trim();
-    if (cleaned.startsWith('```')) {
-      cleaned = cleaned
-          .replaceAll(RegExp(r'^```(json)?', multiLine: false), '')
-          .replaceAll('```', '')
-          .trim();
-    }
-
-    final Map<String, dynamic> json;
-    try {
-      json = jsonDecode(cleaned) as Map<String, dynamic>;
-    } catch (e) {
-      debugPrint('_AiIntent.parse – JSON decode failed: $e\nRaw: $raw');
-      return const _AiIntent(
-        message: 'Je suis là pour vous aider ! 😊',
-        intentRaw: 'general',
-      );
-    }
-
+  /// Builds an intent from the JSON map the `ai-chat` Edge Function returns.
+  factory _AiIntent.fromJson(Map<String, dynamic> json) {
     return _AiIntent(
       message: (json['message'] as String?)?.trim().isNotEmpty == true
           ? json['message'] as String
           : 'Comment puis-je vous aider ? 😊',
       intentRaw: (json['intent'] as String?) ?? 'general',
+      healthGoal: json['health_goal'] as String?,
       category: json['category'] as String?,
       keyword: json['keyword'] as String?,
       spicy: json['spicy'] as bool?,

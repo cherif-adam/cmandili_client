@@ -189,8 +189,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: [
-                            Colors.white.withOpacity(0.15),
-                            Colors.white.withOpacity(0.05),
+                            Colors.white.withValues(alpha: 0.15),
+                            Colors.white.withValues(alpha: 0.05),
                           ],
                         ),
                       ),
@@ -206,8 +206,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: [
-                            Colors.white.withOpacity(0.15),
-                            Colors.white.withOpacity(0.05),
+                            Colors.white.withValues(alpha: 0.15),
+                            Colors.white.withValues(alpha: 0.05),
                           ],
                         ),
                       ),
@@ -221,7 +221,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       height: screenWidth * 0.3,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.08),
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
                     ),
                   ),
@@ -262,11 +262,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       icon: Container(
                         padding: EdgeInsets.all(screenWidth * 0.025),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.25),
+                          color: Colors.white.withValues(alpha: 0.25),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: screenWidth * 0.02,
                               offset: Offset(0, screenHeight * 0.005),
                             ),
@@ -322,7 +322,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
+                                        color: Colors.black.withValues(alpha: 0.2),
                                         blurRadius: screenWidth * 0.05,
                                         offset: Offset(0, screenHeight * 0.01),
                                       ),
@@ -350,7 +350,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                   AppLocalizations.of(context)!.welcome,
                                   style: TextStyle(
                                     fontSize: screenWidth * 0.038,
-                                    color: Colors.white.withOpacity(0.95),
+                                    color: Colors.white.withValues(alpha: 0.95),
                                     letterSpacing: 0.5,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -374,15 +374,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                 child: Container(
                                   padding: EdgeInsets.all(screenWidth * 0.06),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.92),
+                                    color: Colors.white.withValues(alpha: 0.92),
                                     borderRadius: BorderRadius.circular(screenWidth * 0.08),
                                     border: Border.all(
-                                      color: Colors.white.withOpacity(0.3),
+                                      color: Colors.white.withValues(alpha: 0.3),
                                       width: 1.5,
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.15),
+                                        color: Colors.black.withValues(alpha: 0.15),
                                         blurRadius: screenWidth * 0.08,
                                         offset: Offset(0, screenHeight * 0.015),
                                       ),
@@ -407,7 +407,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                             borderRadius: BorderRadius.circular(screenWidth * 0.08),
                                             boxShadow: [
                                               BoxShadow(
-                                                color: AppColors.primary.withOpacity(0.4),
+                                                color: AppColors.primary.withValues(alpha: 0.4),
                                                 blurRadius: screenWidth * 0.03,
                                                 offset: Offset(0, screenHeight * 0.005),
                                               ),
@@ -503,7 +503,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                                   backgroundColor: AppColors.primary,
                                                   foregroundColor: Colors.white,
                                                   elevation: 8,
-                                                  shadowColor: AppColors.primary.withOpacity(0.5),
+                                                  shadowColor: AppColors.primary.withValues(alpha: 0.5),
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius: BorderRadius.circular(screenWidth * 0.04),
                                                   ),
@@ -535,7 +535,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                             child: Container(
                                               height: 1.5,
                                               decoration: BoxDecoration(
-                                                gradient: LinearGradient(colors: [Colors.transparent, AppColors.textLight.withOpacity(0.3)]),
+                                                gradient: LinearGradient(colors: [Colors.transparent, AppColors.textLight.withValues(alpha: 0.3)]),
                                               ),
                                             ),
                                           ),
@@ -543,14 +543,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                             padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
                                             child: Text(
                                               AppLocalizations.of(context)!.or,
-                                              style: TextStyle(color: AppColors.textSecondary.withOpacity(0.7), fontWeight: FontWeight.w600, fontSize: screenWidth * 0.035),
+                                              style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.7), fontWeight: FontWeight.w600, fontSize: screenWidth * 0.035),
                                             ),
                                           ),
                                           Expanded(
                                             child: Container(
                                               height: 1.5,
                                               decoration: BoxDecoration(
-                                                gradient: LinearGradient(colors: [AppColors.textLight.withOpacity(0.3), Colors.transparent]),
+                                                gradient: LinearGradient(colors: [AppColors.textLight.withValues(alpha: 0.3), Colors.transparent]),
                                               ),
                                             ),
                                           ),
@@ -614,19 +614,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
-          color: AppColors.textSecondary.withOpacity(0.8),
+          color: AppColors.textSecondary.withValues(alpha: 0.8),
           fontSize: screenWidth * 0.038,
         ),
         prefixIcon: Icon(
           icon,
-          color: AppColors.primary.withOpacity(0.7),
+          color: AppColors.primary.withValues(alpha: 0.7),
           size: screenWidth * 0.06,
         ),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
                   isObscure! ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondary.withOpacity(0.5),
+                  color: AppColors.textSecondary.withValues(alpha: 0.5),
                   size: screenWidth * 0.055,
                 ),
                 onPressed: onToggleObscure,
@@ -641,7 +641,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(screenWidth * 0.04),
           borderSide: BorderSide(
-            color: AppColors.textLight.withOpacity(0.1),
+            color: AppColors.textLight.withValues(alpha: 0.1),
             width: 1.5,
           ),
         ),
@@ -702,13 +702,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(
-              color: AppColors.textLight.withOpacity(0.25),
+              color: AppColors.textLight.withValues(alpha: 0.25),
               width: 2,
             ),
             borderRadius: BorderRadius.circular(screenWidth * 0.04),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: screenWidth * 0.02,
                 offset: Offset(0, screenHeight * 0.005),
               ),

@@ -13,6 +13,10 @@ class Restaurant {
   final double latitude;
   final double longitude;
 
+  /// Raw Postgres TIME string ('08:30:00') — null when the venue has no
+  /// configured hours. Used only for the "Ouvre à HH:MM" hint on cards.
+  final String? openingTime;
+
   Restaurant({
     required this.id,
     required this.name,
@@ -27,6 +31,7 @@ class Restaurant {
     required this.isOpen,
     required this.latitude,
     required this.longitude,
+    this.openingTime,
   });
 
   factory Restaurant.fromJson(Map<String, dynamic> json) {
@@ -44,6 +49,7 @@ class Restaurant {
       isOpen: json['isOpen'] ?? true,
       latitude: (json['latitude'] ?? 0).toDouble(),
       longitude: (json['longitude'] ?? 0).toDouble(),
+      openingTime: json['openingTime'] as String?,
     );
   }
 
@@ -62,6 +68,7 @@ class Restaurant {
       'isOpen': isOpen,
       'latitude': latitude,
       'longitude': longitude,
+      'openingTime': openingTime,
     };
   }
 }

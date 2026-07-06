@@ -57,6 +57,10 @@ class Order {
   final String? billReceiptUrl;  // payment receipt uploaded by driver
   final String? senderPhone;     // customer phone for driver
 
+  // Loyalty program — server-stamped only, never client-writable.
+  final String? loyaltyMilestoneType; // 'half' | 'free' | null
+  final double loyaltyDiscountAmount; // amount subtracted from deliveryFee
+
   Order({
     required this.id,
     required this.userId,
@@ -89,6 +93,8 @@ class Order {
     this.billPhotoUrl,
     this.billReceiptUrl,
     this.senderPhone,
+    this.loyaltyMilestoneType,
+    this.loyaltyDiscountAmount = 0,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -137,6 +143,8 @@ class Order {
       billPhotoUrl: json['billPhotoUrl'],
       billReceiptUrl: json['billReceiptUrl'],
       senderPhone: json['senderPhone'],
+      loyaltyMilestoneType: json['loyaltyMilestoneType'],
+      loyaltyDiscountAmount: (json['loyaltyDiscountAmount'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -173,6 +181,8 @@ class Order {
       'billPhotoUrl': billPhotoUrl,
       'billReceiptUrl': billReceiptUrl,
       'senderPhone': senderPhone,
+      'loyaltyMilestoneType': loyaltyMilestoneType,
+      'loyaltyDiscountAmount': loyaltyDiscountAmount,
     };
   }
 

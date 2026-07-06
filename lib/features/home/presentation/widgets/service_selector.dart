@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/service_category.dart';
 import '../../../../core/providers/service_provider.dart';
-import '../../../../core/theme/app_colors.dart';
 
 class ServiceSelector extends ConsumerWidget {
   final double screenWidth;
@@ -45,7 +44,7 @@ class ServiceSelector extends ConsumerWidget {
                 decoration: BoxDecoration(
                   gradient: isSelected
                       ? LinearGradient(
-                          colors: [color, color.withOpacity(0.8)],
+                          colors: [color, color.withValues(alpha: 0.8)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         )
@@ -59,8 +58,8 @@ class ServiceSelector extends ConsumerWidget {
                   boxShadow: [
                     BoxShadow(
                       color: isSelected
-                          ? color.withOpacity(0.3)
-                          : Colors.black.withOpacity(0.05),
+                          ? color.withValues(alpha: 0.3)
+                          : Colors.black.withValues(alpha: 0.05),
                       blurRadius: isSelected ? 12 : 8,
                       offset: Offset(0, isSelected ? 6 : 3),
                     ),

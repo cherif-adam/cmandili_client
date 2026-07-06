@@ -94,7 +94,7 @@ class CartScreen extends ConsumerWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: screenWidth * 0.05,
                         offset: Offset(0, -screenHeight * 0.006),
                       ),
@@ -137,7 +137,7 @@ class CartScreen extends ConsumerWidget {
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               elevation: 8,
-                              shadowColor: AppColors.primary.withOpacity(0.4),
+                              shadowColor: AppColors.primary.withValues(alpha: 0.4),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(screenWidth * 0.04),
                               ),
@@ -230,13 +230,13 @@ class _EmptyCart extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(screenWidth * 0.08),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.shopping_cart_outlined,
               size: screenWidth * 0.2,
-              color: AppColors.primary.withOpacity(0.5),
+              color: AppColors.primary.withValues(alpha: 0.5),
             ),
           ),
           SizedBox(height: screenHeight * 0.03),
@@ -303,7 +303,7 @@ class _CartItemCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    void _showCustomizationDialog() {
+    void showCustomizationDialog() {
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -324,7 +324,7 @@ class _CartItemCard extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: screenWidth * 0.05),
         decoration: BoxDecoration(
-          color: AppColors.error.withOpacity(0.1),
+          color: AppColors.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(screenWidth * 0.05),
         ),
         child: Icon(
@@ -341,7 +341,7 @@ class _CartItemCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(screenWidth * 0.05),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: screenWidth * 0.025,
               offset: Offset(0, screenHeight * 0.006),
             ),
@@ -464,7 +464,7 @@ class _CartItemCard extends ConsumerWidget {
                     // Special Instructions Button
                     SizedBox(height: screenHeight * 0.015),
                     InkWell(
-                      onTap: _showCustomizationDialog,
+                      onTap: showCustomizationDialog,
                       borderRadius: BorderRadius.circular(screenWidth * 0.03),
                       child: Container(
                         width: double.infinity,
@@ -474,7 +474,7 @@ class _CartItemCard extends ConsumerWidget {
                         ),
                         decoration: BoxDecoration(
                           color: cartItem.customization != null
-                              ? AppColors.primary.withOpacity(0.15)
+                              ? AppColors.primary.withValues(alpha: 0.15)
                               : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(screenWidth * 0.03),
                           border: Border.all(

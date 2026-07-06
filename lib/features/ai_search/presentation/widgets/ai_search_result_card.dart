@@ -23,7 +23,7 @@ class AiSearchResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -131,9 +131,9 @@ class AiSearchResultCard extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 4,
                     children: [
-                      if (item.isSpicy) _Badge('🌶 Spicy', AppColors.error),
+                      if (item.isSpicy) const _Badge('🌶 Spicy', AppColors.error),
                       if (item.isVegetarian)
-                        _Badge('🥦 Veg', AppColors.success),
+                        const _Badge('🥦 Veg', AppColors.success),
                       _Badge(
                         '⏱ ${item.preparationTime} min',
                         AppColors.textSecondary,
@@ -160,7 +160,7 @@ class AiSearchResultCard extends StatelessWidget {
                           if (hasDiscount) ...[
                             const SizedBox(width: 4),
                             Text(
-                              '${applyPlatformMarkup(item.price).toStringAsFixed(1)}',
+                              applyPlatformMarkup(item.price).toStringAsFixed(1),
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textLight,
@@ -210,7 +210,7 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

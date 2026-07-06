@@ -98,7 +98,7 @@ class NotificationScreen extends ConsumerWidget {
                               .deleteNotification(notification.id);
                         },
                       );
-                    }).toList(),
+                    }),
                   ],
                 );
               },
@@ -153,13 +153,13 @@ class _EmptyNotifications extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(screenWidth * 0.08),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.notifications_none_outlined,
               size: screenWidth * 0.2,
-              color: AppColors.primary.withOpacity(0.5),
+              color: AppColors.primary.withValues(alpha: 0.5),
             ),
           ),
           SizedBox(height: screenHeight * 0.03),
@@ -227,7 +227,7 @@ class _NotificationCard extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: EdgeInsets.only(right: screenWidth * 0.05),
         decoration: BoxDecoration(
-          color: AppColors.error.withOpacity(0.1),
+          color: AppColors.error.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(screenWidth * 0.05),
         ),
         child: Icon(
@@ -246,17 +246,17 @@ class _NotificationCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: notification.isRead
                 ? Theme.of(context).cardColor
-                : AppColors.primary.withOpacity(0.05),
+                : AppColors.primary.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(screenWidth * 0.05),
             border: Border.all(
               color: notification.isRead
                   ? Colors.transparent
-                  : AppColors.primary.withOpacity(0.2),
+                  : AppColors.primary.withValues(alpha: 0.2),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: screenWidth * 0.025,
                 offset: Offset(0, screenHeight * 0.006),
               ),
@@ -268,7 +268,7 @@ class _NotificationCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(screenWidth * 0.03),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

@@ -139,7 +139,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Your password has been changed successfully. Please sign in with your new password.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, height: 1.4),
@@ -195,12 +195,12 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
           Positioned(
             top: -sh * 0.12,
             right: -sw * 0.2,
-            child: _circle(sw * 0.6, Colors.white.withOpacity(0.12)),
+            child: _circle(sw * 0.6, Colors.white.withValues(alpha: 0.12)),
           ),
           Positioned(
             bottom: -sh * 0.08,
             left: -sw * 0.15,
-            child: _circle(sw * 0.5, Colors.white.withOpacity(0.10)),
+            child: _circle(sw * 0.5, Colors.white.withValues(alpha: 0.10)),
           ),
 
           SafeArea(
@@ -230,7 +230,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                               Container(
                                 padding: EdgeInsets.all(sw * 0.05),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(Icons.shield_rounded,
@@ -252,7 +252,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                 'Code sent to  ${_maskEmail(widget.email)}',
                                 style: TextStyle(
                                   fontSize: sw * 0.036,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
 
@@ -267,16 +267,16 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                   child: Container(
                                     padding: EdgeInsets.all(sw * 0.06),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.92),
+                                      color: Colors.white.withValues(alpha: 0.92),
                                       borderRadius:
                                           BorderRadius.circular(sw * 0.07),
                                       border: Border.all(
-                                        color: Colors.white.withOpacity(0.3),
+                                        color: Colors.white.withValues(alpha: 0.3),
                                         width: 1.5,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.12),
+                                          color: Colors.black.withValues(alpha: 0.12),
                                           blurRadius: sw * 0.07,
                                           offset: Offset(0, sh * 0.012),
                                         ),
@@ -354,7 +354,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                                 foregroundColor: Colors.white,
                                                 elevation: 8,
                                                 shadowColor: AppColors.primary
-                                                    .withOpacity(0.4),
+                                                    .withValues(alpha: 0.4),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(
@@ -433,7 +433,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
           decoration: InputDecoration(
             counterText: '', // hide the "0/6" counter
             filled: true,
-            fillColor: AppColors.primary.withOpacity(0.05),
+            fillColor: AppColors.primary.withValues(alpha: 0.05),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(sw * 0.04),
               borderSide: BorderSide.none,
@@ -441,7 +441,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(sw * 0.04),
               borderSide: BorderSide(
-                  color: AppColors.primary.withOpacity(0.25), width: 1.5),
+                  color: AppColors.primary.withValues(alpha: 0.25), width: 1.5),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(sw * 0.04),
@@ -496,17 +496,17 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(
-            color: AppColors.textSecondary.withOpacity(0.8),
+            color: AppColors.textSecondary.withValues(alpha: 0.8),
             fontSize: sw * 0.038),
         prefixIcon: Icon(icon,
-            color: AppColors.primary.withOpacity(0.7), size: sw * 0.06),
+            color: AppColors.primary.withValues(alpha: 0.7), size: sw * 0.06),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
                   isObscure
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondary.withOpacity(0.5),
+                  color: AppColors.textSecondary.withValues(alpha: 0.5),
                   size: sw * 0.055,
                 ),
                 onPressed: onToggle,
@@ -520,7 +520,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(sw * 0.04),
           borderSide: BorderSide(
-              color: AppColors.textLight.withOpacity(0.1), width: 1.5),
+              color: AppColors.textLight.withValues(alpha: 0.1), width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(sw * 0.04),

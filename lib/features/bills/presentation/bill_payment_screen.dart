@@ -232,7 +232,7 @@ class _BillPaymentScreenState extends State<BillPaymentScreen> {
                             boxShadow: [
                               if (isSelected)
                                 BoxShadow(
-                                  color: Color(int.parse(provider.colorHex.replaceFirst('#', '0xFF'))).withOpacity(0.3),
+                                  color: Color(int.parse(provider.colorHex.replaceFirst('#', '0xFF'))).withValues(alpha: 0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -377,7 +377,7 @@ class _BillPaymentScreenState extends State<BillPaymentScreen> {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),

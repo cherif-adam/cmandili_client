@@ -30,10 +30,13 @@ class FavoritesNotifier extends StateNotifier<List<Restaurant>> {
           deliveryTime: (r['delivery_time_min'] as num?)?.toInt() ?? 30,
           deliveryFee: (r['delivery_fee'] as num?)?.toDouble() ?? 0,
           minimumOrder: (r['min_order'] as num?)?.toDouble() ?? 0,
-          categories: [],
+          categories: r['categories'] != null
+              ? List<String>.from(r['categories'] as List)
+              : [],
           isOpen: r['is_open'] as bool? ?? true,
           latitude: (r['latitude'] as num?)?.toDouble() ?? 0,
           longitude: (r['longitude'] as num?)?.toDouble() ?? 0,
+          openingTime: r['opening_time'] as String?,
         );
       }).toList();
     } catch (_) {}

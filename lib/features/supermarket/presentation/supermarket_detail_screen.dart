@@ -33,7 +33,6 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
   Widget build(BuildContext context) {
     final groceryItemsAsync = ref.watch(groceryItemsProvider(widget.supermarket.id));
     final cartItemCount = ref.watch(cartItemCountProvider);
-    final screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
       body: groceryItemsAsync.when(
@@ -52,7 +51,7 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
                 leading: Container(
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
@@ -155,7 +154,10 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final item = filteredItems[index];
-                      return _ProductCard(item: item);
+                      return _ProductCard(
+                        item: item,
+                        isOpen: widget.supermarket.isOpen,
+                      );
                     },
                     childCount: filteredItems.length,
                   ),
@@ -254,8 +256,10 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
 
 class _ProductCard extends ConsumerWidget {
   final GroceryItem item;
+  // Open/closed state of the parent supermarket — gates add-to-cart (P0).
+  final bool isOpen;
 
-  const _ProductCard({required this.item});
+  const _ProductCard({required this.item, required this.isOpen});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -265,7 +269,7 @@ class _ProductCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -409,6 +413,19 @@ class _ProductCard extends ConsumerWidget {
     WidgetRef ref,
     GroceryItem item,
   ) async {
+    // P0 ghost-order guard: block adding from a closed supermarket. This single
+    // check covers BOTH the fast-add (no variants) and variant-picker paths.
+    if (!isOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ce supermarché est fermé pour le moment.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     final variants = await ref.read(groceryItemVariantsProvider(item.id).future);
 
     if (variants.isEmpty) {

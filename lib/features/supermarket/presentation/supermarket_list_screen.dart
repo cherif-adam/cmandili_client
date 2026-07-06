@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/venue_hours.dart';
 import '../data/models/supermarket.dart';
 import '../providers/supermarket_provider.dart';
 import 'supermarket_detail_screen.dart';
@@ -90,6 +91,10 @@ class _SupermarketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // "Ouvre à HH:MM" hint — null when open or when no hours are configured.
+    final opensAt =
+        supermarket.isOpen ? null : nextOpeningLabel(supermarket.openingTime);
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -106,7 +111,7 @@ class _SupermarketCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(screenWidth * 0.06),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: screenWidth * 0.038,
               offset: Offset(0, screenHeight * 0.006),
             ),
@@ -140,7 +145,53 @@ class _SupermarketCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
+                // Closed state: dim the image + centered "Fermé" pill.
+                // Closed venues stay tappable — browsing is allowed, ordering
+                // is blocked in the detail screen (ghost-order fix).
+                if (!supermarket.isOpen)
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(screenWidth * 0.06),
+                        topRight: Radius.circular(screenWidth * 0.06),
+                      ),
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.45),
+                        alignment: Alignment.center,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.04,
+                            vertical: screenHeight * 0.01,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.65),
+                            borderRadius: BorderRadius.circular(screenWidth * 0.06),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.lock_rounded,
+                                size: screenWidth * 0.04,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: screenWidth * 0.015),
+                              Text(
+                                'Fermé',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: screenWidth * 0.035,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                 // Delivery Time Badge
                 Positioned(
                   top: screenHeight * 0.02,
@@ -155,7 +206,7 @@ class _SupermarketCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(screenWidth * 0.05),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: screenWidth * 0.01,
                           offset: Offset(0, screenHeight * 0.0025),
                         ),
@@ -196,7 +247,7 @@ class _SupermarketCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(screenWidth * 0.05),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: screenWidth * 0.01,
                           offset: Offset(0, screenHeight * 0.0025),
                         ),
@@ -221,7 +272,7 @@ class _SupermarketCard extends StatelessWidget {
                         Text(
                           ' (${supermarket.reviewCount})',
                           style: TextStyle(
-                            color: AppColors.textSecondary.withOpacity(0.8),
+                            color: AppColors.textSecondary.withValues(alpha: 0.8),
                             fontSize: screenWidth * 0.03,
                           ),
                         ),
@@ -258,7 +309,7 @@ class _SupermarketCard extends StatelessWidget {
                             vertical: screenHeight * 0.005,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withOpacity(0.1),
+                            color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(screenWidth * 0.02),
                           ),
                           child: Text(
@@ -272,6 +323,27 @@ class _SupermarketCard extends StatelessWidget {
                         ),
                     ],
                   ),
+                  if (opensAt != null) ...[
+                    SizedBox(height: screenHeight * 0.006),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule,
+                          size: screenWidth * 0.035,
+                          color: AppColors.error,
+                        ),
+                        SizedBox(width: screenWidth * 0.015),
+                        Text(
+                          opensAt,
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontSize: screenWidth * 0.032,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   SizedBox(height: screenHeight * 0.01),
                   Text(
                     supermarket.description,
@@ -333,7 +405,7 @@ class _SupermarketCard extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: screenWidth * 0.03,
-                color: AppColors.textSecondary.withOpacity(0.8),
+                color: AppColors.textSecondary.withValues(alpha: 0.8),
               ),
             ),
           ],

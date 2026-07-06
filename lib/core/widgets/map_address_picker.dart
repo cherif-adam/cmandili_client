@@ -762,12 +762,12 @@ class _MapFineTuneState extends State<_MapFineTune>
                       ),
                       elevation: 4,
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.check_circle_outline_rounded, size: 20),
-                        const SizedBox(width: 8),
-                        const Text(
+                        Icon(Icons.check_circle_outline_rounded, size: 20),
+                        SizedBox(width: 8),
+                        Text(
                           'Confirmer cet emplacement',
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                         ),

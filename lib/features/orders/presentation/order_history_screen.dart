@@ -14,6 +14,7 @@ class OrderHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(userOrdersProvider);
+    final loyaltyAsync = ref.watch(loyaltyProgressProvider);
     final size = MediaQuery.of(context).size;
     final sw = size.width;
     final sh = size.height;
@@ -37,14 +38,22 @@ class OrderHistoryScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(userOrdersProvider);
+              ref.invalidate(loyaltyProgressProvider);
             },
             color: AppColors.primary,
             child: ListView.builder(
               padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.01, sw * 0.04, sh * 0.04),
-              itemCount: orders.length,
+              itemCount: orders.length + 1,
               itemBuilder: (context, index) {
+                if (index == 0) {
+                  return loyaltyAsync.when(
+                    data: (count) => _LoyaltyProgressCard(count: count, sw: sw, sh: sh),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                }
                 return _OrderCard(
-                  order: orders[index],
+                  order: orders[index - 1],
                   sw: sw,
                   sh: sh,
                 );
@@ -108,7 +117,7 @@ class OrderHistoryScreen extends ConsumerWidget {
           Container(
             padding: EdgeInsets.all(sw * 0.06),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -139,6 +148,92 @@ class OrderHistoryScreen extends ConsumerWidget {
   }
 }
 
+/// Minimal, additive loyalty progress indicator ("3/5 commandes avant votre
+/// prochaine réduction"). Counts down within the current 5-order cycle;
+/// resets to 0/5 right after a milestone (5th/10th) order is delivered.
+class _LoyaltyProgressCard extends StatelessWidget {
+  final int count;
+  final double sw;
+  final double sh;
+
+  const _LoyaltyProgressCard({required this.count, required this.sw, required this.sh});
+
+  @override
+  Widget build(BuildContext context) {
+    final progressInCycle = count % 5;
+    return Container(
+      margin: EdgeInsets.only(bottom: sh * 0.015),
+      padding: EdgeInsets.all(sw * 0.04),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(sw * 0.04),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.card_giftcard, color: AppColors.primary, size: sw * 0.06),
+          SizedBox(width: sw * 0.03),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$progressInCycle/5 commandes avant votre prochaine réduction',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: sw * 0.035,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: sh * 0.004),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(sw * 0.02),
+                  child: LinearProgressIndicator(
+                    value: progressInCycle / 5,
+                    minHeight: sh * 0.008,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                    valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Small "🎉 -50% sur la livraison" / "🎉 Livraison gratuite" confirmation
+/// badge shown on orders where the loyalty program applied a discount.
+class _LoyaltyMilestoneBadge extends StatelessWidget {
+  final String milestoneType; // 'half' | 'free'
+  final double sw;
+
+  const _LoyaltyMilestoneBadge({required this.milestoneType, required this.sw});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = milestoneType == 'free'
+        ? '🎉 Livraison gratuite'
+        : '🎉 -50% sur la livraison';
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: sw * 0.03, vertical: sw * 0.015),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(sw * 0.03),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Colors.green[700],
+          fontWeight: FontWeight.bold,
+          fontSize: sw * 0.032,
+        ),
+      ),
+    );
+  }
+}
+
 class _OrderCard extends StatelessWidget {
   final Order order;
   final double sw;
@@ -159,7 +254,7 @@ class _OrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(sw * 0.04),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: sw * 0.025,
             offset: Offset(0, sh * 0.005),
           ),
@@ -188,7 +283,7 @@ class _OrderCard extends StatelessWidget {
                     Container(
                       padding: EdgeInsets.all(sw * 0.025),
                       decoration: BoxDecoration(
-                        color: _getTypeColor().withOpacity(0.1),
+                        color: _getTypeColor().withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(sw * 0.03),
                       ),
                       child: Icon(
@@ -224,6 +319,14 @@ class _OrderCard extends StatelessWidget {
                     _buildStatusBadge(),
                   ],
                 ),
+
+                if (order.loyaltyMilestoneType != null) ...[
+                  SizedBox(height: sh * 0.01),
+                  _LoyaltyMilestoneBadge(
+                    milestoneType: order.loyaltyMilestoneType!,
+                    sw: sw,
+                  ),
+                ],
 
                 Divider(height: sh * 0.025, color: Colors.grey[200]),
 
@@ -288,10 +391,10 @@ class _OrderCard extends StatelessWidget {
         vertical: sw * 0.012,
       ),
       decoration: BoxDecoration(
-        color: _getStatusColor().withOpacity(0.1),
+        color: _getStatusColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(sw * 0.05),
         border: Border.all(
-          color: _getStatusColor().withOpacity(0.3),
+          color: _getStatusColor().withValues(alpha: 0.3),
           width: 1,
         ),
       ),

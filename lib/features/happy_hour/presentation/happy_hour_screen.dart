@@ -59,18 +59,18 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
                         fontWeight: FontWeight.w800,
                         fontFamily: 'Poppins',
                         shadows: [
-                          Shadow(blurRadius: 4, color: Colors.black.withOpacity(0.5), offset: const Offset(0, 2)),
+                          Shadow(blurRadius: 4, color: Colors.black.withValues(alpha: 0.5), offset: const Offset(0, 2)),
                         ],
                       ),
                     ),
                     Text(
                       AppLocalizations.of(context)!.saveUpTo60,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         shadows: [
-                          Shadow(blurRadius: 4, color: Colors.black.withOpacity(0.5), offset: const Offset(0, 1)),
+                          Shadow(blurRadius: 4, color: Colors.black.withValues(alpha: 0.5), offset: const Offset(0, 1)),
                         ],
                       ),
                     ),
@@ -91,8 +91,8 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.2),
-                            Colors.black.withOpacity(0.7),
+                            Colors.black.withValues(alpha: 0.2),
+                            Colors.black.withValues(alpha: 0.7),
                           ],
                         ),
                       ),

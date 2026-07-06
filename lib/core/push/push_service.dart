@@ -62,14 +62,14 @@ class PushService {
     ));
 
     // Urgent channel for on-the-way / arrival alerts.
-    await androidPlugin?.createNotificationChannel(AndroidNotificationChannel(
+    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
       _kUrgentChannelId,
       _kUrgentChannelName,
       description: _kUrgentChannelDesc,
       importance: Importance.max,
       playSound: true,
       // File: android/app/src/main/res/raw/new_order.mp3
-      sound: const RawResourceAndroidNotificationSound('new_order'),
+      sound: RawResourceAndroidNotificationSound('new_order'),
     ));
 
     await _fcm.setForegroundNotificationPresentationOptions(

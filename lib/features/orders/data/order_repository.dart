@@ -251,7 +251,28 @@ class OrderRepository {
       'billPhotoUrl': dbJson['bill_photo_url'],
       'billReceiptUrl': dbJson['bill_receipt_url'],
       'senderPhone': dbJson['sender_phone'],
+      'loyaltyMilestoneType': dbJson['loyalty_milestone_type'],
+      'loyaltyDiscountAmount': dbJson['loyalty_discount_amount'],
     };
+  }
+
+  /// Customer's lifetime delivered-order count for the loyalty program
+  /// (unified across food/courier/facture). Returns 0 if the customer has
+  /// no qualifying delivered order yet (no row exists).
+  Future<int> getLoyaltyDeliveredCount() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return 0;
+    try {
+      final row = await _supabase
+          .from('loyalty_customer_progress')
+          .select('delivered_count')
+          .eq('customer_id', userId)
+          .maybeSingle();
+      return (row?['delivered_count'] as int?) ?? 0;
+    } catch (e) {
+      debugPrint('Error fetching loyalty progress: $e');
+      return 0;
+    }
   }
 
   Future<List<Order>> getBillOrders() async {
