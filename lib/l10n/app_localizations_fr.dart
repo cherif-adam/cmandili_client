@@ -584,4 +584,93 @@ class AppLocalizationsFr extends AppLocalizations {
   String promoDiscount(String code) {
     return 'Réduction ($code)';
   }
+
+  @override
+  String get loyaltyCardTitle => 'Carte de fidélité';
+
+  @override
+  String get loyaltyPendingSubtitle =>
+      'Tampon en attente — confirmé à la livraison';
+
+  @override
+  String get loyaltyProgressLabel => 'Ta progression';
+
+  @override
+  String loyaltyRemainingHalf(int count) {
+    return 'Encore $count commandes pour ta livraison à moitié prix';
+  }
+
+  @override
+  String loyaltyRemainingFree(int count) {
+    return 'Encore $count commandes pour ta livraison gratuite';
+  }
+
+  @override
+  String get loyaltyCelebrationHalf =>
+      'C\'est ta 5ème commande — ta livraison est à moitié prix !';
+
+  @override
+  String get loyaltyCelebrationFree =>
+      '10ème commande — ta livraison est offerte !';
+
+  @override
+  String get loyaltyViewRewards => 'Voir mes récompenses';
+
+  @override
+  String get loyaltyCancelTitle => 'Commande annulée';
+
+  @override
+  String get loyaltyCancelMessage =>
+      'C\'est noté ! On espère te revoir très bientôt. Merci de ta confiance !';
+
+  @override
+  String get loyaltyCancelNote =>
+      'Le tampon de cette commande a été retiré de ta carte.';
+
+  @override
+  String get loyaltyCancelPrimaryCta => 'Recommander';
+
+  @override
+  String get loyaltyCancelSecondaryCta => 'Fermer';
+
+  @override
+  String get loyaltyRewardsTitle => 'Mes récompenses';
+
+  @override
+  String get loyaltyMilestoneHalfTitle => '5ème commande';
+
+  @override
+  String get loyaltyMilestoneHalfSubtitle => 'Livraison à moitié prix';
+
+  @override
+  String get loyaltyMilestoneFreeTitle => '10ème commande';
+
+  @override
+  String get loyaltyMilestoneFreeSubtitle => 'Livraison gratuite';
+
+  @override
+  String get loyaltyStateAchieved => 'Atteint';
+
+  @override
+  String get loyaltyStateCurrent => 'En cours';
+
+  @override
+  String get loyaltyStateLocked => 'Verrouillé';
+
+  @override
+  String get loyaltyHowItWorksTitle => 'Comment ça marche';
+
+  @override
+  String get loyaltyHowItWorks1 => 'Chaque commande livrée = 1 tampon';
+
+  @override
+  String get loyaltyHowItWorks2 =>
+      'Les réductions s\'appliquent automatiquement sur les frais de livraison de la commande qui atteint le palier';
+
+  @override
+  String get loyaltyHowItWorks3 => 'Les commandes annulées ne comptent pas';
+
+  @override
+  String get loyaltyHowItWorks4 =>
+      'Après la 10ème commande, la carte se réinitialise et un nouveau cycle commence';
 }

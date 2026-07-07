@@ -572,4 +572,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String promoDiscount(String code) {
     return 'Discount ($code)';
   }
+
+  @override
+  String get loyaltyCardTitle => 'Loyalty card';
+
+  @override
+  String get loyaltyPendingSubtitle => 'Stamp pending — confirmed at delivery';
+
+  @override
+  String get loyaltyProgressLabel => 'Your progress';
+
+  @override
+  String loyaltyRemainingHalf(int count) {
+    return '$count more orders for half-price delivery';
+  }
+
+  @override
+  String loyaltyRemainingFree(int count) {
+    return '$count more orders for free delivery';
+  }
+
+  @override
+  String get loyaltyCelebrationHalf =>
+      'This is your 5th order — your delivery is half price!';
+
+  @override
+  String get loyaltyCelebrationFree => '10th order — your delivery is free!';
+
+  @override
+  String get loyaltyViewRewards => 'See my rewards';
+
+  @override
+  String get loyaltyCancelTitle => 'Order cancelled';
+
+  @override
+  String get loyaltyCancelMessage =>
+      'Got it! We hope to see you again soon. Thanks for your trust!';
+
+  @override
+  String get loyaltyCancelNote =>
+      'This order\'s stamp has been removed from your card.';
+
+  @override
+  String get loyaltyCancelPrimaryCta => 'Order again';
+
+  @override
+  String get loyaltyCancelSecondaryCta => 'Close';
+
+  @override
+  String get loyaltyRewardsTitle => 'My rewards';
+
+  @override
+  String get loyaltyMilestoneHalfTitle => '5th order';
+
+  @override
+  String get loyaltyMilestoneHalfSubtitle => 'Half-price delivery';
+
+  @override
+  String get loyaltyMilestoneFreeTitle => '10th order';
+
+  @override
+  String get loyaltyMilestoneFreeSubtitle => 'Free delivery';
+
+  @override
+  String get loyaltyStateAchieved => 'Achieved';
+
+  @override
+  String get loyaltyStateCurrent => 'In progress';
+
+  @override
+  String get loyaltyStateLocked => 'Locked';
+
+  @override
+  String get loyaltyHowItWorksTitle => 'How it works';
+
+  @override
+  String get loyaltyHowItWorks1 => 'Each delivered order = 1 stamp';
+
+  @override
+  String get loyaltyHowItWorks2 =>
+      'Discounts apply automatically to the delivery fee of the order that reaches the milestone';
+
+  @override
+  String get loyaltyHowItWorks3 => 'Cancelled orders don\'t count';
+
+  @override
+  String get loyaltyHowItWorks4 =>
+      'After the 10th order, the card resets and a new cycle begins';
 }

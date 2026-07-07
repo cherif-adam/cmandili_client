@@ -186,5 +186,41 @@
         "placeholders": {
             "code": { "type": "String" }
         }
-    }
+    },
+    "loyaltyCardTitle": "Carte de fidélité",
+    "loyaltyPendingSubtitle": "Tampon en attente — confirmé à la livraison",
+    "loyaltyProgressLabel": "Ta progression",
+    "loyaltyRemainingHalf": "Encore {count} commandes pour ta livraison à moitié prix",
+    "@loyaltyRemainingHalf": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "loyaltyRemainingFree": "Encore {count} commandes pour ta livraison gratuite",
+    "@loyaltyRemainingFree": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "loyaltyCelebrationHalf": "C'est ta 5ème commande — ta livraison est à moitié prix !",
+    "loyaltyCelebrationFree": "10ème commande — ta livraison est offerte !",
+    "loyaltyViewRewards": "Voir mes récompenses",
+    "loyaltyCancelTitle": "Commande annulée",
+    "loyaltyCancelMessage": "C'est noté ! On espère te revoir très bientôt. Merci de ta confiance !",
+    "loyaltyCancelNote": "Le tampon de cette commande a été retiré de ta carte.",
+    "loyaltyCancelPrimaryCta": "Recommander",
+    "loyaltyCancelSecondaryCta": "Fermer",
+    "loyaltyRewardsTitle": "Mes récompenses",
+    "loyaltyMilestoneHalfTitle": "5ème commande",
+    "loyaltyMilestoneHalfSubtitle": "Livraison à moitié prix",
+    "loyaltyMilestoneFreeTitle": "10ème commande",
+    "loyaltyMilestoneFreeSubtitle": "Livraison gratuite",
+    "loyaltyStateAchieved": "Atteint",
+    "loyaltyStateCurrent": "En cours",
+    "loyaltyStateLocked": "Verrouillé",
+    "loyaltyHowItWorksTitle": "Comment ça marche",
+    "loyaltyHowItWorks1": "Chaque commande livrée = 1 tampon",
+    "loyaltyHowItWorks2": "Les réductions s'appliquent automatiquement sur les frais de livraison de la commande qui atteint le palier",
+    "loyaltyHowItWorks3": "Les commandes annulées ne comptent pas",
+    "loyaltyHowItWorks4": "Après la 10ème commande, la carte se réinitialise et un nouveau cycle commence"
 }

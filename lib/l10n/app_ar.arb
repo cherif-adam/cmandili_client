@@ -186,5 +186,41 @@
         "placeholders": {
             "code": { "type": "String" }
         }
-    }
+    },
+    "loyaltyCardTitle": "بطاقة الولاء",
+    "loyaltyPendingSubtitle": "الختم قيد الانتظار — يُؤكَّد عند التسليم",
+    "loyaltyProgressLabel": "تقدمك",
+    "loyaltyRemainingHalf": "{count} طلبات أخرى للحصول على توصيل بنصف السعر",
+    "@loyaltyRemainingHalf": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "loyaltyRemainingFree": "{count} طلبات أخرى للحصول على توصيل مجاني",
+    "@loyaltyRemainingFree": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "loyaltyCelebrationHalf": "هذا طلبك الخامس — توصيلك بنصف السعر!",
+    "loyaltyCelebrationFree": "الطلب العاشر — توصيلك مجاني!",
+    "loyaltyViewRewards": "عرض مكافآتي",
+    "loyaltyCancelTitle": "تم إلغاء الطلب",
+    "loyaltyCancelMessage": "تم! نأمل أن نراك مجددًا قريبًا. شكرًا لثقتك!",
+    "loyaltyCancelNote": "تمت إزالة ختم هذا الطلب من بطاقتك.",
+    "loyaltyCancelPrimaryCta": "اطلب مجددًا",
+    "loyaltyCancelSecondaryCta": "إغلاق",
+    "loyaltyRewardsTitle": "مكافآتي",
+    "loyaltyMilestoneHalfTitle": "الطلب الخامس",
+    "loyaltyMilestoneHalfSubtitle": "توصيل بنصف السعر",
+    "loyaltyMilestoneFreeTitle": "الطلب العاشر",
+    "loyaltyMilestoneFreeSubtitle": "توصيل مجاني",
+    "loyaltyStateAchieved": "تم تحقيقه",
+    "loyaltyStateCurrent": "قيد التقدم",
+    "loyaltyStateLocked": "مقفل",
+    "loyaltyHowItWorksTitle": "كيف يعمل البرنامج",
+    "loyaltyHowItWorks1": "كل طلب يُسلَّم = ختم واحد",
+    "loyaltyHowItWorks2": "تُطبَّق الخصومات تلقائيًا على رسوم توصيل الطلب الذي يصل إلى الحد المطلوب",
+    "loyaltyHowItWorks3": "الطلبات الملغاة لا تُحتسب",
+    "loyaltyHowItWorks4": "بعد الطلب العاشر، تُعاد تهيئة البطاقة ويبدأ دورة جديدة"
 }

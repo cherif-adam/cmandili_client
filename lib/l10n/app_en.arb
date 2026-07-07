@@ -186,5 +186,41 @@
         "placeholders": {
             "code": { "type": "String" }
         }
-    }
+    },
+    "loyaltyCardTitle": "Loyalty card",
+    "loyaltyPendingSubtitle": "Stamp pending — confirmed at delivery",
+    "loyaltyProgressLabel": "Your progress",
+    "loyaltyRemainingHalf": "{count} more orders for half-price delivery",
+    "@loyaltyRemainingHalf": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "loyaltyRemainingFree": "{count} more orders for free delivery",
+    "@loyaltyRemainingFree": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "loyaltyCelebrationHalf": "This is your 5th order — your delivery is half price!",
+    "loyaltyCelebrationFree": "10th order — your delivery is free!",
+    "loyaltyViewRewards": "See my rewards",
+    "loyaltyCancelTitle": "Order cancelled",
+    "loyaltyCancelMessage": "Got it! We hope to see you again soon. Thanks for your trust!",
+    "loyaltyCancelNote": "This order's stamp has been removed from your card.",
+    "loyaltyCancelPrimaryCta": "Order again",
+    "loyaltyCancelSecondaryCta": "Close",
+    "loyaltyRewardsTitle": "My rewards",
+    "loyaltyMilestoneHalfTitle": "5th order",
+    "loyaltyMilestoneHalfSubtitle": "Half-price delivery",
+    "loyaltyMilestoneFreeTitle": "10th order",
+    "loyaltyMilestoneFreeSubtitle": "Free delivery",
+    "loyaltyStateAchieved": "Achieved",
+    "loyaltyStateCurrent": "In progress",
+    "loyaltyStateLocked": "Locked",
+    "loyaltyHowItWorksTitle": "How it works",
+    "loyaltyHowItWorks1": "Each delivered order = 1 stamp",
+    "loyaltyHowItWorks2": "Discounts apply automatically to the delivery fee of the order that reaches the milestone",
+    "loyaltyHowItWorks3": "Cancelled orders don't count",
+    "loyaltyHowItWorks4": "After the 10th order, the card resets and a new cycle begins"
 }

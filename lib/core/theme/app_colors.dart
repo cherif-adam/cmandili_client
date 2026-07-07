@@ -55,4 +55,71 @@ class AppColors {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
+
+  // ── Loyalty card ("Carte de fidélité") ────────────────────────────────────
+  static const loyaltySheetBarrier = Color(0x73042C26); // rgba(4,44,38,.45)
+
+  static const loyaltyHeaderGradient = LinearGradient(
+    begin: Alignment(-0.8, -0.6),
+    end: Alignment(0.8, 0.6),
+    colors: [
+      Color(0xFF04342C),
+      Color(0xFF0F6E56),
+      Color(0xFF1D9E75),
+      Color(0xFFE8890C),
+    ],
+    stops: [0.0, 0.42, 0.72, 1.0],
+  );
+  static const loyaltyDecorCircleAmber = Color(0x38F59E0B); // rgba(245,158,11,.22)
+  static const loyaltyDecorCircleWhite = Color(0x0FFFFFFF); // rgba(255,255,255,.06)
+  static const loyaltyPendingSubtitleColor = Color(0xFFFAC775);
+  static const loyaltyProgressLabelColor = Color(0xFFE1F5EE);
+  static const loyaltyProgressTrack = Color(0x38FFFFFF); // rgba(255,255,255,.22)
+  static const loyaltyProgressFillGradient = LinearGradient(
+    colors: [Color(0xFF5DCAA5), Color(0xFFF59E0B)],
+  );
+
+  static const loyaltyStampEarnedBg = Color(0xFFE1F5EE);
+  static const loyaltyStampEarnedBorder = Color(0xFF1D9E75);
+  static const loyaltyStampPendingBg = Color(0xFFFAEEDA);
+  static const loyaltyStampPendingBorder = Color(0xFFF59E0B);
+  static const loyaltyStampPendingIcon = Color(0xFFE8890C);
+  static const loyaltyStampEmptyBorder = Color(0xFFC9C7BE);
+  static const loyaltyStampRemovedBg = Color(0xFFFAECE7);
+  static const loyaltyStampRemovedBorder = Color(0xFFD85A30);
+
+  static const loyaltyButtonGradient = LinearGradient(
+    colors: [Color(0xFF0F6E56), Color(0xFF1D9E75), Color(0xFF2AA87F)],
+  );
+
+  static const loyaltyDialogBackdropGradient = LinearGradient(
+    begin: Alignment(-0.3, -1),
+    end: Alignment(0.3, 1),
+    colors: [Color(0x8C042C26), Color(0x59783F0A)], // rgba(4,44,38,.55) → rgba(120,63,10,.35)
+  );
+  static const loyaltyCancelAccentGradient = LinearGradient(
+    colors: [Color(0xFF0F6E56), Color(0xFF1D9E75), Color(0xFFF59E0B)],
+  );
+  static const loyaltyCancelIconGradient = LinearGradient(
+    colors: [Color(0xFFE1F5EE), Color(0xFFFAEEDA)],
+  );
+  static const loyaltyCancelIconColor = Color(0xFFD8722C);
+  static const loyaltyCancelTitleColor = Color(0xFF04342C);
+  static const loyaltyCancelNoteColor = Color(0xFF888780);
+  static const loyaltyCancelMiniCardBg = Color(0xFFF6F8F7);
+  static const loyaltyCancelMiniCardBorder = Color(0xFFE5E7E4);
+  static const loyaltyCancelButtonGradient = LinearGradient(
+    colors: [Color(0xFF0F6E56), Color(0xFF1D9E75), Color(0xFFF59E0B)],
+  );
+
+  // Rewards screen milestone cards (achieved reuses stamp-earned colors,
+  // current-target reuses stamp-pending colors — kept visually consistent
+  // with the stamp grid itself).
+  static const loyaltyMilestoneAchievedBg = loyaltyStampEarnedBg;
+  static const loyaltyMilestoneAchievedBorder = loyaltyStampEarnedBorder;
+  static const loyaltyMilestoneCurrentBg = loyaltyStampPendingBg;
+  static const loyaltyMilestoneCurrentBorder = loyaltyStampPendingBorder;
+  static const loyaltyMilestoneLockedBg = Color(0xFFF2F2F0);
+  static const loyaltyMilestoneLockedBorder = Color(0xFFDCDBD6);
+  static const loyaltyMilestoneLockedIcon = Color(0xFFAFAEA8);
 }

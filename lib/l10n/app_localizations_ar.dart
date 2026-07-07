@@ -567,4 +567,90 @@ class AppLocalizationsAr extends AppLocalizations {
   String promoDiscount(String code) {
     return 'خصم ($code)';
   }
+
+  @override
+  String get loyaltyCardTitle => 'بطاقة الولاء';
+
+  @override
+  String get loyaltyPendingSubtitle =>
+      'الختم قيد الانتظار — يُؤكَّد عند التسليم';
+
+  @override
+  String get loyaltyProgressLabel => 'تقدمك';
+
+  @override
+  String loyaltyRemainingHalf(int count) {
+    return '$count طلبات أخرى للحصول على توصيل بنصف السعر';
+  }
+
+  @override
+  String loyaltyRemainingFree(int count) {
+    return '$count طلبات أخرى للحصول على توصيل مجاني';
+  }
+
+  @override
+  String get loyaltyCelebrationHalf => 'هذا طلبك الخامس — توصيلك بنصف السعر!';
+
+  @override
+  String get loyaltyCelebrationFree => 'الطلب العاشر — توصيلك مجاني!';
+
+  @override
+  String get loyaltyViewRewards => 'عرض مكافآتي';
+
+  @override
+  String get loyaltyCancelTitle => 'تم إلغاء الطلب';
+
+  @override
+  String get loyaltyCancelMessage =>
+      'تم! نأمل أن نراك مجددًا قريبًا. شكرًا لثقتك!';
+
+  @override
+  String get loyaltyCancelNote => 'تمت إزالة ختم هذا الطلب من بطاقتك.';
+
+  @override
+  String get loyaltyCancelPrimaryCta => 'اطلب مجددًا';
+
+  @override
+  String get loyaltyCancelSecondaryCta => 'إغلاق';
+
+  @override
+  String get loyaltyRewardsTitle => 'مكافآتي';
+
+  @override
+  String get loyaltyMilestoneHalfTitle => 'الطلب الخامس';
+
+  @override
+  String get loyaltyMilestoneHalfSubtitle => 'توصيل بنصف السعر';
+
+  @override
+  String get loyaltyMilestoneFreeTitle => 'الطلب العاشر';
+
+  @override
+  String get loyaltyMilestoneFreeSubtitle => 'توصيل مجاني';
+
+  @override
+  String get loyaltyStateAchieved => 'تم تحقيقه';
+
+  @override
+  String get loyaltyStateCurrent => 'قيد التقدم';
+
+  @override
+  String get loyaltyStateLocked => 'مقفل';
+
+  @override
+  String get loyaltyHowItWorksTitle => 'كيف يعمل البرنامج';
+
+  @override
+  String get loyaltyHowItWorks1 => 'كل طلب يُسلَّم = ختم واحد';
+
+  @override
+  String get loyaltyHowItWorks2 =>
+      'تُطبَّق الخصومات تلقائيًا على رسوم توصيل الطلب الذي يصل إلى الحد المطلوب';
+
+  @override
+  String get loyaltyHowItWorks3 => 'الطلبات الملغاة لا تُحتسب';
+
+  @override
+  String get loyaltyHowItWorks4 =>
+      'بعد الطلب العاشر، تُعاد تهيئة البطاقة ويبدأ دورة جديدة';
 }

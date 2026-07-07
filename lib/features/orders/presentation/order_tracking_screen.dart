@@ -12,13 +12,21 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../core/widgets/app_map.dart';
 import '../data/models/order.dart';
 import '../providers/order_provider.dart';
+import '../../loyalty/presentation/loyalty_card_sheet.dart';
+import '../../loyalty/presentation/loyalty_cancel_dialog.dart';
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
 
+  /// Set only by the screens that just created this order (checkout,
+  /// courier, facture) — gates the one-time loyalty sheet so it never
+  /// reappears when an old order is reopened from history/home.
+  final bool justPlaced;
+
   const OrderTrackingScreen({
     super.key,
     required this.orderId,
+    this.justPlaced = false,
   });
 
   @override
@@ -32,6 +40,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   StreamSubscription? _deliverySubscription;
   List<({double lat, double lng})>? _routePolyline;
   bool _routeFetched = false;
+  bool _loyaltySheetScheduled = false;
   final _supabase = Supabase.instance.client;
 
 
@@ -39,6 +48,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   void initState() {
     super.initState();
     _subscribeToDelivery();
+  }
+
+  void _maybeScheduleLoyaltySheet(Order order) {
+    if (!widget.justPlaced || _loyaltySheetScheduled) return;
+    _loyaltySheetScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      LoyaltyCardSheet.maybeShow(context, ref: ref, order: order);
+    });
   }
 
   void _subscribeToDelivery() {
@@ -216,7 +234,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           backgroundColor: Colors.red,
         ),
       );
-      Navigator.pop(context);
+      final reordered = await LoyaltyCancelDialog.maybeShow(context, ref: ref, order: order);
+      if (!mounted) return;
+      if (reordered) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        Navigator.pop(context);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -254,7 +278,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       error: (e, _) => Scaffold(
         body: Center(child: Text('Error loading order: $e')),
       ),
-      data: (order) => _buildTracking(order),
+      data: (order) {
+        _maybeScheduleLoyaltySheet(order);
+        return _buildTracking(order);
+      },
     );
   }
 

@@ -1197,6 +1197,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Discount ({code})'**
   String promoDiscount(String code);
+
+  /// No description provided for @loyaltyCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty card'**
+  String get loyaltyCardTitle;
+
+  /// No description provided for @loyaltyPendingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stamp pending — confirmed at delivery'**
+  String get loyaltyPendingSubtitle;
+
+  /// No description provided for @loyaltyProgressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your progress'**
+  String get loyaltyProgressLabel;
+
+  /// No description provided for @loyaltyRemainingHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} more orders for half-price delivery'**
+  String loyaltyRemainingHalf(int count);
+
+  /// No description provided for @loyaltyRemainingFree.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} more orders for free delivery'**
+  String loyaltyRemainingFree(int count);
+
+  /// No description provided for @loyaltyCelebrationHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your 5th order — your delivery is half price!'**
+  String get loyaltyCelebrationHalf;
+
+  /// No description provided for @loyaltyCelebrationFree.
+  ///
+  /// In en, this message translates to:
+  /// **'10th order — your delivery is free!'**
+  String get loyaltyCelebrationFree;
+
+  /// No description provided for @loyaltyViewRewards.
+  ///
+  /// In en, this message translates to:
+  /// **'See my rewards'**
+  String get loyaltyViewRewards;
+
+  /// No description provided for @loyaltyCancelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Order cancelled'**
+  String get loyaltyCancelTitle;
+
+  /// No description provided for @loyaltyCancelMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it! We hope to see you again soon. Thanks for your trust!'**
+  String get loyaltyCancelMessage;
+
+  /// No description provided for @loyaltyCancelNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This order\'s stamp has been removed from your card.'**
+  String get loyaltyCancelNote;
+
+  /// No description provided for @loyaltyCancelPrimaryCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Order again'**
+  String get loyaltyCancelPrimaryCta;
+
+  /// No description provided for @loyaltyCancelSecondaryCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get loyaltyCancelSecondaryCta;
+
+  /// No description provided for @loyaltyRewardsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My rewards'**
+  String get loyaltyRewardsTitle;
+
+  /// No description provided for @loyaltyMilestoneHalfTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'5th order'**
+  String get loyaltyMilestoneHalfTitle;
+
+  /// No description provided for @loyaltyMilestoneHalfSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Half-price delivery'**
+  String get loyaltyMilestoneHalfSubtitle;
+
+  /// No description provided for @loyaltyMilestoneFreeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'10th order'**
+  String get loyaltyMilestoneFreeTitle;
+
+  /// No description provided for @loyaltyMilestoneFreeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Free delivery'**
+  String get loyaltyMilestoneFreeSubtitle;
+
+  /// No description provided for @loyaltyStateAchieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Achieved'**
+  String get loyaltyStateAchieved;
+
+  /// No description provided for @loyaltyStateCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get loyaltyStateCurrent;
+
+  /// No description provided for @loyaltyStateLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked'**
+  String get loyaltyStateLocked;
+
+  /// No description provided for @loyaltyHowItWorksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How it works'**
+  String get loyaltyHowItWorksTitle;
+
+  /// No description provided for @loyaltyHowItWorks1.
+  ///
+  /// In en, this message translates to:
+  /// **'Each delivered order = 1 stamp'**
+  String get loyaltyHowItWorks1;
+
+  /// No description provided for @loyaltyHowItWorks2.
+  ///
+  /// In en, this message translates to:
+  /// **'Discounts apply automatically to the delivery fee of the order that reaches the milestone'**
+  String get loyaltyHowItWorks2;
+
+  /// No description provided for @loyaltyHowItWorks3.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled orders don\'t count'**
+  String get loyaltyHowItWorks3;
+
+  /// No description provided for @loyaltyHowItWorks4.
+  ///
+  /// In en, this message translates to:
+  /// **'After the 10th order, the card resets and a new cycle begins'**
+  String get loyaltyHowItWorks4;
 }
 
 class _AppLocalizationsDelegate

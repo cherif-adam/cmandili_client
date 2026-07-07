@@ -303,7 +303,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) => OrderTrackingScreen(orderId: orderId),
+          builder: (context) => OrderTrackingScreen(orderId: orderId, justPlaced: true),
         ),
         (route) => route.isFirst,
       );

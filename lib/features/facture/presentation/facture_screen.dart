@@ -223,7 +223,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => OrderTrackingScreen(orderId: result['id'] as String),
+          builder: (_) => OrderTrackingScreen(orderId: result['id'] as String, justPlaced: true),
         ),
       );
     } catch (e) {

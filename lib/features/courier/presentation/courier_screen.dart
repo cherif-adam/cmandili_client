@@ -396,7 +396,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => OrderTrackingScreen(orderId: orderId),
+            builder: (_) => OrderTrackingScreen(orderId: orderId, justPlaced: true),
           ),
         );
       }
