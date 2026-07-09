@@ -388,13 +388,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
               },
               child: Container(
-                height: screenHeight * 0.14,
+                height: screenHeight * 0.16,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFCC00), Color(0xFFFF9500)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -404,73 +399,101 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ],
                 ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      right: -20,
-                      top: -20,
-                      child: Icon(
-                        Icons.local_offer,
-                        size: 150,
-                        color: Colors.white.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    AppLocalizations.of(context)!.happyHour,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: screenWidth * 0.052,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Flexible(
-                                  child: Text(
-                                    AppLocalizations.of(context)!.saveUpTo60,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: screenWidth * 0.033,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Image.asset(
+                          'assets/images/happy_hour_banner.jpg',
+                          fit: BoxFit.cover,
+                          alignment: const Alignment(0, -0.2),
+                          errorBuilder: (context, error, stackTrace) =>
+                              const DecoratedBox(
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              AppLocalizations.of(context)!.viewDeals,
-                              style: const TextStyle(
-                                color: Color(0xFFFF9500),
-                                fontWeight: FontWeight.bold,
+                              gradient: LinearGradient(
+                                colors: [Color(0xFFFFCC00), Color(0xFFFF9500)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: AppColors.happyHourOverlayGradient,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        right: -20,
+                        top: -20,
+                        child: Icon(
+                          Icons.local_offer,
+                          size: 150,
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      AppLocalizations.of(context)!.happyHour,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: screenWidth * 0.052,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Flexible(
+                                    child: Text(
+                                      AppLocalizations.of(context)!.saveUpTo60,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: screenWidth * 0.033,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                AppLocalizations.of(context)!.viewDeals,
+                                style: const TextStyle(
+                                  color: Color(0xFFFF9500),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -487,6 +510,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
         // Content based on selected service
         if (selectedService == ServiceType.foodDelivery) ...[
+          // Food hero banner
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.05,
+                vertical: screenHeight * 0.01,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  height: 110,
+                  width: double.infinity,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        'assets/images/amana_food_hero.jpg',
+                        fit: BoxFit.cover,
+                        alignment: const Alignment(0, -0.15),
+                        errorBuilder: (context, error, stackTrace) => const DecoratedBox(
+                          decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+                        ),
+                      ),
+                      const DecoratedBox(
+                        decoration: BoxDecoration(gradient: AppColors.orangeBannerGradient),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            AppLocalizations.of(context)!.foodHeroTitle,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: screenWidth * 0.05,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
           // Categories
           SliverToBoxAdapter(
             child: Container(

@@ -152,6 +152,23 @@
     "item": "Item",
     "driverPhoneNotAvailable": "Driver phone not available yet",
     "unableToStartCall": "Unable to start phone call",
+    "sendParcelTitle": "Send a parcel",
+    "sendParcelSubtitle": "Send any item from point A to point B",
+    "parcelSuccessTitle": "Your parcel is on its way!",
+    "orderSuccessTrackingRef": "Order #{ref}",
+    "@orderSuccessTrackingRef": {
+        "placeholders": {
+            "ref": { "type": "String" }
+        }
+    },
+    "trackMyParcel": "Track my parcel",
+    "trackMyOrder": "Track my order",
+    "backToHome": "Back to home",
+    "foodHeroTitle": "Order a meal",
+    "supermarketHeroTitle": "Get your groceries",
+    "factureHeroTitle": "Pay a bill",
+    "supermarketSuccessTitle": "Your order is on its way!",
+    "factureSuccessTitle": "Your bill is being handled!",
     "cardholderName": "Cardholder Name",
     "cardNumber": "Card Number",
     "expiryDate": "Expiry Date (MM/YY)",

@@ -480,6 +480,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unableToStartCall => 'Unable to start phone call';
 
   @override
+  String get sendParcelTitle => 'Send a parcel';
+
+  @override
+  String get sendParcelSubtitle => 'Send any item from point A to point B';
+
+  @override
+  String get parcelSuccessTitle => 'Your parcel is on its way!';
+
+  @override
+  String orderSuccessTrackingRef(String ref) {
+    return 'Order #$ref';
+  }
+
+  @override
+  String get trackMyParcel => 'Track my parcel';
+
+  @override
+  String get trackMyOrder => 'Track my order';
+
+  @override
+  String get backToHome => 'Back to home';
+
+  @override
+  String get foodHeroTitle => 'Order a meal';
+
+  @override
+  String get supermarketHeroTitle => 'Get your groceries';
+
+  @override
+  String get factureHeroTitle => 'Pay a bill';
+
+  @override
+  String get supermarketSuccessTitle => 'Your order is on its way!';
+
+  @override
+  String get factureSuccessTitle => 'Your bill is being handled!';
+
+  @override
   String get cardholderName => 'Cardholder Name';
 
   @override

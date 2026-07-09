@@ -475,6 +475,44 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unableToStartCall => 'تعذر بدء المكالمة الهاتفية';
 
   @override
+  String get sendParcelTitle => 'إرسال طرد';
+
+  @override
+  String get sendParcelSubtitle => 'أرسل أي غرض من نقطة إلى أخرى';
+
+  @override
+  String get parcelSuccessTitle => 'طردك في الطريق!';
+
+  @override
+  String orderSuccessTrackingRef(String ref) {
+    return 'الطلب رقم #$ref';
+  }
+
+  @override
+  String get trackMyParcel => 'تتبع طردي';
+
+  @override
+  String get trackMyOrder => 'تتبع طلبي';
+
+  @override
+  String get backToHome => 'العودة إلى الرئيسية';
+
+  @override
+  String get foodHeroTitle => 'اطلب وجبة';
+
+  @override
+  String get supermarketHeroTitle => 'قم بتسوقك';
+
+  @override
+  String get factureHeroTitle => 'ادفع فاتورة';
+
+  @override
+  String get supermarketSuccessTitle => 'طلبك في الطريق!';
+
+  @override
+  String get factureSuccessTitle => 'تم تحصيل فاتورتك!';
+
+  @override
   String get cardholderName => 'اسم حامل البطاقة';
 
   @override

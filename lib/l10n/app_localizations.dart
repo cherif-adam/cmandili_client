@@ -1018,6 +1018,78 @@ abstract class AppLocalizations {
   /// **'Unable to start phone call'**
   String get unableToStartCall;
 
+  /// No description provided for @sendParcelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a parcel'**
+  String get sendParcelTitle;
+
+  /// No description provided for @sendParcelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send any item from point A to point B'**
+  String get sendParcelSubtitle;
+
+  /// No description provided for @parcelSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your parcel is on its way!'**
+  String get parcelSuccessTitle;
+
+  /// No description provided for @orderSuccessTrackingRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Order #{ref}'**
+  String orderSuccessTrackingRef(String ref);
+
+  /// No description provided for @trackMyParcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Track my parcel'**
+  String get trackMyParcel;
+
+  /// No description provided for @trackMyOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Track my order'**
+  String get trackMyOrder;
+
+  /// No description provided for @backToHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to home'**
+  String get backToHome;
+
+  /// No description provided for @foodHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Order a meal'**
+  String get foodHeroTitle;
+
+  /// No description provided for @supermarketHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get your groceries'**
+  String get supermarketHeroTitle;
+
+  /// No description provided for @factureHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay a bill'**
+  String get factureHeroTitle;
+
+  /// No description provided for @supermarketSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your order is on its way!'**
+  String get supermarketSuccessTitle;
+
+  /// No description provided for @factureSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your bill is being handled!'**
+  String get factureSuccessTitle;
+
   /// No description provided for @cardholderName.
   ///
   /// In en, this message translates to:

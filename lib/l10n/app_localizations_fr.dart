@@ -491,6 +491,45 @@ class AppLocalizationsFr extends AppLocalizations {
   String get unableToStartCall => 'Impossible de lancer l\'appel téléphonique';
 
   @override
+  String get sendParcelTitle => 'Envoyer un colis';
+
+  @override
+  String get sendParcelSubtitle =>
+      'Envoyez n\'importe quel article d\'un point A à un point B';
+
+  @override
+  String get parcelSuccessTitle => 'Ton colis est en route !';
+
+  @override
+  String orderSuccessTrackingRef(String ref) {
+    return 'Commande #$ref';
+  }
+
+  @override
+  String get trackMyParcel => 'Suivre mon colis';
+
+  @override
+  String get trackMyOrder => 'Suivre ma commande';
+
+  @override
+  String get backToHome => 'Retour à l\'accueil';
+
+  @override
+  String get foodHeroTitle => 'Commander un repas';
+
+  @override
+  String get supermarketHeroTitle => 'Faire ses courses';
+
+  @override
+  String get factureHeroTitle => 'Payer une facture';
+
+  @override
+  String get supermarketSuccessTitle => 'Ta commande est en route !';
+
+  @override
+  String get factureSuccessTitle => 'Ta facture est prise en charge !';
+
+  @override
   String get cardholderName => 'Nom du titulaire';
 
   @override

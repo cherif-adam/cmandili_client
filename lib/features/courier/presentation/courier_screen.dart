@@ -10,7 +10,7 @@ import '../../../core/utils/location_service.dart';
 import '../../../core/utils/delivery_fee.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
-import '../../orders/presentation/order_tracking_screen.dart';
+import '../../orders/presentation/order_success_screen.dart';
 
 enum PackageSize { petit, moyen, grand }
 
@@ -393,10 +393,16 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
       final orderId = response['id'] as String;
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => OrderTrackingScreen(orderId: orderId, justPlaced: true),
+            builder: (_) => OrderSuccessScreen(
+              orderId: orderId,
+              imageAsset: 'assets/images/amana_colis_handover.jpg',
+              title: l10n.parcelSuccessTitle,
+              trackButtonLabel: l10n.trackMyParcel,
+            ),
           ),
         );
       }
@@ -428,13 +434,8 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──────────────────────────────────────────────────────
-            _buildSectionHeader('Envoyer un colis', Icons.inventory_2_outlined, w, h),
-            SizedBox(height: h * 0.008),
-            Text(
-              'Envoyez n\'importe quel article d\'un point A à un point B',
-              style: TextStyle(fontSize: w * 0.035, color: AppColors.textSecondary),
-            ),
+            // ── Hero banner ───────────────────────────────────────────────────
+            _buildHeroBanner(w),
             SizedBox(height: h * 0.03),
 
             // ── Pickup address ───────────────────────────────────────────────
@@ -630,6 +631,61 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
   }
 
   // ── Widget builders ─────────────────────────────────────────────────────────
+
+  Widget _buildHeroBanner(double w) {
+    final l10n = AppLocalizations.of(context)!;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: 110,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/amana_colis_handover.jpg',
+              fit: BoxFit.cover,
+              alignment: const Alignment(0, 0.4),
+              errorBuilder: (context, error, stackTrace) => const DecoratedBox(
+                decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+              ),
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(gradient: AppColors.emeraldBannerGradient),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: w * 0.05),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.sendParcelTitle,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: w * 0.05,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.sendParcelSubtitle,
+                    style: TextStyle(
+                      color: AppColors.orderSuccessSubtitleMint,
+                      fontSize: w * 0.032,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildSavedRecipientsSection(double w, double h) {
     return Column(

@@ -122,4 +122,45 @@ class AppColors {
   static const loyaltyMilestoneLockedBg = Color(0xFFF2F2F0);
   static const loyaltyMilestoneLockedBorder = Color(0xFFDCDBD6);
   static const loyaltyMilestoneLockedIcon = Color(0xFFAFAEA8);
+
+  // ── Order success screens + emerald form banners (colis/supermarket/facture) ─
+  // Reuses the loyalty deep-emerald (#04342C) and button-emerald (#0F6E56 →
+  // #1D9E75) tones so these flows stay visually consistent with the loyalty
+  // card sheet they hand off to. Shared across all non-food order types.
+  static const orderSuccessOverlayGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Colors.transparent, Color(0xEB04342C)], // ~92% opacity at bottom
+  );
+  static const orderSuccessButtonGradient = LinearGradient(
+    colors: [Color(0xFF0F6E56), Color(0xFF1D9E75)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+  static const orderSuccessSubtitleMint = Color(0xFF9FE1CB);
+  static const emeraldBannerGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xD904342C), Color(0x3304342C)], // 85% → 20% opacity
+  );
+
+  // ── Orange form banner (food hero) ──────────────────────────────────────────
+  static const orangeBannerGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0xD9B4530A), Color(0x33B4530A)], // 85% → 20% opacity
+  );
+
+  // ── Happy Hour banner (home screen) ────────────────────────────────────────
+  // Left-to-right readability overlay over the banner photo — dark on the
+  // left where the white title/subtitle/button sit, fading out on the right
+  // so the food in the image stays visible.
+  static const happyHourOverlayGradient = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    // ~65% opacity at the left edge, fully transparent by 55% width —
+    // the right side (food) stays completely untinted.
+    colors: [Color(0xA6B4530A), Color(0x00B4530A)],
+    stops: [0.0, 0.55],
+  );
 }

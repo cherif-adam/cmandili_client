@@ -10,6 +10,7 @@ import '../../../core/payment/payment_service.dart';
 import '../data/models/delivery_address.dart';
 import 'address_selection_screen.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
+import '../../orders/presentation/order_success_screen.dart';
 import '../../cart/providers/cart_provider.dart';
 import '../../orders/data/models/order.dart';
 import '../../orders/providers/order_provider.dart';
@@ -300,13 +301,32 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // to 'confirmed'. Do NOT call confirmOrder() here.
       ref.read(cartProvider.notifier).clearCart();
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => OrderTrackingScreen(orderId: orderId, justPlaced: true),
-        ),
-        (route) => route.isFirst,
-      );
+      // Supermarket (and boutique, which shares order_type 'supermarket')
+      // orders get the success hand-off screen; food orders keep the
+      // existing straight-to-tracking behavior unchanged.
+      if (orderType == OrderType.supermarket) {
+        final l10n = AppLocalizations.of(context)!;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderSuccessScreen(
+              orderId: orderId,
+              imageAsset: 'assets/images/amana_supermarket_hero.jpg',
+              title: l10n.supermarketSuccessTitle,
+              trackButtonLabel: l10n.trackMyOrder,
+            ),
+          ),
+          (route) => route.isFirst,
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderTrackingScreen(orderId: orderId, justPlaced: true),
+          ),
+          (route) => route.isFirst,
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       // The enforce_venue_open DB trigger raises 'VENUE_CLOSED' if the venue

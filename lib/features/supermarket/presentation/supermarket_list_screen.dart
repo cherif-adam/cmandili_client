@@ -19,61 +19,114 @@ class SupermarketListScreen extends ConsumerWidget {
     required this.screenHeight,
   });
 
+  Widget _buildHeroBanner(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          height: 110,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                'assets/images/amana_supermarket_hero.jpg',
+                fit: BoxFit.cover,
+                alignment: const Alignment(0, 0.25),
+                errorBuilder: (context, error, stackTrace) => const DecoratedBox(
+                  decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+                ),
+              ),
+              const DecoratedBox(
+                decoration: BoxDecoration(gradient: AppColors.emeraldBannerGradient),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    AppLocalizations.of(context)!.supermarketHeroTitle,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: screenWidth * 0.05,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final supermarketsAsync = ref.watch(supermarketsProvider);
 
-    return supermarketsAsync.when(
-      data: (supermarkets) => SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-          screenWidth * 0.05,
-          screenHeight * 0.02,
-          screenWidth * 0.05,
-          screenHeight * 0.12,
-        ),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final supermarket = supermarkets[index];
-              return _SupermarketCard(
-                supermarket: supermarket,
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-              );
-            },
-            childCount: supermarkets.length,
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: screenHeight * 0.015),
+            child: _buildHeroBanner(context),
           ),
         ),
-      ),
-      loading: () => SliverToBoxAdapter(
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.all(screenHeight * 0.05),
-            child: const CircularProgressIndicator(),
+        supermarketsAsync.when(
+          data: (supermarkets) => SliverPadding(
+            padding: EdgeInsets.fromLTRB(
+              screenWidth * 0.05,
+              0,
+              screenWidth * 0.05,
+              screenHeight * 0.12,
+            ),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final supermarket = supermarkets[index];
+                  return _SupermarketCard(
+                    supermarket: supermarket,
+                    screenWidth: screenWidth,
+                    screenHeight: screenHeight,
+                  );
+                },
+                childCount: supermarkets.length,
+              ),
+            ),
           ),
-        ),
-      ),
-      error: (error, stack) => SliverToBoxAdapter(
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.all(screenHeight * 0.05),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                SizedBox(height: screenHeight * 0.02),
-                Text(AppLocalizations.of(context)!.couldNotLoadSupermarkets, style: const TextStyle(fontSize: 16)),
-                SizedBox(height: screenHeight * 0.02),
-                ElevatedButton.icon(
-                  onPressed: () => ref.invalidate(supermarketsProvider),
-                  icon: const Icon(Icons.refresh),
-                  label: Text(AppLocalizations.of(context)!.retry),
+          loading: () => SliverToBoxAdapter(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(screenHeight * 0.05),
+                child: const CircularProgressIndicator(),
+              ),
+            ),
+          ),
+          error: (error, stack) => SliverToBoxAdapter(
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(screenHeight * 0.05),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                    SizedBox(height: screenHeight * 0.02),
+                    Text(AppLocalizations.of(context)!.couldNotLoadSupermarkets, style: const TextStyle(fontSize: 16)),
+                    SizedBox(height: screenHeight * 0.02),
+                    ElevatedButton.icon(
+                      onPressed: () => ref.invalidate(supermarketsProvider),
+                      icon: const Icon(Icons.refresh),
+                      label: Text(AppLocalizations.of(context)!.retry),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -5,10 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
-import '../../orders/presentation/order_tracking_screen.dart';
+import '../../orders/presentation/order_success_screen.dart';
 import '../../bills/services/bill_reminder_service.dart';
 
 // ── Bill types ────────────────────────────────────────────────────────────────
@@ -220,10 +221,19 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
         billLabel: _selectedBillType!.label,
       ).catchError((_) {});
 
-      Navigator.pushReplacement(
+      // push (not pushReplacement) — FactureScreen is an inline sliver on the
+      // app's root HomeScreen route, so replacing it here would leave nothing
+      // under the tracking screen for "back" to return to.
+      final l10n = AppLocalizations.of(context)!;
+      Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => OrderTrackingScreen(orderId: result['id'] as String, justPlaced: true),
+          builder: (_) => OrderSuccessScreen(
+            orderId: result['id'] as String,
+            imageAsset: 'assets/images/amana_facture_hero.jpg',
+            title: l10n.factureSuccessTitle,
+            trackButtonLabel: l10n.trackMyOrder,
+          ),
         ),
       );
     } catch (e) {
@@ -250,6 +260,46 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Hero banner ──────────────────────────────────────────────
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SizedBox(
+                height: 110,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'assets/images/amana_facture_hero.jpg',
+                      fit: BoxFit.cover,
+                      alignment: const Alignment(0, 0.2),
+                      errorBuilder: (context, error, stackTrace) => const DecoratedBox(
+                        decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+                      ),
+                    ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(gradient: AppColors.emeraldBannerGradient),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          AppLocalizations.of(context)!.factureHeroTitle,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: widget.screenWidth * 0.05,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
             // ── Section: bill type ──────────────────────────────────────
             _sectionTitle('Type de facture'),
             const SizedBox(height: 10),

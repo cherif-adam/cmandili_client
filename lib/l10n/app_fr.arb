@@ -152,6 +152,23 @@
     "item": "Article",
     "driverPhoneNotAvailable": "Le téléphone du livreur n'est pas encore disponible",
     "unableToStartCall": "Impossible de lancer l'appel téléphonique",
+    "sendParcelTitle": "Envoyer un colis",
+    "sendParcelSubtitle": "Envoyez n'importe quel article d'un point A à un point B",
+    "parcelSuccessTitle": "Ton colis est en route !",
+    "orderSuccessTrackingRef": "Commande #{ref}",
+    "@orderSuccessTrackingRef": {
+        "placeholders": {
+            "ref": { "type": "String" }
+        }
+    },
+    "trackMyParcel": "Suivre mon colis",
+    "trackMyOrder": "Suivre ma commande",
+    "backToHome": "Retour à l'accueil",
+    "foodHeroTitle": "Commander un repas",
+    "supermarketHeroTitle": "Faire ses courses",
+    "factureHeroTitle": "Payer une facture",
+    "supermarketSuccessTitle": "Ta commande est en route !",
+    "factureSuccessTitle": "Ta facture est prise en charge !",
     "cardholderName": "Nom du titulaire",
     "cardNumber": "Numéro de carte",
     "expiryDate": "Date d'expiration (MM/AA)",

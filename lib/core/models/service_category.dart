@@ -41,7 +41,7 @@ class ServiceCategory {
       nameAr: 'سوبر ماركت',
       nameFr: 'Supermarché',
       icon: '🛒',
-      colorHex: '#4CAF50',
+      colorHex: '#1D9E75',
     ),
     ServiceCategory(
       id: 'courier',
@@ -50,7 +50,7 @@ class ServiceCategory {
       nameAr: 'إرسال طرد',
       nameFr: 'Colis',
       icon: '📦',
-      colorHex: '#6C3DE1',
+      colorHex: '#1D9E75',
     ),
     ServiceCategory(
       id: 'facture',

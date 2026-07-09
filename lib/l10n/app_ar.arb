@@ -152,6 +152,23 @@
     "item": "العنصر",
     "driverPhoneNotAvailable": "رقم هاتف السائق غير متاح بعد",
     "unableToStartCall": "تعذر بدء المكالمة الهاتفية",
+    "sendParcelTitle": "إرسال طرد",
+    "sendParcelSubtitle": "أرسل أي غرض من نقطة إلى أخرى",
+    "parcelSuccessTitle": "طردك في الطريق!",
+    "orderSuccessTrackingRef": "الطلب رقم #{ref}",
+    "@orderSuccessTrackingRef": {
+        "placeholders": {
+            "ref": { "type": "String" }
+        }
+    },
+    "trackMyParcel": "تتبع طردي",
+    "trackMyOrder": "تتبع طلبي",
+    "backToHome": "العودة إلى الرئيسية",
+    "foodHeroTitle": "اطلب وجبة",
+    "supermarketHeroTitle": "قم بتسوقك",
+    "factureHeroTitle": "ادفع فاتورة",
+    "supermarketSuccessTitle": "طلبك في الطريق!",
+    "factureSuccessTitle": "تم تحصيل فاتورتك!",
     "cardholderName": "اسم حامل البطاقة",
     "cardNumber": "رقم البطاقة",
     "expiryDate": "تاريخ الانتهاء (MM/YY)",
