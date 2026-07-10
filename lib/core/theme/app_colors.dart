@@ -56,6 +56,15 @@ class AppColors {
     end: Alignment.bottomCenter,
   );
 
+  // ── Food context accent (Livraison tab + food-only screens) ─────────────
+  static const foodPrimary = Color(0xFFE8890C);
+  static const foodPrimaryDark = Color(0xFFC2652A);
+  static const foodHeaderGradient = LinearGradient(
+    colors: [foodPrimary, foodPrimaryDark],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   // ── Loyalty card ("Carte de fidélité") ────────────────────────────────────
   static const loyaltySheetBarrier = Color(0x73042C26); // rgba(4,44,38,.45)
 

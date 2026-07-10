@@ -245,7 +245,7 @@ class _RestaurantDetailScreenState
                           Icons.access_time_filled,
                           '${widget.restaurant.deliveryTime} min',
                           'Delivery time',
-                          AppColors.primary,
+                          AppColors.foodPrimary,
                         ),
                         _buildDivider(),
                         _buildStat(
@@ -290,7 +290,7 @@ class _RestaurantDetailScreenState
                             });
                           },
                           backgroundColor: Colors.white,
-                          selectedColor: AppColors.primary,
+                          selectedColor: AppColors.foodPrimary,
                           labelStyle: TextStyle(
                             color: isSelected ? Colors.white : AppColors.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -303,7 +303,7 @@ class _RestaurantDetailScreenState
                             ),
                           ),
                           elevation: isSelected ? 4 : 0,
-                          shadowColor: AppColors.primary.withValues(alpha: 0.4),
+                          shadowColor: AppColors.foodPrimary.withValues(alpha: 0.4),
                         ),
                       ),
                     );
@@ -351,7 +351,7 @@ class _RestaurantDetailScreenState
                   MaterialPageRoute(builder: (context) => const CartScreen()),
                 );
               },
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppColors.foodPrimary,
               elevation: 8,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -608,19 +608,19 @@ class _FoodItemCard extends ConsumerWidget {
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.primary,
+                                        color: AppColors.foodPrimary,
                                       ),
                                     ),
                             ),
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
+                                color: AppColors.foodPrimary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.add,
-                                color: AppColors.primary,
+                                color: AppColors.foodPrimary,
                                 size: 20,
                               ),
                             ),
@@ -718,7 +718,7 @@ class _FoodItemCard extends ConsumerWidget {
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              color: AppColors.foodPrimary,
                             ),
                           ),
                         ],
@@ -777,7 +777,7 @@ class _FoodItemCard extends ConsumerWidget {
                                           ),
                                         ),
                                         selected: isSelected,
-                                        selectedColor: AppColors.primary,
+                                        selectedColor: AppColors.foodPrimary,
                                         backgroundColor: AppColors.background,
                                         onSelected: (_) {
                                           setState(() => selectedVariant = v);
@@ -837,7 +837,7 @@ class _FoodItemCard extends ConsumerWidget {
                                     setState(() => quantity++);
                                   },
                                   icon: const Icon(Icons.add),
-                                  color: AppColors.primary,
+                                  color: AppColors.foodPrimary,
                                 ),
                               ],
                             ),
@@ -910,10 +910,10 @@ class _FoodItemCard extends ConsumerWidget {
                               );
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: AppColors.foodPrimary,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.4),
+                        disabledBackgroundColor: AppColors.foodPrimary.withValues(alpha: 0.4),
                         disabledForegroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),

@@ -152,10 +152,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           elevation: 0,
           flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.only(
+            background: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              decoration: BoxDecoration(
+                gradient: selectedService == ServiceType.foodDelivery
+                    ? AppColors.foodHeaderGradient
+                    : AppColors.primaryGradient,
+                borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(32),
                   bottomRight: Radius.circular(32),
                 ),
@@ -586,7 +589,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           });
                         },
                         backgroundColor: Theme.of(context).cardColor,
-                        selectedColor: AppColors.primary,
+                        selectedColor: AppColors.foodPrimary,
                         labelStyle: TextStyle(
                           color: isSelected ? Colors.white : Theme.of(context).textTheme.bodyLarge?.color,
                           fontWeight: FontWeight.w600,
@@ -603,7 +606,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                         elevation: isSelected ? 4 : 0,
-                        shadowColor: AppColors.primary.withValues(alpha: 0.4),
+                        shadowColor: AppColors.foodPrimary.withValues(alpha: 0.4),
                       ),
                     ),
                   );
@@ -641,7 +644,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Text(
                       AppLocalizations.of(context)!.seeAll,
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: AppColors.foodPrimary,
                         fontSize: screenWidth * 0.038,
                       ),
                     ),

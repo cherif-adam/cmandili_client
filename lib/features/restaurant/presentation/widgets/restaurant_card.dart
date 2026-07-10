@@ -203,7 +203,7 @@ class RestaurantCard extends StatelessWidget {
                                   ? Icons.cake_rounded
                                   : Icons.restaurant_menu_rounded,
                               size: screenWidth * 0.035,
-                              color: AppColors.primary,
+                              color: AppColors.foodPrimary,
                             ),
                             SizedBox(width: screenWidth * 0.01),
                             Text(
@@ -371,7 +371,7 @@ class RestaurantCard extends StatelessWidget {
         Icon(
           icon,
           size: screenWidth * 0.05,
-          color: AppColors.primary,
+          color: AppColors.foodPrimary,
         ),
         SizedBox(width: screenWidth * 0.02),
         Column(
