@@ -39,7 +39,8 @@ CREATE POLICY food_item_variants_public_read
   USING (TRUE);
 
 -- Restaurant partners can insert/update/delete only variants of their own items.
--- Linkage: partners.user_id = auth.uid() AND partners.entity_id::uuid = restaurants.id.
+-- Linkage: partners.user_id = auth.uid() AND partners.entity_id = restaurants.id.
+-- entity_id is UUID on the live DB (not TEXT) — compared directly, no cast/regex guard needed.
 DROP POLICY IF EXISTS food_item_variants_owner_write ON public.food_item_variants;
 CREATE POLICY food_item_variants_owner_write
   ON public.food_item_variants FOR ALL
@@ -48,10 +49,9 @@ CREATE POLICY food_item_variants_owner_write
       SELECT 1 FROM public.food_items fi
       WHERE fi.id = food_item_variants.food_item_id
         AND fi.restaurant_id IN (
-          SELECT entity_id::uuid FROM public.partners
+          SELECT entity_id FROM public.partners
           WHERE user_id = auth.uid()
             AND partner_type = 'restaurant'
-            AND entity_id ~ '^[0-9a-f-]{36}$'
         )
     )
   )
@@ -60,10 +60,9 @@ CREATE POLICY food_item_variants_owner_write
       SELECT 1 FROM public.food_items fi
       WHERE fi.id = food_item_variants.food_item_id
         AND fi.restaurant_id IN (
-          SELECT entity_id::uuid FROM public.partners
+          SELECT entity_id FROM public.partners
           WHERE user_id = auth.uid()
             AND partner_type = 'restaurant'
-            AND entity_id ~ '^[0-9a-f-]{36}$'
         )
     )
   );
@@ -97,10 +96,9 @@ CREATE POLICY grocery_item_variants_owner_write
       SELECT 1 FROM public.grocery_items gi
       WHERE gi.id = grocery_item_variants.grocery_item_id
         AND gi.supermarket_id IN (
-          SELECT entity_id::uuid FROM public.partners
+          SELECT entity_id FROM public.partners
           WHERE user_id = auth.uid()
             AND partner_type = 'supermarket'
-            AND entity_id ~ '^[0-9a-f-]{36}$'
         )
     )
   )
@@ -109,10 +107,9 @@ CREATE POLICY grocery_item_variants_owner_write
       SELECT 1 FROM public.grocery_items gi
       WHERE gi.id = grocery_item_variants.grocery_item_id
         AND gi.supermarket_id IN (
-          SELECT entity_id::uuid FROM public.partners
+          SELECT entity_id FROM public.partners
           WHERE user_id = auth.uid()
             AND partner_type = 'supermarket'
-            AND entity_id ~ '^[0-9a-f-]{36}$'
         )
     )
   );
