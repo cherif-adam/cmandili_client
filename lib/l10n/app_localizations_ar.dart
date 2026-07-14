@@ -691,4 +691,36 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get loyaltyHowItWorks4 =>
       'بعد الطلب العاشر، تُعاد تهيئة البطاقة ويبدأ دورة جديدة';
+
+  @override
+  String get optionGroupRequired => 'إلزامي';
+
+  @override
+  String get optionGroupOptional => 'اختياري';
+
+  @override
+  String optionGroupSelectExact(int count) {
+    return 'اختر $count';
+  }
+
+  @override
+  String optionGroupSelectUpTo(int max) {
+    return 'اختر حتى $max';
+  }
+
+  @override
+  String optionGroupSelectRange(int min, int max) {
+    return 'اختر من $min إلى $max';
+  }
+
+  @override
+  String addToCartWithTotal(String total) {
+    return 'أضف إلى السلة · $total';
+  }
+
+  @override
+  String get completeRequiredSelections => 'يرجى إكمال الاختيارات الإلزامية';
+
+  @override
+  String get variantGroupTitle => 'اختر خيارًا';
 }

@@ -239,5 +239,34 @@
     "loyaltyHowItWorks1": "Chaque commande livrée = 1 tampon",
     "loyaltyHowItWorks2": "Les réductions s'appliquent automatiquement sur les frais de livraison de la commande qui atteint le palier",
     "loyaltyHowItWorks3": "Les commandes annulées ne comptent pas",
-    "loyaltyHowItWorks4": "Après la 10ème commande, la carte se réinitialise et un nouveau cycle commence"
+    "loyaltyHowItWorks4": "Après la 10ème commande, la carte se réinitialise et un nouveau cycle commence",
+    "optionGroupRequired": "Obligatoire",
+    "optionGroupOptional": "Facultatif",
+    "optionGroupSelectExact": "Sélectionnez {count}",
+    "@optionGroupSelectExact": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "optionGroupSelectUpTo": "Sélectionnez jusqu'à {max}",
+    "@optionGroupSelectUpTo": {
+        "placeholders": {
+            "max": { "type": "int" }
+        }
+    },
+    "optionGroupSelectRange": "Sélectionnez de {min} à {max}",
+    "@optionGroupSelectRange": {
+        "placeholders": {
+            "min": { "type": "int" },
+            "max": { "type": "int" }
+        }
+    },
+    "addToCartWithTotal": "Ajouter au panier · {total}",
+    "@addToCartWithTotal": {
+        "placeholders": {
+            "total": { "type": "String" }
+        }
+    },
+    "completeRequiredSelections": "Veuillez compléter les sélections obligatoires",
+    "variantGroupTitle": "Choisissez une option"
 }

@@ -712,4 +712,37 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get loyaltyHowItWorks4 =>
       'Après la 10ème commande, la carte se réinitialise et un nouveau cycle commence';
+
+  @override
+  String get optionGroupRequired => 'Obligatoire';
+
+  @override
+  String get optionGroupOptional => 'Facultatif';
+
+  @override
+  String optionGroupSelectExact(int count) {
+    return 'Sélectionnez $count';
+  }
+
+  @override
+  String optionGroupSelectUpTo(int max) {
+    return 'Sélectionnez jusqu\'à $max';
+  }
+
+  @override
+  String optionGroupSelectRange(int min, int max) {
+    return 'Sélectionnez de $min à $max';
+  }
+
+  @override
+  String addToCartWithTotal(String total) {
+    return 'Ajouter au panier · $total';
+  }
+
+  @override
+  String get completeRequiredSelections =>
+      'Veuillez compléter les sélections obligatoires';
+
+  @override
+  String get variantGroupTitle => 'Choisissez une option';
 }

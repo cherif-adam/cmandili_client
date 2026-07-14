@@ -67,15 +67,20 @@ class OrderRepository {
           }
         }
 
-        // Build the options JSONB blob: voice/text customization PLUS the
-        // selected variant (so the partner can see "Chocolate cake — 8DT" on
-        // the order detail screen, even though it's also baked into `price`).
+        // Build the options JSONB blob: voice/text customization, the
+        // selected variant, and any selected option-group add-ons (so the
+        // partner can see "Chocolate cake — 8DT" / "Harissa, Gruyère" on the
+        // order detail screen, even though it's also baked into `price`).
         final options = <String, dynamic>{};
         if (finalCustomization != null) {
           options.addAll(finalCustomization.toJson());
         }
         if (item.variant != null) {
           options['variant'] = item.variant!.toJson();
+        }
+        if (item.selectedOptionGroups.isNotEmpty) {
+          options['optionGroups'] =
+              item.selectedOptionGroups.map((g) => g.toJson()).toList();
         }
 
         await _supabase.from('order_items').insert({

@@ -239,5 +239,34 @@
     "loyaltyHowItWorks1": "كل طلب يُسلَّم = ختم واحد",
     "loyaltyHowItWorks2": "تُطبَّق الخصومات تلقائيًا على رسوم توصيل الطلب الذي يصل إلى الحد المطلوب",
     "loyaltyHowItWorks3": "الطلبات الملغاة لا تُحتسب",
-    "loyaltyHowItWorks4": "بعد الطلب العاشر، تُعاد تهيئة البطاقة ويبدأ دورة جديدة"
+    "loyaltyHowItWorks4": "بعد الطلب العاشر، تُعاد تهيئة البطاقة ويبدأ دورة جديدة",
+    "optionGroupRequired": "إلزامي",
+    "optionGroupOptional": "اختياري",
+    "optionGroupSelectExact": "اختر {count}",
+    "@optionGroupSelectExact": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "optionGroupSelectUpTo": "اختر حتى {max}",
+    "@optionGroupSelectUpTo": {
+        "placeholders": {
+            "max": { "type": "int" }
+        }
+    },
+    "optionGroupSelectRange": "اختر من {min} إلى {max}",
+    "@optionGroupSelectRange": {
+        "placeholders": {
+            "min": { "type": "int" },
+            "max": { "type": "int" }
+        }
+    },
+    "addToCartWithTotal": "أضف إلى السلة · {total}",
+    "@addToCartWithTotal": {
+        "placeholders": {
+            "total": { "type": "String" }
+        }
+    },
+    "completeRequiredSelections": "يرجى إكمال الاختيارات الإلزامية",
+    "variantGroupTitle": "اختر خيارًا"
 }

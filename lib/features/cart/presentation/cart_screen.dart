@@ -72,12 +72,12 @@ class CartScreen extends ConsumerWidget {
                         onRemove: () {
                           ref
                               .read(cartProvider.notifier)
-                              .removeItem(cartItem.id);
+                              .removeItem(cartItem.cartLineKey);
                         },
                         onQuantityChanged: (quantity) {
                           ref
                               .read(cartProvider.notifier)
-                              .updateQuantity(cartItem.id, quantity);
+                              .updateQuantity(cartItem.cartLineKey, quantity);
                         },
                       );
                     },
@@ -318,7 +318,7 @@ class _CartItemCard extends ConsumerWidget {
       );
     }
     return Dismissible(
-      key: Key(cartItem.id),
+      key: Key(cartItem.cartLineKey),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -383,6 +383,18 @@ class _CartItemCard extends ConsumerWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (cartItem.optionsSummary != null) ...[
+                      SizedBox(height: screenHeight * 0.004),
+                      Text(
+                        cartItem.optionsSummary!,
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.032,
+                          color: AppColors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                     SizedBox(height: screenHeight * 0.005),
                     Text(
                       CurrencyFormatter.formatPrice(cartItem.price),

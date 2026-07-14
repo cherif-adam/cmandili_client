@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../home/data/models/restaurant.dart';
 import '../../menu/data/models/item_variant.dart';
+import '../../menu/data/models/food_item_option_group.dart';
 import '../data/models/food_item.dart';
 
 class RestaurantRepository {
@@ -46,6 +47,44 @@ class RestaurantRepository {
       // Handle the case where the table doesn't exist or other db errors
       return [];
     }
+  }
+
+  /// Loads the reusable option groups (Sauce au choix, Suppléments, ...)
+  /// linked to a food item, each with its available options, ordered by the
+  /// *link's* sort_order (not the group's own restaurant-level default —
+  /// the same group can be positioned differently across the different
+  /// items it's linked to). Returns [] for items with none, or if the
+  /// tables aren't live yet — same safety margin as [getFoodItemVariants].
+  Future<List<FoodItemOptionGroup>> getFoodItemOptionGroups(String foodItemId) async {
+    try {
+      final response = await _supabase
+          .from('food_item_option_group_links')
+          .select('sort_order, food_item_option_groups(id, name, min_selections, '
+              'max_selections, is_required, sort_order, '
+              'food_item_options(id, name, price, is_available, sort_order))')
+          .eq('food_item_id', foodItemId)
+          .order('sort_order');
+      return (response as List)
+          .map((row) => FoodItemOptionGroup.fromDb(row as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Variants and option groups fetched together — the customization sheet
+  /// always needs both at once, so one combined future beats reconciling two
+  /// independent loading states. No latency cost: both queries run
+  /// concurrently via [Future.wait].
+  Future<FoodItemCustomizationOptions> getFoodItemCustomizationOptions(String foodItemId) async {
+    final results = await Future.wait([
+      getFoodItemVariants(foodItemId),
+      getFoodItemOptionGroups(foodItemId),
+    ]);
+    return FoodItemCustomizationOptions(
+      variants: results[0] as List<ItemVariant>,
+      optionGroups: results[1] as List<FoodItemOptionGroup>,
+    );
   }
 
   // Map database column names to model field names

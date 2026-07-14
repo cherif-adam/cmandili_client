@@ -36,8 +36,11 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   }
 
   void addItem(CartItem item) {
+    // Keyed on cartLineKey (item + variant + option-group selections), not
+    // just the base item id — two lines for the same item with different
+    // picks must stay separate; identical picks still merge.
     final existingIndex = state.indexWhere(
-      (cartItem) => cartItem.id == item.id && cartItem.type == item.type,
+      (cartItem) => cartItem.cartLineKey == item.cartLineKey,
     );
 
     if (existingIndex >= 0) {
@@ -50,19 +53,19 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     _persist();
   }
 
-  void removeItem(String itemId) {
-    state = state.where((item) => item.id != itemId).toList();
+  void removeItem(String lineKey) {
+    state = state.where((item) => item.cartLineKey != lineKey).toList();
     _persist();
   }
 
-  void updateQuantity(String itemId, int quantity) {
+  void updateQuantity(String lineKey, int quantity) {
     if (quantity <= 0) {
-      removeItem(itemId);
+      removeItem(lineKey);
       return;
     }
 
     state = state.map((item) {
-      if (item.id == itemId) item.quantity = quantity;
+      if (item.cartLineKey == lineKey) item.quantity = quantity;
       return item;
     }).toList();
     _persist();

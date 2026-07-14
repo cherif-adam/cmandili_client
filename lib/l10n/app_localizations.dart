@@ -1425,6 +1425,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'After the 10th order, the card resets and a new cycle begins'**
   String get loyaltyHowItWorks4;
+
+  /// No description provided for @optionGroupRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get optionGroupRequired;
+
+  /// No description provided for @optionGroupOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get optionGroupOptional;
+
+  /// No description provided for @optionGroupSelectExact.
+  ///
+  /// In en, this message translates to:
+  /// **'Select {count}'**
+  String optionGroupSelectExact(int count);
+
+  /// No description provided for @optionGroupSelectUpTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Select up to {max}'**
+  String optionGroupSelectUpTo(int max);
+
+  /// No description provided for @optionGroupSelectRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Select {min} to {max}'**
+  String optionGroupSelectRange(int min, int max);
+
+  /// No description provided for @addToCartWithTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Cart · {total}'**
+  String addToCartWithTotal(String total);
+
+  /// No description provided for @completeRequiredSelections.
+  ///
+  /// In en, this message translates to:
+  /// **'Please complete the required selections'**
+  String get completeRequiredSelections;
+
+  /// No description provided for @variantGroupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an option'**
+  String get variantGroupTitle;
 }
 
 class _AppLocalizationsDelegate

@@ -239,5 +239,34 @@
     "loyaltyHowItWorks1": "Each delivered order = 1 stamp",
     "loyaltyHowItWorks2": "Discounts apply automatically to the delivery fee of the order that reaches the milestone",
     "loyaltyHowItWorks3": "Cancelled orders don't count",
-    "loyaltyHowItWorks4": "After the 10th order, the card resets and a new cycle begins"
+    "loyaltyHowItWorks4": "After the 10th order, the card resets and a new cycle begins",
+    "optionGroupRequired": "Required",
+    "optionGroupOptional": "Optional",
+    "optionGroupSelectExact": "Select {count}",
+    "@optionGroupSelectExact": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "optionGroupSelectUpTo": "Select up to {max}",
+    "@optionGroupSelectUpTo": {
+        "placeholders": {
+            "max": { "type": "int" }
+        }
+    },
+    "optionGroupSelectRange": "Select {min} to {max}",
+    "@optionGroupSelectRange": {
+        "placeholders": {
+            "min": { "type": "int" },
+            "max": { "type": "int" }
+        }
+    },
+    "addToCartWithTotal": "Add to Cart · {total}",
+    "@addToCartWithTotal": {
+        "placeholders": {
+            "total": { "type": "String" }
+        }
+    },
+    "completeRequiredSelections": "Please complete the required selections",
+    "variantGroupTitle": "Choose an option"
 }
