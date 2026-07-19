@@ -24,7 +24,7 @@ class RestaurantRepository {
         .select()
         .eq('restaurant_id', restaurantId)
         .eq('is_available', true)
-        .order('category');
+        .order('category', ascending: true);
 
     return (response as List)
         .map((json) => FoodItem.fromJson(_mapFoodItemFromDb(json)))

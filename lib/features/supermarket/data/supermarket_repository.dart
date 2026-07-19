@@ -21,7 +21,7 @@ class SupermarketRepository {
         .select()
         .eq('supermarket_id', supermarketId)
         .eq('is_available', true)
-        .order('category');
+        .order('category', ascending: true);
 
     return (response as List)
         .map((json) => GroceryItem.fromJson(_mapGroceryItemFromDb(json)))
@@ -36,7 +36,7 @@ class SupermarketRepository {
         .select()
         .eq('grocery_item_id', groceryItemId)
         .eq('is_available', true)
-        .order('sort_order');
+        .order('sort_order', ascending: true);
     return (response as List).map((r) => ItemVariant.fromDb(r)).toList();
   }
 
