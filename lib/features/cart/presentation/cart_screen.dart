@@ -354,16 +354,27 @@ class _CartItemCard extends ConsumerWidget {
               // Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(screenWidth * 0.04),
-                child: CachedNetworkImage(
-                  imageUrl: cartItem.imageUrl,
-                  width: screenWidth * 0.22,
-                  height: screenWidth * 0.22,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: AppColors.background,
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                ),
+                child: (cartItem.imageUrl.isNotEmpty && cartItem.imageUrl.startsWith('http'))
+                    ? CachedNetworkImage(
+                        imageUrl: cartItem.imageUrl,
+                        width: screenWidth * 0.22,
+                        height: screenWidth * 0.22,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: AppColors.background,
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.background,
+                          child: const Icon(Icons.shopping_basket, color: Colors.grey),
+                        ),
+                      )
+                    : Container(
+                        width: screenWidth * 0.22,
+                        height: screenWidth * 0.22,
+                        color: AppColors.background,
+                        child: const Icon(Icons.shopping_basket, color: Colors.grey),
+                      ),
               ),
               
               SizedBox(width: screenWidth * 0.04),

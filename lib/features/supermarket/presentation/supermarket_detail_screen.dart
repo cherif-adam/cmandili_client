@@ -60,10 +60,20 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
                   ),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
-                  background: CachedNetworkImage(
-                    imageUrl: widget.supermarket.imageUrl,
-                    fit: BoxFit.cover,
-                  ),
+                  background: (widget.supermarket.imageUrl.isNotEmpty &&
+                          widget.supermarket.imageUrl.startsWith('http'))
+                      ? CachedNetworkImage(
+                          imageUrl: widget.supermarket.imageUrl,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.background,
+                            child: const Icon(Icons.storefront, size: 50, color: Colors.grey),
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.background,
+                          child: const Icon(Icons.storefront, size: 50, color: Colors.grey),
+                        ),
                 ),
               ),
 
@@ -283,12 +293,23 @@ class _ProductCard extends ConsumerWidget {
             children: [
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: CachedNetworkImage(
-                  imageUrl: item.imageUrl,
-                  height: 120,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
+                child: (item.imageUrl.isNotEmpty && item.imageUrl.startsWith('http'))
+                    ? CachedNetworkImage(
+                        imageUrl: item.imageUrl,
+                        height: 120,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => Container(
+                          color: AppColors.background,
+                          child: const Icon(Icons.shopping_basket, size: 40, color: Colors.grey),
+                        ),
+                      )
+                    : Container(
+                        height: 120,
+                        width: double.infinity,
+                        color: AppColors.background,
+                        child: const Icon(Icons.shopping_basket, size: 40, color: Colors.grey),
+                      ),
               ),
               if (item.isOrganic)
                 Positioned(
