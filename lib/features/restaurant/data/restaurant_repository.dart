@@ -41,7 +41,7 @@ class RestaurantRepository {
           .select()
           .eq('food_item_id', foodItemId)
           .eq('is_available', true)
-          .order('sort_order');
+          .order('sort_order', ascending: true);
       return (response as List).map((r) => ItemVariant.fromDb(r)).toList();
     } catch (e) {
       // Handle the case where the table doesn't exist or other db errors
@@ -63,7 +63,7 @@ class RestaurantRepository {
               'max_selections, is_required, sort_order, '
               'food_item_options(id, name, price, is_available, sort_order))')
           .eq('food_item_id', foodItemId)
-          .order('sort_order');
+          .order('sort_order', ascending: true);
       return (response as List)
           .map((row) => FoodItemOptionGroup.fromDb(row as Map<String, dynamic>))
           .toList();
