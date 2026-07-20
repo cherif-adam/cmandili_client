@@ -29,6 +29,13 @@
 --
 -- NOT executed by the assistant — paste into the SQL editor / run via
 -- `supabase db query --linked -f this_file.sql` yourself after review.
+--
+-- 2026-07-20: Sauce au choix / Garniture au choix min_selections changed
+-- 1 -> 0 (optional, like Suppléments always was) so this stays the single
+-- source of truth alongside apply_customization_template_to_item() —
+-- matters if this is ever re-run for a fresh batch of items. Existing
+-- groups already in the DB are a separate one-off update, not this script;
+-- see supabase/scripts/20260720_optional_sauce_garniture.sql.
 -- ============================================================================
 
 DO $$
@@ -134,7 +141,7 @@ BEGIN
       WHERE restaurant_id = v_restaurant.restaurant_id AND name = 'Sauce au choix';
     IF v_sauce_id IS NULL THEN
       INSERT INTO public.food_item_option_groups (restaurant_id, name, min_selections, max_selections, sort_order)
-        VALUES (v_restaurant.restaurant_id, 'Sauce au choix', 1, 4, 0)
+        VALUES (v_restaurant.restaurant_id, 'Sauce au choix', 0, 4, 0)
         RETURNING id INTO v_sauce_id;
       INSERT INTO public.food_item_options (group_id, name, price, sort_order) VALUES
         (v_sauce_id, 'Harissa', 0, 0),
@@ -148,7 +155,7 @@ BEGIN
       WHERE restaurant_id = v_restaurant.restaurant_id AND name = 'Garniture au choix';
     IF v_garniture_id IS NULL THEN
       INSERT INTO public.food_item_option_groups (restaurant_id, name, min_selections, max_selections, sort_order)
-        VALUES (v_restaurant.restaurant_id, 'Garniture au choix', 1, 3, 1)
+        VALUES (v_restaurant.restaurant_id, 'Garniture au choix', 0, 3, 1)
         RETURNING id INTO v_garniture_id;
       INSERT INTO public.food_item_options (group_id, name, price, sort_order) VALUES
         (v_garniture_id, 'Laitue', 0, 0),
