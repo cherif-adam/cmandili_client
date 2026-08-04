@@ -268,5 +268,51 @@
         }
     },
     "completeRequiredSelections": "يرجى إكمال الاختيارات الإلزامية",
-    "variantGroupTitle": "اختر خيارًا"
+    "variantGroupTitle": "اختر خيارًا",
+    "aiSearchTitle": "البحث بالذكاء الاصطناعي",
+    "aiSearchPlaceholder": "صِف ما تبحث عنه...",
+    "aiSearchCameraTooltip": "البحث بالصورة",
+    "aiSearchVisualSearchBadge": "البحث البصري",
+    "aiSearchResultCountOne": "تم العثور على نتيجة واحدة",
+    "aiSearchResultCountOther": "تم العثور على {count} نتائج",
+    "@aiSearchResultCountOther": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "aiSearchLoadingPhoto": "جاري تحليل صورتك…",
+    "aiSearchLoadingText": "جاري فهم طلبك…",
+    "aiSearchPoweredBy": "مدعوم بالذكاء الاصطناعي",
+    "aiSearchEmptyTitle": "صِف ما تريد",
+    "aiSearchEmptyDescription": "اكتب باللهجة الدارجة أو الفرنسية أو العربية — أو احمل صورة للطبق الذي تبحث عنه.",
+    "aiSearchExampleQueryDarija": "N7eb nekel 7aja 7arra w ma tfoutch 15 dinar",
+    "aiSearchExampleQueryFrench": "Quelque chose de rapide, pizza ou burger",
+    "aiSearchExampleQueryPhoto": "احمل صورة طبق",
+    "aiSearchNoResultsPhoto": "لم يتم العثور على مطاعم تقدم « {dishName} »",
+    "@aiSearchNoResultsPhoto": {
+        "placeholders": {
+            "dishName": { "type": "String" }
+        }
+    },
+    "aiSearchNoResultsText": "لا توجد أطباق تطابق طلبك",
+    "aiSearchModalTitle": "البحث بالصورة",
+    "aiSearchModalHint": "احمل صورة طبق للعثور عليه في {city}",
+    "@aiSearchModalHint": {
+        "placeholders": {
+            "city": { "type": "String" }
+        }
+    },
+    "aiSearchCameraLabel": "الكاميرا",
+    "aiSearchGalleryLabel": "المعرض",
+    "aiSearchTryAgain": "المحاولة مرة أخرى",
+    "aiSearchErrorCouldNotOpen": "تعذر فتح الصورة",
+    "aiSearchIdentified": "تم التعرف: « {dishName} » · {count} مطعم{pluralCount, plural, =1{} other{s}}",
+    "@aiSearchIdentified": {
+        "placeholders": {
+            "dishName": { "type": "String" },
+            "count": { "type": "int" },
+            "pluralCount": { "type": "int" }
+        }
+    },
+    "city": "القيروان"
 }

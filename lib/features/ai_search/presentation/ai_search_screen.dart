@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/models/search_result.dart';
 import '../providers/ai_search_provider.dart';
@@ -143,6 +144,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
   // ── Widgets ──────────────────────────────────────────────────────────────
 
   SliverAppBar _buildAppBar(double sw) {
+    final l10n = AppLocalizations.of(context)!;
     return SliverAppBar(
       pinned: true,
       backgroundColor: Colors.transparent,
@@ -182,7 +184,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                 color: Colors.white, size: 20),
             const SizedBox(width: 8),
             Text(
-              'AI Search',
+              l10n.aiSearchTitle,
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -198,6 +200,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
   }
 
   Widget _buildSearchBar(double sw, AiSearchState state) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Container(
@@ -227,14 +230,14 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                   fontSize: 16,
                   color: AppColors.textPrimary,
                 ),
-                decoration: const InputDecoration(
-                  hintText: 'N7eb nekel 7aja 7arra… ou décris ce que tu veux',
-                  hintStyle: TextStyle(
+                decoration: InputDecoration(
+                  hintText: l10n.aiSearchPlaceholder,
+                  hintStyle: const TextStyle(
                     color: AppColors.textLight,
                     fontSize: 14,
                   ),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 18),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
                 ),
               ),
             ),
@@ -243,7 +246,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
               icon: Icons.camera_alt_rounded,
               color: const Color(0xFF6C3DE1),
               onTap: _showImageSourceSheet,
-              tooltip: 'Search by photo',
+              tooltip: l10n.aiSearchCameraTooltip,
             ),
             const SizedBox(width: 8),
             // Send button
@@ -313,15 +316,15 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                 color: const Color(0xFF6C3DE1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.image_search_rounded,
+                  const Icon(Icons.image_search_rounded,
                       color: Colors.white, size: 14),
-                  SizedBox(width: 4),
-                  Text('Visual Search',
+                  const SizedBox(width: 4),
+                  Text(AppLocalizations.of(context)!.aiSearchVisualSearchBadge,
                       style:
-                          TextStyle(color: Colors.white, fontSize: 12)),
+                          const TextStyle(color: Colors.white, fontSize: 12)),
                 ],
               ),
             ),
@@ -348,6 +351,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
   }
 
   Widget _buildIntentChips(AiTextSearchResponse response) {
+    final l10n = AppLocalizations.of(context)!;
     final intent = response.intent;
     final chips = <String>[];
     if (intent.category != null && intent.category != 'general') {
@@ -372,7 +376,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                   size: 16, color: Color(0xFF6C3DE1)),
               const SizedBox(width: 6),
               Text(
-                '${response.results.length} result${response.results.length != 1 ? 's' : ''} found',
+                response.results.length == 1
+                    ? l10n.aiSearchResultCountOne
+                    : l10n.aiSearchResultCountOther(response.results.length),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -412,6 +418,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
 
   Widget _buildDishBadge(AiImageSearchResponse response) {
     if (response.dishName == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Row(
@@ -421,7 +428,11 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Identified: "${response.dishName}" · ${response.results.length} restaurant${response.results.length != 1 ? 's' : ''}',
+              l10n.aiSearchIdentified(
+                response.dishName ?? '',
+                response.results.length,
+                response.results.length,
+              ),
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -436,9 +447,10 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
   }
 
   Widget _buildLoadingView(AiSearchMode mode) {
+    final l10n = AppLocalizations.of(context)!;
     final label = mode == AiSearchMode.image
-        ? 'Analyzing your photo…'
-        : 'Understanding your request…';
+        ? l10n.aiSearchLoadingPhoto
+        : l10n.aiSearchLoadingText;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
@@ -450,14 +462,15 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
               style: const TextStyle(
                   color: AppColors.textSecondary, fontSize: 16)),
           const SizedBox(height: 6),
-          const Text('Powered by AI',
-              style: TextStyle(color: AppColors.textLight, fontSize: 12)),
+          Text(l10n.aiSearchPoweredBy,
+              style: const TextStyle(color: AppColors.textLight, fontSize: 12)),
         ],
       ),
     );
   }
 
   Widget _buildErrorView(String msg) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -481,7 +494,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           ElevatedButton.icon(
             onPressed: () => ref.read(aiSearchProvider.notifier).clearError(),
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Try again'),
+            label: Text(l10n.aiSearchTryAgain),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6C3DE1),
               foregroundColor: Colors.white,
@@ -495,6 +508,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
   }
 
   Widget _buildEmptyState(double sw) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: sw * 0.1, vertical: 40),
       child: Column(
@@ -519,44 +533,43 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                 color: Colors.white, size: 48),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Describe what you want',
-            style: TextStyle(
+          Text(
+            l10n.aiSearchEmptyTitle,
+            style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Type in Darija, French or Arabic — or upload a photo of a dish you want to find.',
+          Text(
+            l10n.aiSearchEmptyDescription,
             textAlign: TextAlign.center,
             style:
-                TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.6),
+                const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.6),
           ),
           const SizedBox(height: 32),
           // Example queries
           _ExampleQuery(
             emoji: '🌶',
-            text: '"N7eb nekel 7aja 7arra w ma tfoutch 15 dinar"',
+            text: '"${l10n.aiSearchExampleQueryDarija}"',
             onTap: () {
-              _queryController.text =
-                  'N7eb nekel 7aja 7arra w ma tfoutch 15 dinar';
+              _queryController.text = l10n.aiSearchExampleQueryDarija;
               _onSubmitText();
             },
           ),
           const SizedBox(height: 10),
           _ExampleQuery(
             emoji: '⚡',
-            text: '"Quelque chose de rapide, pizza ou burger"',
+            text: '"${l10n.aiSearchExampleQueryFrench}"',
             onTap: () {
-              _queryController.text = 'Quelque chose de rapide, pizza ou burger';
+              _queryController.text = l10n.aiSearchExampleQueryFrench;
               _onSubmitText();
             },
           ),
           const SizedBox(height: 10),
           _ExampleQuery(
             emoji: '📸',
-            text: 'Upload a food photo',
+            text: l10n.aiSearchExampleQueryPhoto,
             onTap: _showImageSourceSheet,
             isImageOption: true,
           ),
@@ -566,6 +579,10 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
   }
 
   Widget _buildNoResults(AiSearchState state) {
+    final l10n = AppLocalizations.of(context)!;
+    final message = state.mode == AiSearchMode.image
+        ? l10n.aiSearchNoResultsPhoto(state.imageResponse?.dishName ?? 'this dish')
+        : l10n.aiSearchNoResultsText;
     return Padding(
       padding: const EdgeInsets.all(40),
       child: Column(
@@ -575,9 +592,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
               size: 64, color: AppColors.textLight),
           const SizedBox(height: 16),
           Text(
-            state.mode == AiSearchMode.image
-                ? 'No restaurants found for "${state.imageResponse?.dishName ?? 'this dish'}"'
-                : 'No dishes match your request',
+            message,
             textAlign: TextAlign.center,
             style: const TextStyle(
                 fontSize: 16, color: AppColors.textSecondary),
@@ -644,6 +659,7 @@ class _ImageSourceSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(24),
@@ -663,15 +679,15 @@ class _ImageSourceSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            'Search by Photo',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            l10n.aiSearchModalTitle,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Upload a photo of a dish to find it in Kairouan',
+          Text(
+            l10n.aiSearchModalHint(l10n.city),
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 24),
           Row(
@@ -679,7 +695,7 @@ class _ImageSourceSheet extends StatelessWidget {
               Expanded(
                 child: _SourceTile(
                   icon: Icons.camera_alt_rounded,
-                  label: 'Camera',
+                  label: l10n.aiSearchCameraLabel,
                   onTap: () => onSelect(ImageSource.camera),
                 ),
               ),
@@ -687,7 +703,7 @@ class _ImageSourceSheet extends StatelessWidget {
               Expanded(
                 child: _SourceTile(
                   icon: Icons.photo_library_rounded,
-                  label: 'Gallery',
+                  label: l10n.aiSearchGalleryLabel,
                   onTap: () => onSelect(ImageSource.gallery),
                 ),
               ),

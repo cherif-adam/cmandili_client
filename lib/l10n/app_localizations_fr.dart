@@ -745,4 +745,93 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get variantGroupTitle => 'Choisissez une option';
+
+  @override
+  String get aiSearchTitle => 'Recherche IA';
+
+  @override
+  String get aiSearchPlaceholder => 'Décris ce que tu cherches...';
+
+  @override
+  String get aiSearchCameraTooltip => 'Rechercher par photo';
+
+  @override
+  String get aiSearchVisualSearchBadge => 'Recherche visuelle';
+
+  @override
+  String get aiSearchResultCountOne => '1 résultat trouvé';
+
+  @override
+  String aiSearchResultCountOther(int count) {
+    return '$count résultats trouvés';
+  }
+
+  @override
+  String get aiSearchLoadingPhoto => 'Analyse de votre photo…';
+
+  @override
+  String get aiSearchLoadingText => 'Analyse de votre demande…';
+
+  @override
+  String get aiSearchPoweredBy => 'Propulsé par l\'IA';
+
+  @override
+  String get aiSearchEmptyTitle => 'Décris ce que tu veux';
+
+  @override
+  String get aiSearchEmptyDescription =>
+      'Écris en Darija, français ou arabe — ou envoie une photo du plat que tu cherches.';
+
+  @override
+  String get aiSearchExampleQueryDarija =>
+      'Nekel 7aja 7arra w mta3 tletha20 dinar';
+
+  @override
+  String get aiSearchExampleQueryFrench =>
+      'Quelque chose de rapide, pizza ou burger';
+
+  @override
+  String get aiSearchExampleQueryPhoto => 'Envoyer une photo de plat';
+
+  @override
+  String aiSearchNoResultsPhoto(String dishName) {
+    return 'Aucun restaurant trouvé pour « $dishName »';
+  }
+
+  @override
+  String get aiSearchNoResultsText => 'Aucun plat ne correspond à ta demande';
+
+  @override
+  String get aiSearchModalTitle => 'Rechercher par photo';
+
+  @override
+  String aiSearchModalHint(String city) {
+    return 'Envoie une photo d\'un plat pour le trouver à $city';
+  }
+
+  @override
+  String get aiSearchCameraLabel => 'Appareil photo';
+
+  @override
+  String get aiSearchGalleryLabel => 'Galerie';
+
+  @override
+  String get aiSearchTryAgain => 'Réessayer';
+
+  @override
+  String get aiSearchErrorCouldNotOpen => 'Impossible d\'ouvrir l\'image';
+
+  @override
+  String aiSearchIdentified(String dishName, int count, int pluralCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      pluralCount,
+      locale: localeName,
+      other: 's',
+      one: '',
+    );
+    return 'Identifié : « $dishName » · $count restaurant$_temp0';
+  }
+
+  @override
+  String get city => 'Kairouan';
 }

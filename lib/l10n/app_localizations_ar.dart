@@ -723,4 +723,93 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get variantGroupTitle => 'اختر خيارًا';
+
+  @override
+  String get aiSearchTitle => 'البحث بالذكاء الاصطناعي';
+
+  @override
+  String get aiSearchPlaceholder => 'صِف ما تبحث عنه...';
+
+  @override
+  String get aiSearchCameraTooltip => 'البحث بالصورة';
+
+  @override
+  String get aiSearchVisualSearchBadge => 'البحث البصري';
+
+  @override
+  String get aiSearchResultCountOne => 'تم العثور على نتيجة واحدة';
+
+  @override
+  String aiSearchResultCountOther(int count) {
+    return 'تم العثور على $count نتائج';
+  }
+
+  @override
+  String get aiSearchLoadingPhoto => 'جاري تحليل صورتك…';
+
+  @override
+  String get aiSearchLoadingText => 'جاري فهم طلبك…';
+
+  @override
+  String get aiSearchPoweredBy => 'مدعوم بالذكاء الاصطناعي';
+
+  @override
+  String get aiSearchEmptyTitle => 'صِف ما تريد';
+
+  @override
+  String get aiSearchEmptyDescription =>
+      'اكتب باللهجة الدارجة أو الفرنسية أو العربية — أو احمل صورة للطبق الذي تبحث عنه.';
+
+  @override
+  String get aiSearchExampleQueryDarija =>
+      'N7eb nekel 7aja 7arra w ma tfoutch 15 dinar';
+
+  @override
+  String get aiSearchExampleQueryFrench =>
+      'Quelque chose de rapide, pizza ou burger';
+
+  @override
+  String get aiSearchExampleQueryPhoto => 'احمل صورة طبق';
+
+  @override
+  String aiSearchNoResultsPhoto(String dishName) {
+    return 'لم يتم العثور على مطاعم تقدم « $dishName »';
+  }
+
+  @override
+  String get aiSearchNoResultsText => 'لا توجد أطباق تطابق طلبك';
+
+  @override
+  String get aiSearchModalTitle => 'البحث بالصورة';
+
+  @override
+  String aiSearchModalHint(String city) {
+    return 'احمل صورة طبق للعثور عليه في $city';
+  }
+
+  @override
+  String get aiSearchCameraLabel => 'الكاميرا';
+
+  @override
+  String get aiSearchGalleryLabel => 'المعرض';
+
+  @override
+  String get aiSearchTryAgain => 'المحاولة مرة أخرى';
+
+  @override
+  String get aiSearchErrorCouldNotOpen => 'تعذر فتح الصورة';
+
+  @override
+  String aiSearchIdentified(String dishName, int count, int pluralCount) {
+    String _temp0 = intl.Intl.pluralLogic(
+      pluralCount,
+      locale: localeName,
+      other: 's',
+      one: '',
+    );
+    return 'تم التعرف: « $dishName » · $count مطعم$_temp0';
+  }
+
+  @override
+  String get city => 'القيروان';
 }

@@ -1473,6 +1473,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose an option'**
   String get variantGroupTitle;
+
+  /// No description provided for @aiSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Search'**
+  String get aiSearchTitle;
+
+  /// No description provided for @aiSearchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'N7eb nekel 7aja 7arra… ou décris ce que tu veux'**
+  String get aiSearchPlaceholder;
+
+  /// No description provided for @aiSearchCameraTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by photo'**
+  String get aiSearchCameraTooltip;
+
+  /// No description provided for @aiSearchVisualSearchBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Visual Search'**
+  String get aiSearchVisualSearchBadge;
+
+  /// No description provided for @aiSearchResultCountOne.
+  ///
+  /// In en, this message translates to:
+  /// **'1 result found'**
+  String get aiSearchResultCountOne;
+
+  /// No description provided for @aiSearchResultCountOther.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} results found'**
+  String aiSearchResultCountOther(int count);
+
+  /// No description provided for @aiSearchLoadingPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing your photo…'**
+  String get aiSearchLoadingPhoto;
+
+  /// No description provided for @aiSearchLoadingText.
+  ///
+  /// In en, this message translates to:
+  /// **'Understanding your request…'**
+  String get aiSearchLoadingText;
+
+  /// No description provided for @aiSearchPoweredBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Powered by AI'**
+  String get aiSearchPoweredBy;
+
+  /// No description provided for @aiSearchEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what you want'**
+  String get aiSearchEmptyTitle;
+
+  /// No description provided for @aiSearchEmptyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Type in Darija, French or Arabic — or upload a photo of a dish you want to find.'**
+  String get aiSearchEmptyDescription;
+
+  /// No description provided for @aiSearchExampleQueryDarija.
+  ///
+  /// In en, this message translates to:
+  /// **'N7eb nekel 7aja 7arra w ma tfoutch 15 dinar'**
+  String get aiSearchExampleQueryDarija;
+
+  /// No description provided for @aiSearchExampleQueryFrench.
+  ///
+  /// In en, this message translates to:
+  /// **'Quelque chose de rapide, pizza ou burger'**
+  String get aiSearchExampleQueryFrench;
+
+  /// No description provided for @aiSearchExampleQueryPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload a food photo'**
+  String get aiSearchExampleQueryPhoto;
+
+  /// No description provided for @aiSearchNoResultsPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'No restaurants found for \"{dishName}\"'**
+  String aiSearchNoResultsPhoto(String dishName);
+
+  /// No description provided for @aiSearchNoResultsText.
+  ///
+  /// In en, this message translates to:
+  /// **'No dishes match your request'**
+  String get aiSearchNoResultsText;
+
+  /// No description provided for @aiSearchModalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by Photo'**
+  String get aiSearchModalTitle;
+
+  /// No description provided for @aiSearchModalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload a photo of a dish to find it in {city}'**
+  String aiSearchModalHint(String city);
+
+  /// No description provided for @aiSearchCameraLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get aiSearchCameraLabel;
+
+  /// No description provided for @aiSearchGalleryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get aiSearchGalleryLabel;
+
+  /// No description provided for @aiSearchTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get aiSearchTryAgain;
+
+  /// No description provided for @aiSearchErrorCouldNotOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open image'**
+  String get aiSearchErrorCouldNotOpen;
+
+  /// No description provided for @aiSearchIdentified.
+  ///
+  /// In en, this message translates to:
+  /// **'Identified: \"{dishName}\" · {count} restaurant{pluralCount, plural, =1{} other{s}}'**
+  String aiSearchIdentified(String dishName, int count, int pluralCount);
+
+  /// No description provided for @city.
+  ///
+  /// In en, this message translates to:
+  /// **'Kairouan'**
+  String get city;
 }
 
 class _AppLocalizationsDelegate

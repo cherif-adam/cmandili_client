@@ -268,5 +268,51 @@
         }
     },
     "completeRequiredSelections": "Please complete the required selections",
-    "variantGroupTitle": "Choose an option"
+    "variantGroupTitle": "Choose an option",
+    "aiSearchTitle": "AI Search",
+    "aiSearchPlaceholder": "N7eb nekel 7aja 7arra… ou décris ce que tu veux",
+    "aiSearchCameraTooltip": "Search by photo",
+    "aiSearchVisualSearchBadge": "Visual Search",
+    "aiSearchResultCountOne": "1 result found",
+    "aiSearchResultCountOther": "{count} results found",
+    "@aiSearchResultCountOther": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "aiSearchLoadingPhoto": "Analyzing your photo…",
+    "aiSearchLoadingText": "Understanding your request…",
+    "aiSearchPoweredBy": "Powered by AI",
+    "aiSearchEmptyTitle": "Describe what you want",
+    "aiSearchEmptyDescription": "Type in Darija, French or Arabic — or upload a photo of a dish you want to find.",
+    "aiSearchExampleQueryDarija": "N7eb nekel 7aja 7arra w ma tfoutch 15 dinar",
+    "aiSearchExampleQueryFrench": "Quelque chose de rapide, pizza ou burger",
+    "aiSearchExampleQueryPhoto": "Upload a food photo",
+    "aiSearchNoResultsPhoto": "No restaurants found for \"{dishName}\"",
+    "@aiSearchNoResultsPhoto": {
+        "placeholders": {
+            "dishName": { "type": "String" }
+        }
+    },
+    "aiSearchNoResultsText": "No dishes match your request",
+    "aiSearchModalTitle": "Search by Photo",
+    "aiSearchModalHint": "Upload a photo of a dish to find it in {city}",
+    "@aiSearchModalHint": {
+        "placeholders": {
+            "city": { "type": "String" }
+        }
+    },
+    "aiSearchCameraLabel": "Camera",
+    "aiSearchGalleryLabel": "Gallery",
+    "aiSearchTryAgain": "Try again",
+    "aiSearchErrorCouldNotOpen": "Could not open image",
+    "aiSearchIdentified": "Identified: \"{dishName}\" · {count} restaurant{pluralCount, plural, =1{} other{s}}",
+    "@aiSearchIdentified": {
+        "placeholders": {
+            "dishName": { "type": "String" },
+            "count": { "type": "int" },
+            "pluralCount": { "type": "int" }
+        }
+    },
+    "city": "Kairouan"
 }

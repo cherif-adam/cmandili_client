@@ -268,5 +268,51 @@
         }
     },
     "completeRequiredSelections": "Veuillez compléter les sélections obligatoires",
-    "variantGroupTitle": "Choisissez une option"
+    "variantGroupTitle": "Choisissez une option",
+    "aiSearchTitle": "Recherche IA",
+    "aiSearchPlaceholder": "Décris ce que tu cherches...",
+    "aiSearchCameraTooltip": "Rechercher par photo",
+    "aiSearchVisualSearchBadge": "Recherche visuelle",
+    "aiSearchResultCountOne": "1 résultat trouvé",
+    "aiSearchResultCountOther": "{count} résultats trouvés",
+    "@aiSearchResultCountOther": {
+        "placeholders": {
+            "count": { "type": "int" }
+        }
+    },
+    "aiSearchLoadingPhoto": "Analyse de votre photo…",
+    "aiSearchLoadingText": "Analyse de votre demande…",
+    "aiSearchPoweredBy": "Propulsé par l'IA",
+    "aiSearchEmptyTitle": "Décris ce que tu veux",
+    "aiSearchEmptyDescription": "Écris en Darija, français ou arabe — ou envoie une photo du plat que tu cherches.",
+    "aiSearchExampleQueryDarija": "Nekel 7aja 7arra w mta3 tletha20 dinar",
+    "aiSearchExampleQueryFrench": "Quelque chose de rapide, pizza ou burger",
+    "aiSearchExampleQueryPhoto": "Envoyer une photo de plat",
+    "aiSearchNoResultsPhoto": "Aucun restaurant trouvé pour « {dishName} »",
+    "@aiSearchNoResultsPhoto": {
+        "placeholders": {
+            "dishName": { "type": "String" }
+        }
+    },
+    "aiSearchNoResultsText": "Aucun plat ne correspond à ta demande",
+    "aiSearchModalTitle": "Rechercher par photo",
+    "aiSearchModalHint": "Envoie une photo d'un plat pour le trouver à {city}",
+    "@aiSearchModalHint": {
+        "placeholders": {
+            "city": { "type": "String" }
+        }
+    },
+    "aiSearchCameraLabel": "Appareil photo",
+    "aiSearchGalleryLabel": "Galerie",
+    "aiSearchTryAgain": "Réessayer",
+    "aiSearchErrorCouldNotOpen": "Impossible d'ouvrir l'image",
+    "aiSearchIdentified": "Identifié : « {dishName} » · {count} restaurant{pluralCount, plural, =1{} other{s}}",
+    "@aiSearchIdentified": {
+        "placeholders": {
+            "dishName": { "type": "String" },
+            "count": { "type": "int" },
+            "pluralCount": { "type": "int" }
+        }
+    },
+    "city": "Kairouan"
 }
