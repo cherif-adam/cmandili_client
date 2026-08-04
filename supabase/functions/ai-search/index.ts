@@ -165,6 +165,60 @@ well, return the closest few anyway.
 Return ONLY a JSON object: { "ids": [ "id1", "id2", ... ] }
 List at most 20 ids, best first. Do not add text outside the JSON.`;
 
+// Progressive relaxation ladder. Each tier is tried in order and the first one
+// that returns rows wins, so an over-constrained query degrades into something
+// useful instead of dead-ending on an empty list.
+//
+//   1. everything the user asked for
+//   2. drop is_spicy / is_vegetarian — these columns are sparsely populated, so
+//      they are the most likely reason a reasonable query returns nothing
+//   3. drop category / keyword, keep the budget — respect what they can spend
+//   4. no filters at all — guarantees we never hand back zero results
+//
+// Any tier past the first means we did NOT match what was asked for, so the
+// response is flagged and the client says so rather than passing these off as
+// genuine matches.
+interface RelaxTier {
+  attributes: boolean; // is_spicy / is_vegetarian
+  taxonomy: boolean; // category / keyword
+  price: boolean; // min_price / max_price
+}
+
+const RELAX_TIERS: RelaxTier[] = [
+  { attributes: true, taxonomy: true, price: true },
+  { attributes: false, taxonomy: true, price: true },
+  { attributes: false, taxonomy: false, price: true },
+  { attributes: false, taxonomy: false, price: false },
+];
+
+function buildCandidateQuery(
+  supabase: ReturnType<typeof createClient>,
+  intent: TextIntent,
+  tier: RelaxTier,
+) {
+  let q = supabase.from("food_items").select(FOOD_SELECT).eq("is_available", true);
+
+  if (tier.taxonomy && intent.category) {
+    q = q.ilike("category", `%${intent.category}%`);
+  }
+  if (tier.attributes && intent.spicy === true) q = q.eq("is_spicy", true);
+  if (tier.attributes && intent.vegetarian === true) q = q.eq("is_vegetarian", true);
+  if (tier.price && intent.max_price != null) q = q.lte("price", intent.max_price);
+  if (tier.price && intent.min_price != null) q = q.gte("price", intent.min_price);
+  if (tier.taxonomy && intent.keyword) {
+    q = q.or(`name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%`);
+  }
+
+  // The widest tier has no user signal to sort by, so lead with the cheapest
+  // dishes. We deliberately do NOT filter on restaurants.is_open here — that
+  // could re-introduce the empty result this tier exists to prevent.
+  if (!tier.attributes && !tier.taxonomy && !tier.price) {
+    q = q.order("price", { ascending: true });
+  }
+
+  return q.limit(60);
+}
+
 async function handleTextSearch(query: string, supabase: ReturnType<typeof createClient>) {
   if (!query || query.trim().length === 0) {
     return json({ error: "Empty query." }, 400);
@@ -191,46 +245,31 @@ async function handleTextSearch(query: string, supabase: ReturnType<typeof creat
     return errorResponse("Failed to parse AI response.", String(e));
   }
 
-  // 2. Build a candidate query from the structured intent. We keep this broad
-  //    (the model does the fine ranking) but apply the hard filters.
-  let q = supabase.from("food_items").select(FOOD_SELECT).eq("is_available", true);
+  // 2. Walk the relaxation ladder until a tier returns rows. The model does the
+  //    fine ranking afterwards, so each tier stays deliberately broad.
+  let candidates: Record<string, unknown>[] | null = null;
+  let tierUsed = 0;
 
-  if (intent.category) q = q.ilike("category", `%${intent.category}%`);
-  if (intent.spicy === true) q = q.eq("is_spicy", true);
-  if (intent.vegetarian === true) q = q.eq("is_vegetarian", true);
-  if (intent.max_price != null) q = q.lte("price", intent.max_price);
-  if (intent.min_price != null) q = q.gte("price", intent.min_price);
-  if (intent.keyword) {
-    q = q.or(`name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%`);
-  }
-
-  let { data: candidates, error } = await q.limit(60);
-
-  // Fallback: if strict filters returned nothing, retry with just category or
-  // keyword so the user still sees something relevant.
-  if (!error && (!candidates || candidates.length === 0)) {
-    let relaxed = supabase
-      .from("food_items")
-      .select(FOOD_SELECT)
-      .eq("is_available", true);
-    if (intent.keyword) {
-      relaxed = relaxed.or(
-        `name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%`,
-      );
-    } else if (intent.category) {
-      relaxed = relaxed.ilike("category", `%${intent.category}%`);
+  for (let i = 0; i < RELAX_TIERS.length; i++) {
+    const { data, error } = await buildCandidateQuery(supabase, intent, RELAX_TIERS[i]);
+    if (error) {
+      return errorResponse("Database query failed.", error.message, 500);
     }
-    const r = await relaxed.limit(60);
-    candidates = r.data;
-    error = r.error;
+    if (data && data.length > 0) {
+      candidates = data as Record<string, unknown>[];
+      tierUsed = i;
+      break;
+    }
   }
 
-  if (error) {
-    return errorResponse("Database query failed.", error.message, 500);
-  }
+  // Only reachable if the catalogue itself is empty.
   if (!candidates || candidates.length === 0) {
-    return json({ intent, results: [] });
+    return json({ intent, results: [], fallback: false });
   }
+
+  // Past the first tier we dropped something the user asked for, so the client
+  // must present these as suggestions rather than matches.
+  const fallback = tierUsed > 0;
 
   // 3. Ask the model to pick + rank the best matches.
   let results = candidates;
@@ -275,7 +314,7 @@ async function handleTextSearch(query: string, supabase: ReturnType<typeof creat
     );
   }
 
-  return json({ intent, results });
+  return json({ intent, results, fallback });
 }
 
 // ── Mode: image ───────────────────────────────────────────────────────────────

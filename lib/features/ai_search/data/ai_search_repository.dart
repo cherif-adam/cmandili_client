@@ -39,7 +39,11 @@ class AiSearchRepository {
         .map((r) => AiSearchFoodResult.fromJson(r as Map<String, dynamic>))
         .toList();
 
-    return AiTextSearchResponse(intent: intent, results: results);
+    return AiTextSearchResponse(
+      intent: intent,
+      results: results,
+      isFallback: (data['fallback'] as bool?) ?? false,
+    );
   }
 
   /// Performs a visual food search by sending an image file to the Edge Function.

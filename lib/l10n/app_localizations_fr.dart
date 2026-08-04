@@ -806,6 +806,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get aiSearchNoResultsText => 'Aucun plat ne correspond à ta demande';
 
   @override
+  String get aiSearchFallbackMessage =>
+      'Aucun résultat exact — voici des plats populaires';
+
+  @override
   String get aiSearchModalTitle => 'Rechercher par photo';
 
   @override

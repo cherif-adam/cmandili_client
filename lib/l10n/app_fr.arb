@@ -295,6 +295,7 @@
         }
     },
     "aiSearchNoResultsText": "Aucun plat ne correspond à ta demande",
+    "aiSearchFallbackMessage": "Aucun résultat exact — voici des plats populaires",
     "aiSearchModalTitle": "Rechercher par photo",
     "aiSearchModalHint": "Envoie une photo d'un plat pour le trouver à {city}",
     "@aiSearchModalHint": {

@@ -123,7 +123,15 @@ class AiTextSearchResponse extends AiSearchResponse {
   final TextSearchIntent intent;
   final List<AiSearchFoodResult> results;
 
-  const AiTextSearchResponse({required this.intent, required this.results});
+  /// True when the Edge Function had to relax the user's filters to find
+  /// anything. These are suggestions, not matches, and the UI must say so.
+  final bool isFallback;
+
+  const AiTextSearchResponse({
+    required this.intent,
+    required this.results,
+    this.isFallback = false,
+  });
 }
 
 class AiImageSearchResponse extends AiSearchResponse {

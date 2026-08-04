@@ -295,6 +295,7 @@
         }
     },
     "aiSearchNoResultsText": "لا توجد أطباق تطابق طلبك",
+    "aiSearchFallbackMessage": "لا توجد نتائج مطابقة — إليك بعض الأطباق الشائعة",
     "aiSearchModalTitle": "البحث بالصورة",
     "aiSearchModalHint": "احمل صورة طبق للعثور عليه في {city}",
     "@aiSearchModalHint": {

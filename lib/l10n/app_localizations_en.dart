@@ -792,6 +792,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSearchNoResultsText => 'No dishes match your request';
 
   @override
+  String get aiSearchFallbackMessage =>
+      'No exact match — here are some popular dishes';
+
+  @override
   String get aiSearchModalTitle => 'Search by Photo';
 
   @override

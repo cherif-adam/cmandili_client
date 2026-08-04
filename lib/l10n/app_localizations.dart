@@ -1570,6 +1570,12 @@ abstract class AppLocalizations {
   /// **'No dishes match your request'**
   String get aiSearchNoResultsText;
 
+  /// No description provided for @aiSearchFallbackMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No exact match — here are some popular dishes'**
+  String get aiSearchFallbackMessage;
+
   /// No description provided for @aiSearchModalTitle.
   ///
   /// In en, this message translates to:

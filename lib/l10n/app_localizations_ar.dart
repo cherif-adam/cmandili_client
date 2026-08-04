@@ -788,6 +788,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get aiSearchNoResultsText => 'لا توجد أطباق تطابق طلبك';
 
   @override
+  String get aiSearchFallbackMessage =>
+      'لا توجد نتائج مطابقة — إليك بعض الأطباق الشائعة';
+
+  @override
   String get aiSearchModalTitle => 'البحث بالصورة';
 
   @override

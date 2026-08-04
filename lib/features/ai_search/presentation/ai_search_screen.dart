@@ -372,20 +372,31 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome_rounded,
-                  size: 16, color: Color(0xFF6C3DE1)),
+              Icon(
+                response.isFallback
+                    ? Icons.info_outline_rounded
+                    : Icons.auto_awesome_rounded,
+                size: 16,
+                color: const Color(0xFF6C3DE1),
+              ),
               const SizedBox(width: 6),
-              Text(
-                l10n.aiSearchResultCount(response.results.length),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+              Expanded(
+                child: Text(
+                  response.isFallback
+                      ? l10n.aiSearchFallbackMessage
+                      : l10n.aiSearchResultCount(response.results.length),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             ],
           ),
-          if (chips.isNotEmpty) ...[
+          // Chips describe filters the fallback path deliberately dropped, so
+          // showing them alongside relaxed results would misrepresent them.
+          if (chips.isNotEmpty && !response.isFallback) ...[
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
