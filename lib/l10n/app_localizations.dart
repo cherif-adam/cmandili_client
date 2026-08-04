@@ -1498,17 +1498,11 @@ abstract class AppLocalizations {
   /// **'Visual Search'**
   String get aiSearchVisualSearchBadge;
 
-  /// No description provided for @aiSearchResultCountOne.
+  /// No description provided for @aiSearchResultCount.
   ///
   /// In en, this message translates to:
-  /// **'1 result found'**
-  String get aiSearchResultCountOne;
-
-  /// No description provided for @aiSearchResultCountOther.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} results found'**
-  String aiSearchResultCountOther(int count);
+  /// **'{count, plural, =1{1 result found} other{{count} results found}}'**
+  String aiSearchResultCount(int count);
 
   /// No description provided for @aiSearchLoadingPhoto.
   ///
@@ -1540,17 +1534,23 @@ abstract class AppLocalizations {
   /// **'Type in Darija, French or Arabic — or upload a photo of a dish you want to find.'**
   String get aiSearchEmptyDescription;
 
-  /// No description provided for @aiSearchExampleQueryDarija.
+  /// No description provided for @aiSearchExampleQuery1.
   ///
   /// In en, this message translates to:
   /// **'N7eb nekel 7aja 7arra w ma tfoutch 15 dinar'**
-  String get aiSearchExampleQueryDarija;
+  String get aiSearchExampleQuery1;
 
-  /// No description provided for @aiSearchExampleQueryFrench.
+  /// No description provided for @aiSearchExampleQuery2.
   ///
   /// In en, this message translates to:
   /// **'Quelque chose de rapide, pizza ou burger'**
-  String get aiSearchExampleQueryFrench;
+  String get aiSearchExampleQuery2;
+
+  /// No description provided for @aiSearchExampleQuery3.
+  ///
+  /// In en, this message translates to:
+  /// **'Something cheap and vegetarian'**
+  String get aiSearchExampleQuery3;
 
   /// No description provided for @aiSearchExampleQueryPhoto.
   ///
@@ -1609,8 +1609,8 @@ abstract class AppLocalizations {
   /// No description provided for @aiSearchIdentified.
   ///
   /// In en, this message translates to:
-  /// **'Identified: \"{dishName}\" · {count} restaurant{pluralCount, plural, =1{} other{s}}'**
-  String aiSearchIdentified(String dishName, int count, int pluralCount);
+  /// **'Identified: \"{dishName}\" · {count, plural, =1{1 restaurant} other{{count} restaurants}}'**
+  String aiSearchIdentified(String dishName, int count);
 
   /// No description provided for @city.
   ///

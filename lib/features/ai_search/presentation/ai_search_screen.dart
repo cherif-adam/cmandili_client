@@ -70,7 +70,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           .searchByImage(File(picked.path));
     } catch (e) {
       if (!mounted) return;
-      _showError('Could not open image: $e');
+      _showError(AppLocalizations.of(context)!.aiSearchErrorCouldNotOpen);
     }
   }
 
@@ -376,9 +376,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                   size: 16, color: Color(0xFF6C3DE1)),
               const SizedBox(width: 6),
               Text(
-                response.results.length == 1
-                    ? l10n.aiSearchResultCountOne
-                    : l10n.aiSearchResultCountOther(response.results.length),
+                l10n.aiSearchResultCount(response.results.length),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -430,7 +428,6 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
             child: Text(
               l10n.aiSearchIdentified(
                 response.dishName ?? '',
-                response.results.length,
                 response.results.length,
               ),
               style: const TextStyle(
@@ -551,18 +548,27 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           // Example queries
           _ExampleQuery(
             emoji: '🌶',
-            text: '"${l10n.aiSearchExampleQueryDarija}"',
+            text: '"${l10n.aiSearchExampleQuery1}"',
             onTap: () {
-              _queryController.text = l10n.aiSearchExampleQueryDarija;
+              _queryController.text = l10n.aiSearchExampleQuery1;
               _onSubmitText();
             },
           ),
           const SizedBox(height: 10),
           _ExampleQuery(
             emoji: '⚡',
-            text: '"${l10n.aiSearchExampleQueryFrench}"',
+            text: '"${l10n.aiSearchExampleQuery2}"',
             onTap: () {
-              _queryController.text = l10n.aiSearchExampleQueryFrench;
+              _queryController.text = l10n.aiSearchExampleQuery2;
+              _onSubmitText();
+            },
+          ),
+          const SizedBox(height: 10),
+          _ExampleQuery(
+            emoji: '🥦',
+            text: '"${l10n.aiSearchExampleQuery3}"',
+            onTap: () {
+              _queryController.text = l10n.aiSearchExampleQuery3;
               _onSubmitText();
             },
           ),

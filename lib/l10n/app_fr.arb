@@ -273,9 +273,8 @@
     "aiSearchPlaceholder": "Décris ce que tu cherches...",
     "aiSearchCameraTooltip": "Rechercher par photo",
     "aiSearchVisualSearchBadge": "Recherche visuelle",
-    "aiSearchResultCountOne": "1 résultat trouvé",
-    "aiSearchResultCountOther": "{count} résultats trouvés",
-    "@aiSearchResultCountOther": {
+    "aiSearchResultCount": "{count, plural, =1{1 résultat trouvé} other{{count} résultats trouvés}}",
+    "@aiSearchResultCount": {
         "placeholders": {
             "count": { "type": "int" }
         }
@@ -285,8 +284,9 @@
     "aiSearchPoweredBy": "Propulsé par l'IA",
     "aiSearchEmptyTitle": "Décris ce que tu veux",
     "aiSearchEmptyDescription": "Écris en Darija, français ou arabe — ou envoie une photo du plat que tu cherches.",
-    "aiSearchExampleQueryDarija": "Nekel 7aja 7arra w mta3 tletha20 dinar",
-    "aiSearchExampleQueryFrench": "Quelque chose de rapide, pizza ou burger",
+    "aiSearchExampleQuery1": "N7eb nekel 7aja 7arra w ma tfoutch 15 dinar",
+    "aiSearchExampleQuery2": "Quelque chose de rapide, pizza ou burger",
+    "aiSearchExampleQuery3": "Un plat végétarien pas cher",
     "aiSearchExampleQueryPhoto": "Envoyer une photo de plat",
     "aiSearchNoResultsPhoto": "Aucun restaurant trouvé pour « {dishName} »",
     "@aiSearchNoResultsPhoto": {
@@ -306,12 +306,11 @@
     "aiSearchGalleryLabel": "Galerie",
     "aiSearchTryAgain": "Réessayer",
     "aiSearchErrorCouldNotOpen": "Impossible d'ouvrir l'image",
-    "aiSearchIdentified": "Identifié : « {dishName} » · {count} restaurant{pluralCount, plural, =1{} other{s}}",
+    "aiSearchIdentified": "Identifié : « {dishName} » · {count, plural, =1{1 restaurant} other{{count} restaurants}}",
     "@aiSearchIdentified": {
         "placeholders": {
             "dishName": { "type": "String" },
-            "count": { "type": "int" },
-            "pluralCount": { "type": "int" }
+            "count": { "type": "int" }
         }
     },
     "city": "Kairouan"

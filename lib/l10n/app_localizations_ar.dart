@@ -737,11 +737,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get aiSearchVisualSearchBadge => 'البحث البصري';
 
   @override
-  String get aiSearchResultCountOne => 'تم العثور على نتيجة واحدة';
-
-  @override
-  String aiSearchResultCountOther(int count) {
-    return 'تم العثور على $count نتائج';
+  String aiSearchResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تم العثور على $count نتيجة',
+      many: 'تم العثور على $count نتيجة',
+      few: 'تم العثور على $count نتائج',
+      two: 'تم العثور على نتيجتين',
+      one: 'تم العثور على نتيجة واحدة',
+      zero: 'لم يتم العثور على نتائج',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -761,12 +768,13 @@ class AppLocalizationsAr extends AppLocalizations {
       'اكتب باللهجة الدارجة أو الفرنسية أو العربية — أو احمل صورة للطبق الذي تبحث عنه.';
 
   @override
-  String get aiSearchExampleQueryDarija =>
-      'N7eb nekel 7aja 7arra w ma tfoutch 15 dinar';
+  String get aiSearchExampleQuery1 => 'نحب ناكل حاجة حارة وما تفوتش 15 دينار';
 
   @override
-  String get aiSearchExampleQueryFrench =>
-      'Quelque chose de rapide, pizza ou burger';
+  String get aiSearchExampleQuery2 => 'حاجة فيسع، بيتزا ولا برغر';
+
+  @override
+  String get aiSearchExampleQuery3 => 'ماكلة نباتية ورخيصة';
 
   @override
   String get aiSearchExampleQueryPhoto => 'احمل صورة طبق';
@@ -800,14 +808,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get aiSearchErrorCouldNotOpen => 'تعذر فتح الصورة';
 
   @override
-  String aiSearchIdentified(String dishName, int count, int pluralCount) {
+  String aiSearchIdentified(String dishName, int count) {
     String _temp0 = intl.Intl.pluralLogic(
-      pluralCount,
+      count,
       locale: localeName,
-      other: 's',
-      one: '',
+      other: '$count مطعم',
+      many: '$count مطعمًا',
+      few: '$count مطاعم',
+      two: 'مطعمان',
+      one: 'مطعم واحد',
+      zero: 'لا توجد مطاعم',
     );
-    return 'تم التعرف: « $dishName » · $count مطعم$_temp0';
+    return 'تم التعرف: « $dishName » · $_temp0';
   }
 
   @override

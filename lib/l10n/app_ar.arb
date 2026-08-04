@@ -273,9 +273,8 @@
     "aiSearchPlaceholder": "صِف ما تبحث عنه...",
     "aiSearchCameraTooltip": "البحث بالصورة",
     "aiSearchVisualSearchBadge": "البحث البصري",
-    "aiSearchResultCountOne": "تم العثور على نتيجة واحدة",
-    "aiSearchResultCountOther": "تم العثور على {count} نتائج",
-    "@aiSearchResultCountOther": {
+    "aiSearchResultCount": "{count, plural, zero{لم يتم العثور على نتائج} one{تم العثور على نتيجة واحدة} two{تم العثور على نتيجتين} few{تم العثور على {count} نتائج} many{تم العثور على {count} نتيجة} other{تم العثور على {count} نتيجة}}",
+    "@aiSearchResultCount": {
         "placeholders": {
             "count": { "type": "int" }
         }
@@ -285,8 +284,9 @@
     "aiSearchPoweredBy": "مدعوم بالذكاء الاصطناعي",
     "aiSearchEmptyTitle": "صِف ما تريد",
     "aiSearchEmptyDescription": "اكتب باللهجة الدارجة أو الفرنسية أو العربية — أو احمل صورة للطبق الذي تبحث عنه.",
-    "aiSearchExampleQueryDarija": "N7eb nekel 7aja 7arra w ma tfoutch 15 dinar",
-    "aiSearchExampleQueryFrench": "Quelque chose de rapide, pizza ou burger",
+    "aiSearchExampleQuery1": "نحب ناكل حاجة حارة وما تفوتش 15 دينار",
+    "aiSearchExampleQuery2": "حاجة فيسع، بيتزا ولا برغر",
+    "aiSearchExampleQuery3": "ماكلة نباتية ورخيصة",
     "aiSearchExampleQueryPhoto": "احمل صورة طبق",
     "aiSearchNoResultsPhoto": "لم يتم العثور على مطاعم تقدم « {dishName} »",
     "@aiSearchNoResultsPhoto": {
@@ -306,12 +306,11 @@
     "aiSearchGalleryLabel": "المعرض",
     "aiSearchTryAgain": "المحاولة مرة أخرى",
     "aiSearchErrorCouldNotOpen": "تعذر فتح الصورة",
-    "aiSearchIdentified": "تم التعرف: « {dishName} » · {count} مطعم{pluralCount, plural, =1{} other{s}}",
+    "aiSearchIdentified": "تم التعرف: « {dishName} » · {count, plural, zero{لا توجد مطاعم} one{مطعم واحد} two{مطعمان} few{{count} مطاعم} many{{count} مطعمًا} other{{count} مطعم}}",
     "@aiSearchIdentified": {
         "placeholders": {
             "dishName": { "type": "String" },
-            "count": { "type": "int" },
-            "pluralCount": { "type": "int" }
+            "count": { "type": "int" }
         }
     },
     "city": "القيروان"

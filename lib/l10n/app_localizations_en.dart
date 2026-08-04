@@ -745,11 +745,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSearchVisualSearchBadge => 'Visual Search';
 
   @override
-  String get aiSearchResultCountOne => '1 result found';
-
-  @override
-  String aiSearchResultCountOther(int count) {
-    return '$count results found';
+  String aiSearchResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count results found',
+      one: '1 result found',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -769,12 +772,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Type in Darija, French or Arabic — or upload a photo of a dish you want to find.';
 
   @override
-  String get aiSearchExampleQueryDarija =>
+  String get aiSearchExampleQuery1 =>
       'N7eb nekel 7aja 7arra w ma tfoutch 15 dinar';
 
   @override
-  String get aiSearchExampleQueryFrench =>
+  String get aiSearchExampleQuery2 =>
       'Quelque chose de rapide, pizza ou burger';
+
+  @override
+  String get aiSearchExampleQuery3 => 'Something cheap and vegetarian';
 
   @override
   String get aiSearchExampleQueryPhoto => 'Upload a food photo';
@@ -808,14 +814,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSearchErrorCouldNotOpen => 'Could not open image';
 
   @override
-  String aiSearchIdentified(String dishName, int count, int pluralCount) {
+  String aiSearchIdentified(String dishName, int count) {
     String _temp0 = intl.Intl.pluralLogic(
-      pluralCount,
+      count,
       locale: localeName,
-      other: 's',
-      one: '',
+      other: '$count restaurants',
+      one: '1 restaurant',
     );
-    return 'Identified: \"$dishName\" · $count restaurant$_temp0';
+    return 'Identified: \"$dishName\" · $_temp0';
   }
 
   @override
