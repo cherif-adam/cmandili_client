@@ -284,9 +284,9 @@
     "aiSearchPoweredBy": "Powered by AI",
     "aiSearchEmptyTitle": "Describe what you want",
     "aiSearchEmptyDescription": "Type in Darija, French or Arabic — or upload a photo of a dish you want to find.",
-    "aiSearchExampleQuery1": "N7eb nekel 7aja 7arra w ma tfoutch 15 dinar",
-    "aiSearchExampleQuery2": "Quelque chose de rapide, pizza ou burger",
-    "aiSearchExampleQuery3": "Something cheap and vegetarian",
+    "aiSearchExampleQuery1": "N7eb chapati w ma tfoutch 10 dinar",
+    "aiSearchExampleQuery2": "Une pizza pas chère",
+    "aiSearchExampleQuery3": "A malfouf under 12 dinars",
     "aiSearchExampleQueryPhoto": "Upload a food photo",
     "aiSearchNoResultsPhoto": "No restaurants found for \"{dishName}\"",
     "@aiSearchNoResultsPhoto": {

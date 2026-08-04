@@ -768,13 +768,13 @@ class AppLocalizationsAr extends AppLocalizations {
       'اكتب باللهجة الدارجة أو الفرنسية أو العربية — أو احمل صورة للطبق الذي تبحث عنه.';
 
   @override
-  String get aiSearchExampleQuery1 => 'نحب ناكل حاجة حارة وما تفوتش 15 دينار';
+  String get aiSearchExampleQuery1 => 'نحب شاباتي وما تفوتش 10 دينار';
 
   @override
-  String get aiSearchExampleQuery2 => 'حاجة فيسع، بيتزا ولا برغر';
+  String get aiSearchExampleQuery2 => 'بيتزا رخيصة';
 
   @override
-  String get aiSearchExampleQuery3 => 'ماكلة نباتية ورخيصة';
+  String get aiSearchExampleQuery3 => 'ملفوف بأقل من 12 دينار';
 
   @override
   String get aiSearchExampleQueryPhoto => 'احمل صورة طبق';

@@ -284,9 +284,9 @@
     "aiSearchPoweredBy": "مدعوم بالذكاء الاصطناعي",
     "aiSearchEmptyTitle": "صِف ما تريد",
     "aiSearchEmptyDescription": "اكتب باللهجة الدارجة أو الفرنسية أو العربية — أو احمل صورة للطبق الذي تبحث عنه.",
-    "aiSearchExampleQuery1": "نحب ناكل حاجة حارة وما تفوتش 15 دينار",
-    "aiSearchExampleQuery2": "حاجة فيسع، بيتزا ولا برغر",
-    "aiSearchExampleQuery3": "ماكلة نباتية ورخيصة",
+    "aiSearchExampleQuery1": "نحب شاباتي وما تفوتش 10 دينار",
+    "aiSearchExampleQuery2": "بيتزا رخيصة",
+    "aiSearchExampleQuery3": "ملفوف بأقل من 12 دينار",
     "aiSearchExampleQueryPhoto": "احمل صورة طبق",
     "aiSearchNoResultsPhoto": "لم يتم العثور على مطاعم تقدم « {dishName} »",
     "@aiSearchNoResultsPhoto": {

@@ -1537,19 +1537,19 @@ abstract class AppLocalizations {
   /// No description provided for @aiSearchExampleQuery1.
   ///
   /// In en, this message translates to:
-  /// **'N7eb nekel 7aja 7arra w ma tfoutch 15 dinar'**
+  /// **'N7eb chapati w ma tfoutch 10 dinar'**
   String get aiSearchExampleQuery1;
 
   /// No description provided for @aiSearchExampleQuery2.
   ///
   /// In en, this message translates to:
-  /// **'Quelque chose de rapide, pizza ou burger'**
+  /// **'Une pizza pas chère'**
   String get aiSearchExampleQuery2;
 
   /// No description provided for @aiSearchExampleQuery3.
   ///
   /// In en, this message translates to:
-  /// **'Something cheap and vegetarian'**
+  /// **'A malfouf under 12 dinars'**
   String get aiSearchExampleQuery3;
 
   /// No description provided for @aiSearchExampleQueryPhoto.

@@ -547,7 +547,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           const SizedBox(height: 32),
           // Example queries
           _ExampleQuery(
-            emoji: '🌶',
+            emoji: '🌯',
             text: '"${l10n.aiSearchExampleQuery1}"',
             onTap: () {
               _queryController.text = l10n.aiSearchExampleQuery1;
@@ -556,7 +556,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           ),
           const SizedBox(height: 10),
           _ExampleQuery(
-            emoji: '⚡',
+            emoji: '🍕',
             text: '"${l10n.aiSearchExampleQuery2}"',
             onTap: () {
               _queryController.text = l10n.aiSearchExampleQuery2;
@@ -565,7 +565,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           ),
           const SizedBox(height: 10),
           _ExampleQuery(
-            emoji: '🥦',
+            emoji: '🥙',
             text: '"${l10n.aiSearchExampleQuery3}"',
             onTap: () {
               _queryController.text = l10n.aiSearchExampleQuery3;

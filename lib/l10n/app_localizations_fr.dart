@@ -786,15 +786,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Écris en Darija, français ou arabe — ou envoie une photo du plat que tu cherches.';
 
   @override
-  String get aiSearchExampleQuery1 =>
-      'N7eb nekel 7aja 7arra w ma tfoutch 15 dinar';
+  String get aiSearchExampleQuery1 => 'N7eb chapati w ma tfoutch 10 dinar';
 
   @override
-  String get aiSearchExampleQuery2 =>
-      'Quelque chose de rapide, pizza ou burger';
+  String get aiSearchExampleQuery2 => 'Une pizza pas chère';
 
   @override
-  String get aiSearchExampleQuery3 => 'Un plat végétarien pas cher';
+  String get aiSearchExampleQuery3 => 'Un malfouf à moins de 12 dinars';
 
   @override
   String get aiSearchExampleQueryPhoto => 'Envoyer une photo de plat';
