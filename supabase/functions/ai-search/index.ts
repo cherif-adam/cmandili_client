@@ -1,7 +1,11 @@
 // Supabase Edge Function: ai-search
 //
-// Two modes, both driven by an LLM through OpenRouter (so we are not tied to
-// the Gemini "v1" endpoint that started returning 404 for gemini-1.5-flash):
+// Two modes, driven by an LLM — OpenRouter primary, direct Gemini fallback on
+// ANY OpenRouter failure (invalid key, no credits, outage). Same fallback
+// pattern as `ai-chat`, ported here 2026-08-04 after OPENROUTER_API_KEY was
+// found to be a dead truncated key (401 "User not found" on every call),
+// which 502'd every ai-search request with no way to recover except a new
+// OpenRouter key. Gemini covers that gap so the feature stays up regardless.
 //
 //   mode: "text"   — Conversational query in Darija / French / Arabic.
 //                    The model extracts a structured intent (category, budget,
@@ -14,21 +18,28 @@
 //                    re-ranks the candidates by visual/semantic fit.
 //
 // Secrets required (set with `supabase secrets set ...`):
-//   OPENROUTER_API_KEY   sk-or-v1-...   the OpenRouter key
+//   OPENROUTER_API_KEY   sk-or-v1-...   primary provider
 //   OPENROUTER_MODEL     e.g. google/gemini-2.0-flash-001  (optional, has default)
+//   GEMINI_API_KEY       AIza...        fallback: direct Google Gemini API.
+//                        Same model family as the OpenRouter default, so a
+//                        fallback is invisible to the app. At least ONE of
+//                        OPENROUTER_API_KEY / GEMINI_API_KEY must be set.
 //   SUPABASE_URL         auto-provided by the platform
 //   SUPABASE_SERVICE_ROLE_KEY  auto-provided by the platform
 //
 // Response shapes (consumed by lib/features/ai_search/data/models/search_result.dart):
-//   text  -> { intent: {...}, results: [ {food_item + restaurants:{...}} ] }
+//   text  -> { intent: {...}, results: [ {food_item + restaurants:{...}} ], fallback: bool }
 //   image -> { dish_name, confidence, results: [ ... ] }
 //   error -> { error: string, details?: string }   (always HTTP 200 or 4xx/5xx)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY") ?? "";
+// .trim() defends against secrets pasted with stray whitespace/newlines.
+const OPENROUTER_API_KEY = (Deno.env.get("OPENROUTER_API_KEY") ?? "").trim();
 const OPENROUTER_MODEL =
-  Deno.env.get("OPENROUTER_MODEL") ?? "google/gemini-2.0-flash-001";
+  (Deno.env.get("OPENROUTER_MODEL") ?? "google/gemini-2.0-flash-001").trim();
+const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
+const GEMINI_MODEL = (Deno.env.get("GEMINI_SEARCH_MODEL") ?? "gemini-2.5-flash").trim();
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
@@ -105,6 +116,104 @@ async function callOpenRouter(messages: unknown[]): Promise<string> {
     throw new Error(`OpenRouter returned no content: ${raw.slice(0, 500)}`);
   }
   return content;
+}
+
+// ── Gemini helpers (fallback provider) ──────────────────────────────────────
+// Speaks the native Generative Language API directly. Same JSON-object output
+// contract as the OpenRouter path, so callers don't need to know which
+// provider actually answered.
+
+/**
+ * Calls Gemini directly with a single system + user turn. `userParts`
+ * mirrors `messages`' user content in Gemini's part shape: `{text}` for text,
+ * `{inline_data: {mime_type, data}}` for images (raw base64, no data: prefix).
+ */
+async function callGemini(systemPrompt: string, userParts: unknown[]): Promise<string> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: userParts }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json",
+          // gemini-2.5-flash is a thinking model — spend the budget on the
+          // JSON answer, not on reasoning tokens (same rationale as ai-chat).
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      }),
+    },
+  );
+
+  const raw = await res.text();
+  if (!res.ok) {
+    throw new Error(`Gemini API error ${res.status}: ${raw.slice(0, 500)}`);
+  }
+
+  let parsed: {
+    candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+    promptFeedback?: { blockReason?: string };
+  };
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`Gemini returned non-JSON envelope: ${raw.slice(0, 500)}`);
+  }
+
+  const text = (parsed.candidates?.[0]?.content?.parts ?? [])
+    .map((p) => p.text ?? "")
+    .join("");
+  if (!text) {
+    const why = parsed.promptFeedback?.blockReason ??
+      parsed.candidates?.[0]?.finishReason ?? "unknown";
+    throw new Error(`Gemini returned no content (${why}): ${raw.slice(0, 500)}`);
+  }
+  return text;
+}
+
+/**
+ * Single entry point for every LLM call in this file: tries OpenRouter first,
+ * falls back to direct Gemini on ANY OpenRouter failure (bad key, no credits,
+ * outage) as long as GEMINI_API_KEY is set. Every call site in this file is a
+ * single system+user turn (no conversation history), so callers only need to
+ * supply the same turn in both providers' shapes.
+ *
+ * `openRouterUserContent` — OpenAI-style `content` (string, or an array with
+ *   `image_url` parts for vision).
+ * `geminiUserParts` — the same user turn in Gemini's part shape (`{text}` /
+ *   `{inline_data}`).
+ */
+async function callLLM(
+  systemPrompt: string,
+  openRouterUserContent: unknown,
+  geminiUserParts: unknown[],
+): Promise<string> {
+  if (!OPENROUTER_API_KEY) {
+    if (!GEMINI_API_KEY) {
+      throw new Error("Neither OPENROUTER_API_KEY nor GEMINI_API_KEY is set.");
+    }
+    console.warn("[ai-search] no OPENROUTER_API_KEY — using direct Gemini");
+    return await callGemini(systemPrompt, geminiUserParts);
+  }
+  try {
+    return await callOpenRouter([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: openRouterUserContent },
+    ]);
+  } catch (e) {
+    if (!GEMINI_API_KEY) throw e;
+    console.warn(
+      `[ai-search] OpenRouter failed, falling back to direct Gemini: ${String(e).slice(0, 200)}`,
+    );
+    return await callGemini(systemPrompt, geminiUserParts);
+  }
 }
 
 /**
@@ -227,10 +336,7 @@ async function handleTextSearch(query: string, supabase: ReturnType<typeof creat
   // 1. Parse intent.
   let intent: TextIntent;
   try {
-    const content = await callOpenRouter([
-      { role: "system", content: INTENT_SYSTEM_PROMPT },
-      { role: "user", content: query },
-    ]);
+    const content = await callLLM(INTENT_SYSTEM_PROMPT, query, [{ text: query }]);
     const parsed = extractJson<Partial<TextIntent>>(content);
     intent = {
       category: parsed.category ?? null,
@@ -283,14 +389,11 @@ async function handleTextSearch(query: string, supabase: ReturnType<typeof creat
       is_spicy: c.is_spicy,
       is_vegetarian: c.is_vegetarian,
     }));
-    const content = await callOpenRouter([
-      { role: "system", content: RANK_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `User request: "${query}"\nBudget max_price: ${
-          intent.max_price ?? "none"
-        }\nCandidates:\n${JSON.stringify(slim)}`,
-      },
+    const rankUserContent = `User request: "${query}"\nBudget max_price: ${
+      intent.max_price ?? "none"
+    }\nCandidates:\n${JSON.stringify(slim)}`;
+    const content = await callLLM(RANK_SYSTEM_PROMPT, rankUserContent, [
+      { text: rankUserContent },
     ]);
     const ranked = extractJson<{ ids?: string[] }>(content);
     if (Array.isArray(ranked.ids) && ranked.ids.length > 0) {
@@ -344,19 +447,18 @@ async function handleImageSearch(
   let keywords: string[];
   let confidence: string;
   try {
-    const content = await callOpenRouter([
-      { role: "system", content: VISION_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: [
-          { type: "text", text: "What dish is in this photo?" },
-          {
-            type: "image_url",
-            image_url: { url: `data:${mimeType};base64,${imageBase64}` },
-          },
-        ],
-      },
-    ]);
+    const prompt = "What dish is in this photo?";
+    const content = await callLLM(
+      VISION_SYSTEM_PROMPT,
+      [
+        { type: "text", text: prompt },
+        { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+      ],
+      [
+        { text: prompt },
+        { inline_data: { mime_type: mimeType, data: imageBase64 } },
+      ],
+    );
     const parsed = extractJson<{
       dish_name?: string | null;
       keywords?: string[];
@@ -405,16 +507,13 @@ async function handleImageSearch(
       price: c.price,
       category: c.category,
     }));
-    const content = await callOpenRouter([
-      { role: "system", content: RANK_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: `User uploaded a photo of: "${dishName}" (keywords: ${keywords.join(
-          ", ",
-        )}). Pick the menu dishes that best match this dish.\nCandidates:\n${JSON.stringify(
-          slim,
-        )}`,
-      },
+    const rankUserContent = `User uploaded a photo of: "${dishName}" (keywords: ${
+      keywords.join(", ")
+    }). Pick the menu dishes that best match this dish.\nCandidates:\n${
+      JSON.stringify(slim)
+    }`;
+    const content = await callLLM(RANK_SYSTEM_PROMPT, rankUserContent, [
+      { text: rankUserContent },
     ]);
     const ranked = extractJson<{ ids?: string[] }>(content);
     if (Array.isArray(ranked.ids) && ranked.ids.length > 0) {
@@ -446,10 +545,10 @@ Deno.serve(async (req) => {
   }
 
   // Fail fast on misconfiguration so the app shows a clear message.
-  if (!OPENROUTER_API_KEY) {
+  if (!OPENROUTER_API_KEY && !GEMINI_API_KEY) {
     return errorResponse(
       "Server misconfiguration.",
-      "OPENROUTER_API_KEY secret is not set on the Edge Function.",
+      "Neither OPENROUTER_API_KEY nor GEMINI_API_KEY secret is set on the Edge Function.",
       500,
     );
   }
