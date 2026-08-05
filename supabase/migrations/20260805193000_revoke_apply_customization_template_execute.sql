@@ -1,0 +1,28 @@
+-- ============================================================================
+-- CMANDILI — Revoke direct RPC access to apply_customization_template_to_item()
+--
+-- REVOKE EXECUTE ... FROM PUBLIC (in 20260720120000, restated in
+-- 20260720190000) does not do what its own comment claims. Supabase grants
+-- EXECUTE on every new public-schema function to anon/authenticated directly,
+-- not via the PUBLIC pseudo-role, so revoking from PUBLIC alone left both
+-- roles able to call this SECURITY DEFINER function directly via PostgREST's
+-- /rpc/apply_customization_template_to_item — with an arbitrary
+-- p_food_item_id, on any restaurant's items, not just their own.
+--
+-- Confirmed via has_function_privilege() before/after: anon_can_execute and
+-- authenticated_can_execute were both true beforehand, both false after this
+-- REVOKE.
+--
+-- Confirmed no direct caller exists first — grepped cmandili_client,
+-- cmandili_driver, cmandili_partner, cmandili_admin, and all 4
+-- supabase/functions Edge Functions for apply_customization_template_to_item:
+-- the only call site is the trigger's own
+-- `PERFORM public.apply_customization_template_to_item(NEW.id)`. Triggers run
+-- independent of the invoking role's EXECUTE grants, so this does not affect
+-- the auto-bootstrap-on-INSERT behavior.
+--
+-- Applied live on 2026-08-05 via `supabase db query --linked` and marked
+-- applied with `supabase migration repair --status applied 20260805193000`.
+-- ============================================================================
+
+REVOKE EXECUTE ON FUNCTION public.apply_customization_template_to_item(uuid) FROM anon, authenticated;
