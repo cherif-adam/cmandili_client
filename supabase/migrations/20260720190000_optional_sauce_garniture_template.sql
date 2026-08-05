@@ -14,15 +14,18 @@
 --
 -- Existing restaurants already bootstrapped are NOT covered by this
 -- function change (it only runs on first bootstrap of a restaurant, guarded
--- by restaurant_option_template_state) — see the companion one-off script
--- supabase/scripts/20260720_optional_sauce_garniture.sql for those.
+-- by restaurant_option_template_state) — see the companion backfill
+-- 20260805190000_optional_sauce_garniture_backfill.sql for those.
 --
 -- No "Aucun" placeholder option — optional is expressed purely via
 -- min_selections = 0, same as Suppléments.
 --
--- NOT applied — for review. Apply the same way as the original migration,
--- once approved: `supabase db query --linked -f <this file>` then
--- `supabase migration repair --status applied 20260720190000`.
+-- Applied live on 2026-08-05 via `supabase db query --linked` and marked
+-- applied with `supabase migration repair --status applied 20260720190000`.
+-- Checked pg_get_functiondef beforehand: the live body already matched this
+-- file byte-for-byte (min=0 in both INSERTs) — it had already been applied
+-- out-of-band at some earlier point. This run and the repair just bring
+-- migration history in line with what was already true in production.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.apply_customization_template_to_item(p_food_item_id UUID)
