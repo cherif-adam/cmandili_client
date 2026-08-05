@@ -12,7 +12,12 @@
           "package_name": "com.cmandili.driver"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCxJormHyNaQHljybifi1g5hRmRjBhX2oM"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -37,8 +47,12 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.cmandili.mobile",
-            "certificate_hash": "57cfd0d949cf691c437f79b8ab1be52ccc080dca"
+            "certificate_hash": "1cb4c135f2433e888936de7b3032a300d69c6e8a"
           }
+        },
+        {
+          "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+          "client_type": 3
         }
       ],
       "api_key": [
@@ -48,7 +62,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -59,7 +78,12 @@
           "package_name": "com.cmandili.partner"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCxJormHyNaQHljybifi1g5hRmRjBhX2oM"
@@ -67,7 +91,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
