@@ -38,11 +38,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   double? _driverLat;
   double? _driverLng;
   StreamSubscription? _deliverySubscription;
+  StreamSubscription? _driverSubscription;
+  String? _driverId;
   List<({double lat, double lng})>? _routePolyline;
   bool _routeFetched = false;
   bool _loyaltySheetScheduled = false;
   final _supabase = Supabase.instance.client;
 
+  /// A delivery row is created with placeholder (0,0) coordinates the moment a
+  /// driver accepts, before the first GPS tick lands. Treat that (and any
+  /// null) as "no live location yet" so we never drop a marker in the ocean.
+  static bool _isValidCoord(double? lat, double? lng) =>
+      lat != null && lng != null && !(lat == 0 && lng == 0);
 
   @override
   void initState() {
@@ -65,19 +72,51 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         .stream(primaryKey: ['id'])
         .eq('order_id', widget.orderId)
         .listen((rows) {
-          if (!mounted) return;
-          if (rows.isNotEmpty) {
-            final newLat = (rows.first['current_lat'] as num?)?.toDouble();
-            final newLng = (rows.first['current_lng'] as num?)?.toDouble();
-            setState(() {
-              _driverLat = newLat;
-              _driverLng = newLng;
-            });
-            if (_driverLat != null && _driverLng != null) {
-              _mapController.animateToPoint(_driverLat!, _driverLng!);
-            }
+          if (!mounted || rows.isEmpty) return;
+          final row = rows.first;
+
+          // Latch onto the assigned driver so we can also watch the `drivers`
+          // table directly — it's updated on every GPS tick too and acts as a
+          // fallback if the delivery row lags behind.
+          final driverId = row['driver_id'] as String?;
+          if (driverId != null && driverId != _driverId) {
+            _driverId = driverId;
+            _subscribeToDriver(driverId);
           }
+
+          final newLat = (row['current_lat'] as num?)?.toDouble();
+          final newLng = (row['current_lng'] as num?)?.toDouble();
+          _updateDriverPosition(newLat, newLng);
         });
+  }
+
+  /// Second live source: the `drivers` row for the assigned driver. The driver
+  /// app writes `current_lat/current_lng` here on every GPS update as well, so
+  /// subscribing to it keeps the marker moving even if the delivery row's
+  /// coordinates haven't been written yet.
+  void _subscribeToDriver(String driverId) {
+    _driverSubscription?.cancel();
+    _driverSubscription = _supabase
+        .from('drivers')
+        .stream(primaryKey: ['id'])
+        .eq('id', driverId)
+        .listen((rows) {
+          if (!mounted || rows.isEmpty) return;
+          final newLat = (rows.first['current_lat'] as num?)?.toDouble();
+          final newLng = (rows.first['current_lng'] as num?)?.toDouble();
+          _updateDriverPosition(newLat, newLng);
+        });
+  }
+
+  /// Apply a new driver location to the marker + camera, ignoring the (0,0)
+  /// placeholder that a freshly-created delivery row carries.
+  void _updateDriverPosition(double? lat, double? lng) {
+    if (!_isValidCoord(lat, lng)) return;
+    setState(() {
+      _driverLat = lat;
+      _driverLng = lng;
+    });
+    _mapController.animateToPoint(lat!, lng!);
   }
 
   /// Fetch a route polyline from the Mapbox Directions API and draw it on the
@@ -122,6 +161,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   @override
   void dispose() {
     _deliverySubscription?.cancel();
+    _driverSubscription?.cancel();
     _mapController.dispose();
     super.dispose();
   }
@@ -288,9 +328,14 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   Widget _buildTracking(Order order) {
     final isCourier = order.type == OrderType.courier;
     final isFacture = order.type == OrderType.facture;
-    final showMap = (order.status == OrderStatus.onTheWay || order.status == OrderStatus.pickedUp) &&
-        _driverLat != null &&
-        _driverLng != null;
+    // Show the live map as soon as we have a real driver location, for any
+    // status where a driver could be en route. This no longer requires the
+    // order status to be exactly onTheWay/pickedUp — the moment a driver is
+    // assigned and sending GPS, the customer can watch them move.
+    final showMap = _isValidCoord(_driverLat, _driverLng) &&
+        order.status != OrderStatus.pending &&
+        order.status != OrderStatus.cancelled &&
+        order.status != OrderStatus.delivered;
 
     // Fetch route once when driver location first becomes available.
     // For facture: when driver is going to customer (onTheWay → pickupAddress)
