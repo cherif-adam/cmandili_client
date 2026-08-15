@@ -42,6 +42,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   String? _driverId;
   List<({double lat, double lng})>? _routePolyline;
   bool _routeFetched = false;
+  bool _boundsFitted = false;
   bool _loyaltySheetScheduled = false;
   final _supabase = Supabase.instance.client;
 
@@ -108,15 +109,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         });
   }
 
-  /// Apply a new driver location to the marker + camera, ignoring the (0,0)
-  /// placeholder that a freshly-created delivery row carries.
+  /// Apply a new driver location to the marker, ignoring the (0,0) placeholder
+  /// that a freshly-created delivery row carries. The camera is intentionally
+  /// left alone here — recentering on every GPS tick (roughly once a second)
+  /// used to yank the map out from under the user while they browsed the
+  /// bottom sheet. Instead we fit the camera to driver+destination once, in
+  /// [_buildTracking], the first time a valid location appears.
   void _updateDriverPosition(double? lat, double? lng) {
     if (!_isValidCoord(lat, lng)) return;
     setState(() {
       _driverLat = lat;
       _driverLng = lng;
     });
-    _mapController.animateToPoint(lat!, lng!);
   }
 
   /// Fetch a route polyline from the Mapbox Directions API and draw it on the
@@ -337,18 +341,31 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         order.status != OrderStatus.cancelled &&
         order.status != OrderStatus.delivered;
 
+    final destination = isFacture && order.status == OrderStatus.onTheWay && order.pickupAddress != null
+        ? (lat: order.pickupAddress!.latitude, lng: order.pickupAddress!.longitude)
+        : (lat: order.deliveryAddress.latitude, lng: order.deliveryAddress.longitude);
+
     // Fetch route once when driver location first becomes available.
     // For facture: when driver is going to customer (onTheWay → pickupAddress)
     // or going to office (pickedUp → deliveryAddress).
     if (showMap && !_routeFetched) {
       _routeFetched = true;
-      final destination = isFacture && order.status == OrderStatus.onTheWay && order.pickupAddress != null
-          ? (lat: order.pickupAddress!.latitude, lng: order.pickupAddress!.longitude)
-          : (lat: order.deliveryAddress.latitude, lng: order.deliveryAddress.longitude);
       _fetchRoute(
         origin: (lat: _driverLat!, lng: _driverLng!),
         destination: destination,
       );
+    }
+
+    // Frame driver + destination once the map first becomes visible, then
+    // leave the camera under the user's control — see _updateDriverPosition.
+    if (showMap && !_boundsFitted) {
+      _boundsFitted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mapController.fitBounds([
+          (lat: _driverLat!, lng: _driverLng!),
+          destination,
+        ]);
+      });
     }
 
     return Scaffold(
@@ -426,6 +443,32 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               ),
             ),
           ),
+
+          // Recenter button — the camera no longer auto-follows the driver on
+          // every GPS tick (see _updateDriverPosition), so give the user an
+          // easy way to snap back to a framed driver+destination view.
+          if (showMap)
+            Positioned(
+              right: 16,
+              bottom: MediaQuery.of(context).size.height * 0.45 + 16,
+              child: Material(
+                color: Colors.white,
+                shape: const CircleBorder(),
+                elevation: 4,
+                shadowColor: Colors.black.withValues(alpha: 0.2),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _mapController.fitBounds([
+                    (lat: _driverLat!, lng: _driverLng!),
+                    destination,
+                  ]),
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Icon(Icons.my_location_rounded, color: AppColors.primary, size: 22),
+                  ),
+                ),
+              ),
+            ),
 
           // Bottom Sheet
           DraggableScrollableSheet(

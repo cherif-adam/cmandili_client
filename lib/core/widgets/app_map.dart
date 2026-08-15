@@ -104,6 +104,7 @@ class _AppMapState extends State<AppMap> {
 
   final Map<String, mb.PointAnnotation> _renderedMarkers = {};
   mb.PolylineAnnotation? _renderedPolyline;
+  mb.PolylineAnnotation? _renderedPolylineCasing;
 
   final Map<AppMapMarkerKind, Uint8List> _iconCache = {};
 
@@ -149,7 +150,7 @@ class _AppMapState extends State<AppMap> {
         ),
         zoom: widget.initialZoom,
       ),
-      styleUri: mb.MapboxStyles.MAPBOX_STREETS,
+      styleUri: mb.MapboxStyles.LIGHT,
       onMapCreated: _onMapCreated,
     );
   }
@@ -198,9 +199,14 @@ class _AppMapState extends State<AppMap> {
             geometry: point,
             image: icon,
             iconSize: 1.0,
+            iconAnchor: mb.IconAnchor.BOTTOM,
             textField: marker.title,
-            textOffset: [0, 1.6],
+            textOffset: [0, 0.6],
             textSize: 12,
+            textColor: 0xFF2D3436,
+            textHaloColor: 0xFFFFFFFF,
+            textHaloWidth: 1.5,
+            textAnchor: mb.TextAnchor.TOP,
           ),
         );
         _renderedMarkers[marker.id] = ann;
@@ -218,6 +224,11 @@ class _AppMapState extends State<AppMap> {
 
     final line = widget.polyline;
     if (line == null || line.length < 2) {
+      final existingCasing = _renderedPolylineCasing;
+      if (existingCasing != null) {
+        await manager.delete(existingCasing);
+        _renderedPolylineCasing = null;
+      }
       final existing = _renderedPolyline;
       if (existing != null) {
         await manager.delete(existing);
@@ -232,13 +243,31 @@ class _AppMapState extends State<AppMap> {
       ],
     );
 
+    // White casing drawn first so the brand-colored line on top reads like a
+    // layered nav route rather than a flat stroke.
+    final existingCasing = _renderedPolylineCasing;
+    if (existingCasing == null) {
+      _renderedPolylineCasing = await manager.create(
+        mb.PolylineAnnotationOptions(
+          geometry: geometry,
+          lineColor: 0xFFFFFFFF,
+          lineWidth: 8.0,
+          lineJoin: mb.LineJoin.ROUND,
+        ),
+      );
+    } else {
+      existingCasing.geometry = geometry;
+      await manager.update(existingCasing);
+    }
+
     final existing = _renderedPolyline;
     if (existing == null) {
       _renderedPolyline = await manager.create(
         mb.PolylineAnnotationOptions(
           geometry: geometry,
-          lineColor: 0xFFF2703F, // primary accent, ARGB int
-          lineWidth: 4.0,
+          lineColor: 0xFF059669, // brand emerald
+          lineWidth: 5.0,
+          lineJoin: mb.LineJoin.ROUND,
         ),
       );
     } else {
@@ -250,7 +279,7 @@ class _AppMapState extends State<AppMap> {
   Future<Uint8List> _iconFor(AppMapMarkerKind kind) async {
     final cached = _iconCache[kind];
     if (cached != null) return cached;
-    final bytes = await _renderPinBytes(_colorFor(kind));
+    final bytes = await _renderPinBytes(kind);
     _iconCache[kind] = bytes;
     return bytes;
   }
@@ -258,28 +287,81 @@ class _AppMapState extends State<AppMap> {
   Color _colorFor(AppMapMarkerKind kind) {
     switch (kind) {
       case AppMapMarkerKind.delivery:
-        return const Color(0xFF2E7D32); // green
+        return const Color(0xFF059669); // brand emerald
       case AppMapMarkerKind.pickup:
-        return const Color(0xFF6A1B9A); // violet
+        return const Color(0xFF6C3DE1); // brand purple (matches address picker)
       case AppMapMarkerKind.driver:
-        return const Color(0xFFEF6C00); // orange
+        return const Color(0xFFF59E0B); // brand amber
     }
   }
 
-  // Mapbox's PointAnnotation needs raw PNG bytes; rasterize a small colored
-  // pin at runtime so we don't have to ship asset PNGs.
-  Future<Uint8List> _renderPinBytes(Color color) async {
+  IconData _glyphFor(AppMapMarkerKind kind) {
+    switch (kind) {
+      case AppMapMarkerKind.delivery:
+        return Icons.home_rounded;
+      case AppMapMarkerKind.pickup:
+        return Icons.storefront_rounded;
+      case AppMapMarkerKind.driver:
+        return Icons.delivery_dining_rounded;
+    }
+  }
+
+  // Mapbox's PointAnnotation needs raw PNG bytes; rasterize a teardrop pin
+  // with a glyph + soft drop shadow at runtime so we don't have to ship
+  // per-density asset PNGs. Mirrors the pin style used by MapAddressPicker.
+  Future<Uint8List> _renderPinBytes(AppMapMarkerKind kind) async {
+    final color = _colorFor(kind);
+    final glyph = _glyphFor(kind);
+
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
-    const double size = 72;
-    const double radius = 22;
-    final paintFill = Paint()..color = color;
-    final paintStroke = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-    canvas.drawCircle(const Offset(size / 2, size / 2), radius, paintFill);
-    canvas.drawCircle(const Offset(size / 2, size / 2), radius, paintStroke);
+    const double size = 96;
+    const double bubbleRadius = 26;
+    const Offset bubbleCenter = Offset(size / 2, bubbleRadius + 6);
+
+    // Soft drop shadow under the whole pin.
+    final shadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.28)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size / 2, size - 10),
+        width: 22,
+        height: 8,
+      ),
+      shadowPaint,
+    );
+
+    // Teardrop tail.
+    final tailPaint = Paint()..color = color;
+    final tailPath = Path()
+      ..moveTo(bubbleCenter.dx - 9, bubbleCenter.dy + bubbleRadius - 10)
+      ..lineTo(bubbleCenter.dx, size - 16)
+      ..lineTo(bubbleCenter.dx + 9, bubbleCenter.dy + bubbleRadius - 10)
+      ..close();
+    canvas.drawPath(tailPath, tailPaint);
+
+    // Round bubble with white ring.
+    canvas.drawCircle(bubbleCenter, bubbleRadius + 3, Paint()..color = Colors.white);
+    canvas.drawCircle(bubbleCenter, bubbleRadius, Paint()..color = color);
+
+    // Glyph, centered in the bubble.
+    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr)
+      ..text = TextSpan(
+        text: String.fromCharCode(glyph.codePoint),
+        style: TextStyle(
+          fontSize: 26,
+          fontFamily: glyph.fontFamily,
+          package: glyph.fontPackage,
+          color: Colors.white,
+        ),
+      )
+      ..layout();
+    textPainter.paint(
+      canvas,
+      bubbleCenter - Offset(textPainter.width / 2, textPainter.height / 2),
+    );
+
     final picture = recorder.endRecording();
     final image = await picture.toImage(size.toInt(), size.toInt());
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
