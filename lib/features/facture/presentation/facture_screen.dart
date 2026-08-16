@@ -11,6 +11,7 @@ import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
 import '../../orders/presentation/order_success_screen.dart';
 import '../../bills/services/bill_reminder_service.dart';
+import '../../loyalty/data/loyalty_eligibility.dart';
 
 // ── Bill types ────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,21 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
   DeliveryAddress? _officeAddress;    // delivery (where driver pays)
   File? _billPhoto;
   bool _submitting = false;
+
+  // Preview only — the server's BEFORE INSERT trigger makes the real,
+  // enforced determination at order creation.
+  LoyaltyMilestonePreview? _loyaltyPreview;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLoyaltyPreview();
+  }
+
+  Future<void> _loadLoyaltyPreview() async {
+    final preview = await predictNextOrderMilestone();
+    if (mounted) setState(() => _loyaltyPreview = preview);
+  }
 
   @override
   void dispose() {
@@ -478,6 +494,18 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
                     bold: true,
                     color: _orange,
                   ),
+                  if (_loyaltyPreview != null) ...[
+                    const Divider(height: 20),
+                    _PriceRow(
+                      label: _loyaltyPreview!.type == 'free'
+                          ? 'Fidélité — livraison gratuite'
+                          : 'Fidélité — -50%',
+                      value:
+                          '− ${(_serviceFee * _loyaltyPreview!.discountMultiplier).toStringAsFixed(3)} TND',
+                      bold: true,
+                      color: AppColors.success,
+                    ),
+                  ],
                 ],
               ),
             ),

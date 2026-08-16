@@ -11,6 +11,7 @@ import '../../../core/utils/delivery_fee.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
 import '../../orders/presentation/order_success_screen.dart';
+import '../../loyalty/data/loyalty_eligibility.dart';
 
 enum PackageSize { petit, moyen, grand }
 
@@ -79,6 +80,10 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
   double? _estimatedDistanceKm;
   double? _estimatedPrice;
 
+  // Preview only — the server's BEFORE INSERT trigger makes the real,
+  // enforced determination at order creation.
+  LoyaltyMilestonePreview? _loyaltyPreview;
+
   // Feature 2 — saved recipients
   List<_SavedRecipient> _savedRecipients = [];
   bool _isLoadingSavedRecipients = false;
@@ -96,6 +101,12 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     super.initState();
     _setInitialPickupLocation();
     _loadSavedRecipients();
+    _loadLoyaltyPreview();
+  }
+
+  Future<void> _loadLoyaltyPreview() async {
+    final preview = await predictNextOrderMilestone();
+    if (mounted) setState(() => _loyaltyPreview = preview);
   }
 
   @override
@@ -998,21 +1009,50 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Prix estimé',
+                        _loyaltyPreview == null
+                            ? 'Prix estimé'
+                            : _loyaltyPreview!.type == 'free'
+                                ? 'Prix estimé — fidélité : livraison gratuite'
+                                : 'Prix estimé — fidélité : -50%',
                         style: TextStyle(
                             color: Colors.white70, fontSize: w * 0.033),
                       ),
                       SizedBox(height: h * 0.004),
-                      Text(
-                        _estimatedPrice != null
-                            ? '${_estimatedPrice!.toStringAsFixed(3)} TND'
-                            : '...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: w * 0.06,
-                          fontWeight: FontWeight.bold,
+                      if (_estimatedPrice != null && _loyaltyPreview != null) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '${_estimatedPrice!.toStringAsFixed(3)} TND',
+                              style: TextStyle(
+                                color: Colors.white60,
+                                fontSize: w * 0.04,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                            SizedBox(width: w * 0.02),
+                            Text(
+                              '${(_estimatedPrice! * (1 - _loyaltyPreview!.discountMultiplier)).toStringAsFixed(3)} TND',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: w * 0.06,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
+                      ] else
+                        Text(
+                          _estimatedPrice != null
+                              ? '${_estimatedPrice!.toStringAsFixed(3)} TND'
+                              : '...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: w * 0.06,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       if (_estimatedDistanceKm != null)
                         Text(
                           '${_estimatedDistanceKm!.toStringAsFixed(1)} km',

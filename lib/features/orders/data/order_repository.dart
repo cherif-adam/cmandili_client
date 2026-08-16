@@ -12,8 +12,21 @@ class OrderRepository {
   // Create a new order. `distanceKm` (when provided) is persisted on the
   // order so the driver and partner apps can show "5.2 km" without
   // recomputing client-side. The caller is responsible for computing the
-  // final delivery fee with `calculateDeliveryFee` before calling this.
-  Future<String> createOrder({
+  // final delivery fee with `calculateDeliveryFee` before calling this —
+  // that's the STICKER price; if this turns out to be the customer's 5th/
+  // 10th order, `apply_loyalty_at_checkout()` (BEFORE INSERT trigger)
+  // overwrites delivery_fee/total server-side before the row is persisted.
+  // The returned record reflects what was actually charged, not what was
+  // requested — always use it (not the sticker price) for anything shown
+  // to the user or passed to payment processing after this call.
+  Future<
+      ({
+        String orderId,
+        double deliveryFee,
+        double total,
+        String? loyaltyMilestoneType,
+        double loyaltyDiscountAmount,
+      })> createOrder({
     required List<CartItem> items,
     required DeliveryAddress deliveryAddress,
     required double subtotal,
@@ -94,7 +107,14 @@ class OrderRepository {
         });
       }
 
-      return orderId;
+      return (
+        orderId: orderId,
+        deliveryFee: (orderResponse['delivery_fee'] as num).toDouble(),
+        total: (orderResponse['total'] as num).toDouble(),
+        loyaltyMilestoneType: orderResponse['loyalty_milestone_type'] as String?,
+        loyaltyDiscountAmount:
+            (orderResponse['loyalty_discount_amount'] as num?)?.toDouble() ?? 0,
+      );
     } catch (e) {
       debugPrint('Error creating order: $e');
       rethrow;

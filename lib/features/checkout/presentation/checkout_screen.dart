@@ -15,6 +15,7 @@ import '../../cart/providers/cart_provider.dart';
 import '../../orders/data/models/order.dart';
 import '../../orders/providers/order_provider.dart';
 import '../../promo/providers/promo_provider.dart';
+import '../../loyalty/data/loyalty_eligibility.dart';
 
 /// Shown when the cart's restaurant/supermarket is closed at placement time —
 /// either caught by the fresh `_venueStillOpen()` re-check or mapped from the
@@ -48,10 +49,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _isPlacingOrder = false;
   final String _selectedPaymentMethod = 'cash';
 
+  // Preview only — the server's BEFORE INSERT trigger makes the real,
+  // enforced determination at order creation. Null until loaded, and null
+  // forever if this isn't a milestone order.
+  LoyaltyMilestonePreview? _loyaltyPreview;
+
   @override
   void initState() {
     super.initState();
     _prefillContactFromProfile();
+    _loadLoyaltyPreview();
+  }
+
+  Future<void> _loadLoyaltyPreview() async {
+    final preview = await predictNextOrderMilestone();
+    if (mounted) setState(() => _loyaltyPreview = preview);
   }
 
   Future<void> _prefillContactFromProfile() async {
@@ -263,7 +275,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
 
       // ── Create order ───────────────────────────────────────────────────
-      final orderId = await ref.read(orderRepositoryProvider).createOrder(
+      // finalDeliveryFee/finalTotal above are the STICKER price sent to the
+      // server; apply_loyalty_at_checkout() (BEFORE INSERT trigger) may
+      // overwrite delivery_fee/total on a 5th/10th order before the row is
+      // persisted. The returned record reflects what was actually charged —
+      // used below for payment instead of the sticker finalTotal, so a
+      // loyalty order is never paid/recorded at the pre-discount amount.
+      final createdOrder = await ref.read(orderRepositoryProvider).createOrder(
             items: cartItems,
             deliveryAddress: addressWithContact,
             subtotal: effectiveSubtotal, // server-authorised value
@@ -278,13 +296,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             paymentMethod: _selectedPaymentMethod,
             distanceKm: distanceKm,
           );
+      final orderId = createdOrder.orderId;
 
       if (!mounted) return;
 
       // ── Payment ────────────────────────────────────────────────────────
       final paymentResult = await PaymentService().processAndRecord(
         orderId: orderId,
-        amount: finalTotal,
+        amount: createdOrder.total,
         methodKey: _selectedPaymentMethod,
         context: context,
       );
@@ -362,7 +381,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final effectiveSubtotal = promoState.isApplied
         ? (promoState.response!.newSubtotal ?? widget.subtotal)
         : widget.subtotal;
-    final estimatedTotal = effectiveSubtotal + widget.deliveryFee;
+    // Loyalty preview: an estimate shown before the order exists. The
+    // server may compute a different discount if this preview raced with
+    // another order — _placeOrder() always uses the actual returned values,
+    // never this estimate, for what's charged/paid.
+    final loyaltyDiscountPreview = _loyaltyPreview == null
+        ? 0.0
+        : widget.deliveryFee * _loyaltyPreview!.discountMultiplier;
+    final previewDeliveryFee = widget.deliveryFee - loyaltyDiscountPreview;
+    final estimatedTotal = effectiveSubtotal + previewDeliveryFee;
 
     return Scaffold(
       appBar: AppBar(
@@ -525,6 +552,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     deliveryFee: widget.deliveryFee,
                     estimatedTotal: estimatedTotal,
                     promoState: promoState,
+                    loyaltyPreview: _loyaltyPreview,
+                    loyaltyDiscountAmount: loyaltyDiscountPreview,
                   ),
                 ],
               ),
@@ -953,12 +982,16 @@ class _OrderSummaryCard extends StatelessWidget {
   final double deliveryFee;
   final double estimatedTotal;
   final PromoState promoState;
+  final LoyaltyMilestonePreview? loyaltyPreview;
+  final double loyaltyDiscountAmount;
 
   const _OrderSummaryCard({
     required this.subtotal,
     required this.deliveryFee,
     required this.estimatedTotal,
     required this.promoState,
+    this.loyaltyPreview,
+    this.loyaltyDiscountAmount = 0,
   });
 
   @override
@@ -1001,6 +1034,22 @@ class _OrderSummaryCard extends StatelessWidget {
             label: AppLocalizations.of(context)!.deliveryFee,
             value: CurrencyFormatter.formatPrice(deliveryFee),
           ),
+
+          // Loyalty discount line — only visible on the customer's 5th/10th
+          // order. Estimate only; the order actually created may differ if
+          // this raced with another order (see predictNextOrderMilestone).
+          if (loyaltyPreview != null) ...[
+            const SizedBox(height: 8),
+            _SummaryRow(
+              label: loyaltyPreview!.type == 'free'
+                  ? 'Fidélité — livraison gratuite'
+                  : 'Fidélité — -50% livraison',
+              value: '− ${CurrencyFormatter.formatPrice(loyaltyDiscountAmount)}',
+              valueColor: AppColors.success,
+              labelColor: AppColors.success,
+            ),
+          ],
+
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Divider(),
