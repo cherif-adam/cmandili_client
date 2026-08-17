@@ -325,7 +325,7 @@ class _AppMapState extends State<AppMap> {
       ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(size / 2, size - 10),
+        center: const Offset(size / 2, size - 10),
         width: 22,
         height: 8,
       ),
