@@ -434,11 +434,16 @@ serve(async (req: Request) => {
       return new Response('No pickup coords on order', { status: 200 });
     }
 
-    const { data: drivers } = await supabase.rpc('nearby_online_drivers', {
+    const { data: drivers, error: driversError } = await supabase.rpc('nearby_online_drivers', {
       p_lat: lat,
       p_lng: lng,
       p_radius_km: fanoutRadius,
     });
+
+    if (driversError) {
+      console.error(`nearby_online_drivers RPC failed for order ${order_id}:`, driversError);
+      return new Response(`nearby_online_drivers RPC failed: ${driversError.message}`, { status: 500 });
+    }
 
     if (!drivers || drivers.length === 0) {
       return new Response('No nearby drivers', { status: 200 });
@@ -601,14 +606,21 @@ serve(async (req: Request) => {
   // dispatch_driver_for_order atomically assigns the driver and returns their
   // IDs so we can send the alarm FCM in-process (no second HTTP round-trip).
   if (status === 'confirmed') {
-    const { data: dispatch } = await supabase
+    const { data: dispatch, error: dispatchError } = await supabase
       .rpc('dispatch_driver_for_order', {
         p_order_id:    order_id,
         p_radius_km:   fanoutRadius,
         p_window_secs: 30,
       });
 
-    if (dispatch && dispatch.length > 0) {
+    if (dispatchError) {
+      // Don't abort here — the customer/partner pushes above already went
+      // out, and this Mode A response still needs to return normally. Just
+      // make the failure visible instead of letting it look identical to
+      // "no eligible driver found" below.
+      console.error(`dispatch_driver_for_order RPC failed for order ${order_id}:`, dispatchError);
+      results.dispatch_error = dispatchError.message;
+    } else if (dispatch && dispatch.length > 0) {
       const { driver_id, user_id: dispatchedUserId, distance_km } = dispatch[0] as {
         driver_id: string;
         user_id:   string;
