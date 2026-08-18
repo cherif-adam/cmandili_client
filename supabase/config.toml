@@ -29,3 +29,14 @@ verify_jwt = true
 
 [functions.notify-partner-order]
 verify_jwt = true
+
+# ── Auth email templates ─────────────────────────────────────────────────────
+# Declared here for version control / review, but NOT applied via
+# `supabase config push` yet -- that command pushes the whole config.toml to
+# the linked project, and its overwrite-vs-merge behavior for keys this file
+# doesn't declare (site_url, SMTP, redirect settings, etc.) isn't documented.
+# Apply this one via Dashboard -> Authentication -> Email Templates -> Reset
+# Password instead, until that's verified safe. See supabase/templates/recovery.html.
+[auth.email.template.recovery]
+subject = "Reset your password — Amana Partner"
+content_path = "./supabase/templates/recovery.html"
