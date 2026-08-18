@@ -279,8 +279,10 @@ serve(async (req: Request) => {
     return new Response('Missing env vars', { status: 500 });
   }
 
-  const { event, order_id, status } = await req.json();
-  if (!order_id || !status) {
+  const body = await req.json();
+  const { event, order_id, status } = body;
+  // low_balance_warning isn't an order event, so it's exempt from this check.
+  if (event !== 'low_balance_warning' && (!order_id || !status)) {
     return new Response('Missing order_id or status', { status: 400 });
   }
 
@@ -289,6 +291,26 @@ serve(async (req: Request) => {
   const sa       = JSON.parse(saJson);
   const projectId = sa.project_id as string;
   const accessToken = await getAccessToken(saJson);
+
+  // ── Mode E: proactive low prepaid-balance warning ───────────────────────────
+  // Triggered by enforce_prepaid_block() when a driver/partner's wallet
+  // balance crosses into the 2-4 DT warning zone from above. Standard
+  // (non-alarm) push -- this is a heads-up, not an urgent offer.
+  if (event === 'low_balance_warning') {
+    const { user_id, balance } = body;
+    if (!user_id || balance === undefined || balance === null) {
+      return new Response('Missing user_id or balance', { status: 400 });
+    }
+    const sent = await pushToUsers(
+      supabase, accessToken, projectId, [user_id as string],
+      '⚠️ Solde bas',
+      `Votre solde est bas (${Number(balance).toFixed(3)} DT). Rechargez pour continuer à recevoir des commandes.`,
+      { event: 'low_balance_warning', balance: String(balance) },
+    );
+    return new Response(JSON.stringify({ mode: 'low_balance_warning', sent }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   const data = { order_id, status, event: event ?? 'status' };
 
