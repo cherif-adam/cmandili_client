@@ -158,6 +158,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     setState(() => _isPlacingOrder = true);
 
+    // Read once, before the try, so the catch block can also see it —
+    // needed to release a committed promo usage on any failure below.
+    final promoState = ref.read(promoProvider);
+    // True only once applyPromoCode has actually committed the usage —
+    // distinct from promoState.isApplied, which is also true on the
+    // early-return invalid/expired path (nothing to release there).
+    // Everything that can fail after the commit (order creation, payment)
+    // must release it on failure or the customer permanently loses the
+    // promo usage with no order to show for it.
+    var promoCommitted = false;
+
     try {
       // ── P0 ghost-order guard ───────────────────────────────────────────
       // Fresh check that the venue is still open BEFORE committing the promo
@@ -177,7 +188,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       //
       // SECURITY: the frontend NEVER computes the discounted price.
       // The server-returned new_subtotal is used as-is.
-      final promoState = ref.read(promoProvider);
       double effectiveSubtotal = widget.subtotal;
 
       if (promoState.isApplied) {
@@ -205,6 +215,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
         // Use the server-authorised discounted subtotal.
         effectiveSubtotal = applyResult.newSubtotal ?? widget.subtotal;
+        promoCommitted = true;
       }
 
       // ── Delivery fee computation ───────────────────────────────────────
@@ -312,6 +323,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       if (!paymentResult.success) {
         await ref.read(orderRepositoryProvider).cancelOrder(orderId);
+        if (promoCommitted) {
+          await ref
+              .read(promoRepositoryProvider)
+              .releaseUsage(promoCode: promoState.appliedCode);
+        }
         _showSnack(paymentResult.errorMessage ?? 'Payment failed. Order cancelled.');
         return;
       }
@@ -347,6 +363,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         );
       }
     } catch (e) {
+      // Release before the mounted check below — this is a plain network
+      // call with no context/widget dependency, and skipping it on unmount
+      // would leave the promo usage permanently burned for no order.
+      if (promoCommitted) {
+        await ref
+            .read(promoRepositoryProvider)
+            .releaseUsage(promoCode: promoState.appliedCode);
+      }
       if (!mounted) return;
       // The enforce_venue_open DB trigger raises 'VENUE_CLOSED' if the venue
       // closed in the race between our re-check and the insert. Map it to the

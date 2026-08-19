@@ -36,6 +36,25 @@ class PromoRepository {
   }) =>
       _call(promoCode: promoCode, subtotal: subtotal, dryRun: false);
 
+  /// Undo a committed [applyPromoCode] call. Callers MUST invoke this if
+  /// order creation or payment fails after a successful applyPromoCode —
+  /// otherwise the customer permanently loses the usage (and, for
+  /// single-use/capped codes, the code itself) with no order to show for
+  /// it. Best-effort: swallows errors since this already runs inside a
+  /// failure-handling path and the release itself is not user-blocking.
+  Future<void> releaseUsage({required String promoCode}) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    try {
+      await _supabase.rpc(
+        'release_promo_usage',
+        params: {'p_user_id': userId, 'p_promo_code': promoCode},
+      );
+    } catch (e) {
+      debugPrint('PromoRepository.releaseUsage error: $e');
+    }
+  }
+
   // ── Private ───────────────────────────────────────────────────────────────
 
   Future<PromoCodeResponse> _call({
