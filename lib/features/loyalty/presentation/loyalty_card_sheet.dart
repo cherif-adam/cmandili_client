@@ -75,7 +75,16 @@ class _LoyaltyCardSheetState extends ConsumerState<LoyaltyCardSheet>
   @override
   void initState() {
     super.initState();
-    _m = loyaltyCyclePosition(widget.initialConfirmedCount);
+    // apply_loyalty_at_checkout() (20260814090000_loyalty_at_checkout.sql)
+    // increments delivered_count BEFORE INSERT, so by the time this sheet is
+    // shown (right after placement), initialConfirmedCount already counts
+    // the just-placed order. Subtract 1 to recover the position BEFORE
+    // today's order, matching loyalty_cancel_dialog.dart's use of the same
+    // getLoyaltyDeliveredCount() value (there, count % kLoyaltyTotalSlots
+    // directly IS the in-flight order's slot — proof the raw count already
+    // includes it). Without the -1, every single order rendered one stamp
+    // too many as "earned" and mis-set the pending-slot index by one.
+    _m = loyaltyCyclePosition(widget.initialConfirmedCount - 1);
     _positionAfterToday = _m + 1;
     _entranceController = AnimationController(
       vsync: this,
