@@ -94,6 +94,7 @@ async function callOpenRouter(messages: unknown[]): Promise<string> {
       model: OPENROUTER_MODEL,
       messages,
       temperature: 0.2,
+      max_tokens: 2048,
       // Ask the model to return strict JSON. Most OpenRouter models honor this.
       response_format: { type: "json_object" },
     }),
