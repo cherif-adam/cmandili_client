@@ -448,7 +448,7 @@ Foreground service via `flutter_background_service` for cross-isolate GPS stream
 - `startTracking({driverId, deliveryId})`: persists both IDs and starts service
 - `startOnlinePresence({driverId})`: persists driver id, removes delivery id, starts service. Used when driver toggles online without active delivery.
 - `stopTracking()`: invokes `'stop'` event and clears IDs
-- `_onStart` (background isolate): reads IDs from prefs, re-initializes Supabase. Position stream + 10-second `Timer.periodic` heartbeat:
+- `_onStart` (background isolate): reads IDs from prefs, re-initializes Supabase. `Geolocator.getPositionStream` with `distanceFilter: 30` (pushes on ~30m movement, not on a timer) plus one immediate initial fetch on start:
   - Updates Android foreground notification text
   - `drivers.update({current_lat, current_lng, last_location_update})` by `id`
   - If deliveryId set: `deliveries.update({current_lat, current_lng, updated_at})` by `id`
@@ -632,7 +632,7 @@ Three locales: en, ar, fr. Most driver-facing strings (e.g. "Available Orders", 
 
 **Location lifecycle:**
 - Foreground: `_DashboardTab` and `OrderTrackingScreen` open their own position streams
-- Background service: started via `startOnlinePresence(driverId)` (online toggle) or `startTracking(driverId, deliveryId)` (accept order). Stopped via `stopTracking()` (delivery confirmation or going offline). Persistent low-importance notification on channel `cmandili_driver_location`. 10s heartbeat to `drivers` (and `deliveries` if active).
+- Background service: started via `startOnlinePresence(driverId)` (online toggle) or `startTracking(driverId, deliveryId)` (accept order). Stopped via `stopTracking()` (delivery confirmation or going offline). Persistent low-importance notification on channel `cmandili_driver_location`. Pushes to `drivers` (and `deliveries` if active) on ~30m movement, not on a timer.
 
 ## B.7 Supabase tables / RPCs touched (driver)
 
