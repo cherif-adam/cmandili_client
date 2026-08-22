@@ -37,6 +37,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   final AppMapController _mapController = AppMapController();
   double? _driverLat;
   double? _driverLng;
+  // Heading in degrees, derived from the last two valid GPS fixes — lets the
+  // driver marker visibly point the direction they're moving. Null until we
+  // have two fixes to compare (the very first position has no "from").
+  double? _driverBearing;
   StreamSubscription? _deliverySubscription;
   StreamSubscription? _driverSubscription;
   String? _driverId;
@@ -117,9 +121,26 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   /// [_buildTracking], the first time a valid location appears.
   void _updateDriverPosition(double? lat, double? lng) {
     if (!_isValidCoord(lat, lng)) return;
+    final newLat = lat!;
+    final newLng = lng!;
+    // Only recompute heading when the driver actually moved a meaningful
+    // amount — GPS jitter on a stationary/slow driver would otherwise spin
+    // the marker to a near-random bearing between two nearly-identical
+    // points. ~5m in degrees at typical latitudes; cheap to over-approximate
+    // since this only gates whether we bother updating the display heading.
+    const minMoveDeg = 0.00005;
+    final prevLat = _driverLat;
+    final prevLng = _driverLng;
+    double? newBearing = _driverBearing;
+    if (prevLat != null &&
+        prevLng != null &&
+        ((newLat - prevLat).abs() > minMoveDeg || (newLng - prevLng).abs() > minMoveDeg)) {
+      newBearing = bearingBetween((lat: prevLat, lng: prevLng), (lat: newLat, lng: newLng));
+    }
     setState(() {
-      _driverLat = lat;
-      _driverLng = lng;
+      _driverLat = newLat;
+      _driverLng = newLng;
+      _driverBearing = newBearing;
     });
   }
 
@@ -368,6 +389,19 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       });
     }
 
+    // Center the very first frame between the driver's starting point and
+    // the client's own address (destination), rather than only on the
+    // client — otherwise the first paint shows just the client's location
+    // and visibly jumps once fitBounds' post-frame animation catches up. A
+    // wider initial zoom means both pins are likely already in view even
+    // before that animation finishes.
+    final initialCenter = showMap
+        ? (
+            lat: (_driverLat! + destination.lat) / 2,
+            lng: (_driverLng! + destination.lng) / 2,
+          )
+        : destination;
+
     return Scaffold(
       body: Stack(
         children: [
@@ -375,9 +409,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           if (showMap)
             AppMap(
               controller: _mapController,
-              initialLatitude: order.deliveryAddress.latitude,
-              initialLongitude: order.deliveryAddress.longitude,
-              initialZoom: 14,
+              initialLatitude: initialCenter.lat,
+              initialLongitude: initialCenter.lng,
+              initialZoom: 12,
               polyline: _routePolyline,
               markers: {
                 AppMapMarker(
@@ -401,6 +435,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   longitude: _driverLng!,
                   kind: AppMapMarkerKind.driver,
                   title: order.driverName ?? 'Driver',
+                  bearing: _driverBearing,
                 ),
               },
             )
