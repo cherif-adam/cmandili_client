@@ -136,6 +136,19 @@ class _AppMapState extends State<AppMap> {
 
   final Map<AppMapMarkerKind, Uint8List> _iconCache = {};
 
+  // _syncMarkers is async but called fire-and-forget from didUpdateWidget,
+  // which can fire again (e.g. on a fast-following GPS tick) before the
+  // previous call finishes. Without serializing, two overlapping calls can
+  // race on _renderedMarkers -- one call's create()/update()/delete() can
+  // target an annotation the other is simultaneously touching, throw, and
+  // (since nothing awaited or caught it) silently stop the driver marker
+  // from ever moving again with no visible error. _syncMarkers is now
+  // queued: a call that arrives mid-sync sets _markerSyncQueued and the
+  // in-flight call re-runs once more after finishing, so no update is lost
+  // and only one call touches the manager at a time.
+  bool _markerSyncInFlight = false;
+  bool _markerSyncQueued = false;
+
   @override
   void initState() {
     super.initState();
@@ -196,15 +209,54 @@ class _AppMapState extends State<AppMap> {
     _markerManager = await map.annotations.createPointAnnotationManager();
     // MAP alignment (not the VIEWPORT default) rotates icons relative to true
     // north, so a driver marker's bearing keeps pointing the right physical
-    // direction even as the user rotates/tilts the map.
-    await _markerManager?.setIconRotationAlignment(mb.IconRotationAlignment.MAP);
+    // direction even as the user rotates/tilts the map. Best-effort: this is
+    // a purely cosmetic setting, but an uncaught failure here (e.g. a
+    // platform-channel hiccup during initial map setup) would otherwise
+    // throw out of _onMapCreated and skip every line after it -- including
+    // creating the polyline manager and the very first marker sync, which
+    // would make the driver marker (and every other marker) never appear or
+    // update at all, with no visible error.
+    try {
+      await _markerManager?.setIconRotationAlignment(mb.IconRotationAlignment.MAP);
+    } catch (e) {
+      debugPrint('AppMap: setIconRotationAlignment failed (non-fatal): $e');
+    }
     _polylineManager = await map.annotations.createPolylineAnnotationManager();
     await _syncMarkers();
     await _syncPolyline();
     if (mounted) widget.onMapReady?.call();
   }
 
+  /// Entry point every caller uses. Serializes against a concurrent
+  /// in-flight sync (see the fields above) and never lets an exception from
+  /// the platform channel (e.g. a stale annotation reference on a fast-
+  /// following GPS tick) permanently stop future syncs — it's logged and
+  /// swallowed instead, since a single missed marker update is far less bad
+  /// than the driver marker silently freezing for the rest of the session.
   Future<void> _syncMarkers() async {
+    if (_markerSyncInFlight) {
+      _markerSyncQueued = true;
+      return;
+    }
+    _markerSyncInFlight = true;
+    try {
+      await _syncMarkersNow();
+    } catch (e, st) {
+      debugPrint('AppMap: marker sync failed, will retry on next update: $e\n$st');
+    } finally {
+      _markerSyncInFlight = false;
+      if (_markerSyncQueued) {
+        _markerSyncQueued = false;
+        // A newer marker set arrived while we were syncing — run once more
+        // so it isn't lost, using the current widget.markers (already the
+        // latest, since Flutter updates the widget before didUpdateWidget
+        // fires again).
+        unawaited(_syncMarkers());
+      }
+    }
+  }
+
+  Future<void> _syncMarkersNow() async {
     final manager = _markerManager;
     if (manager == null) return;
 
