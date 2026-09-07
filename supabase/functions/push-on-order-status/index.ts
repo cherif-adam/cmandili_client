@@ -280,7 +280,7 @@ serve(async (req: Request) => {
   }
 
   const body = await req.json();
-  const { event, order_id, status } = body;
+  const { event, order_id, status, tier } = body;
   // low_balance_warning isn't an order event, so it's exempt from this check.
   if (event !== 'low_balance_warning' && (!order_id || !status)) {
     return new Response('Missing order_id or status', { status: 400 });
@@ -415,12 +415,17 @@ serve(async (req: Request) => {
     });
   }
 
-  // ── Mode B: fan out to nearby online drivers (legacy / fallback) ───────────
+  // ── Mode B: fan out to nearby online drivers ────────────────────────────────
+  // Two-tier: tier 1 (default) reaches only drivers with no active order —
+  // tier 2, sent by escalate_parcel_broadcast_tier() if nobody in tier 1
+  // accepted within the window, widens to every eligible online driver,
+  // busy or not.
   if (event === 'driver_fanout') {
+    const isTier2 = tier === '2';
     // Look up the order to get pickup coords via its restaurant/supermarket.
     const { data: order } = await supabase
       .from('orders')
-      .select('restaurant_id, supermarket_id, pickup_address')
+      .select('restaurant_id, supermarket_id, pickup_address, order_type')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -446,73 +451,84 @@ serve(async (req: Request) => {
       lat = s?.latitude ?? null;
       lng = s?.longitude ?? null;
     } else if (order.pickup_address) {
-      // Courier orders: pickup_address is JSONB with {lat, lng}
-      const p = order.pickup_address as { lat?: number; lng?: number };
-      lat = p?.lat ?? null;
-      lng = p?.lng ?? null;
+      // Courier/facture orders: pickup_address is JSONB written by the client
+      // as {latitude, longitude} (see delivery_address.dart) — NOT {lat, lng}.
+      // Reading the wrong keys silently returned null for every single one of
+      // these orders, so this whole fan-out was a no-op ("No pickup coords on
+      // order") no matter what the client actually stored.
+      const p = order.pickup_address as { latitude?: number; longitude?: number };
+      lat = p?.latitude ?? null;
+      lng = p?.longitude ?? null;
     }
 
     if (lat === null || lng === null || (lat === 0 && lng === 0)) {
       return new Response('No pickup coords on order', { status: 200 });
     }
 
-    const { data: drivers, error: driversError } = await supabase.rpc('nearby_online_drivers', {
-      p_lat: lat,
-      p_lng: lng,
-      p_radius_km: fanoutRadius,
-    });
+    const { data: drivers, error: driversError } = await supabase.rpc(
+      isTier2 ? 'nearby_online_drivers' : 'nearby_online_free_drivers',
+      {
+        p_lat: lat,
+        p_lng: lng,
+        p_radius_km: fanoutRadius,
+      },
+    );
 
     if (driversError) {
-      console.error(`nearby_online_drivers RPC failed for order ${order_id}:`, driversError);
-      return new Response(`nearby_online_drivers RPC failed: ${driversError.message}`, { status: 500 });
+      const rpcName = isTier2 ? 'nearby_online_drivers' : 'nearby_online_free_drivers';
+      console.error(`${rpcName} RPC failed for order ${order_id}:`, driversError);
+      return new Response(`${rpcName} RPC failed: ${driversError.message}`, { status: 500 });
     }
 
     if (!drivers || drivers.length === 0) {
-      return new Response('No nearby drivers', { status: 200 });
+      // Tier 1 finding nobody free is routine — escalate_parcel_broadcast_tier()
+      // will widen to tier 2 once the 30s window passes. Tier 2 finding nobody
+      // at all means there is genuinely no one nearby; nothing further to do.
+      return new Response(`No ${isTier2 ? 'eligible' : 'free'} nearby drivers (tier ${isTier2 ? 2 : 1})`, { status: 200 });
     }
 
     const userIds = (drivers as { user_id: string }[]).map(d => d.user_id);
-    
-    // Waterfall Dispatch: Offer to one driver at a time, wait 15 seconds
-    const runWaterfall = async () => {
-      for (let i = 0; i < userIds.length; i++) {
-        const userId = userIds[i];
-        
-        // Check if the order is still available (no driver assigned, and status is preparing or ready)
-        const { data: currentOrder } = await supabase
-          .from('orders')
-          .select('driver_id, status')
-          .eq('id', order_id)
-          .maybeSingle();
-          
-        if (!currentOrder || currentOrder.driver_id || (currentOrder.status !== 'preparing' && currentOrder.status !== 'ready')) {
-          console.log(`Waterfall stopped for order ${order_id}: driver assigned or status changed.`);
-          break;
-        }
 
-        console.log(`Offering order ${order_id} to driver ${userId} (Attempt ${i + 1}/${userIds.length})`);
-        
-        await pushDataOnlyToUsers(
-          supabase, accessToken, projectId, [userId],
-          {
-            event: 'offer_to_driver',
-            order_id,
-            status,
-            urgent: '1',
-            title: '🔔 Nouvelle livraison',
-            body: 'Une nouvelle commande est prête. Vous avez 15 secondes pour accepter.',
-          },
-        );
-        
-        // Wait 15 seconds before offering to the next driver
-        await new Promise(resolve => setTimeout(resolve, 15000));
-      }
-    };
+    // Broadcast: push to every eligible online driver AT ONCE — first to tap
+    // Accept wins (the atomic `UPDATE ... WHERE driver_id IS NULL` in the app
+    // is what actually decides the race; this is just notification fan-out).
+    // Previously this looped one driver at a time with a 15s wait in between,
+    // which (a) was not a broadcast at all — most drivers never got pinged
+    // before the order was long since taken or the function's background
+    // task got torn down — and (b) re-checked is_online per iteration instead
+    // of at send time, same as the RPC above already does for every driver
+    // simultaneously here.
+    // Facture (bill payment) orders share this exact broadcast mechanism with
+    // courier/parcel orders (same table, same 'ready'-at-birth status, same
+    // tier RPCs) but are a different job for the driver — collect cash and
+    // pay a bill office, not carry a package — so the push text must say so.
+    // Before this, every facture order sent the courier wording verbatim.
+    const isFacture = order.order_type === 'facture';
+    const title = isFacture
+      ? '💰 Nouvelle facture à payer'
+      : '📦 Nouveau colis disponible';
+    const body = isFacture
+      ? 'Un client attend un livreur pour payer sa facture — premier arrivé, premier servi.'
+      : 'Un client attend un livreur pour son colis — premier arrivé, premier servi.';
 
-    // Start waterfall in background
-    runWaterfall().catch(console.error);
+    const sent = await pushDataOnlyToUsers(
+      supabase, accessToken, projectId, userIds,
+      {
+        event: 'parcel_broadcast',
+        order_id,
+        status,
+        urgent: '1',
+        title,
+        body,
+      },
+    );
 
-    return new Response(JSON.stringify({ mode: 'waterfall_started', drivers_count: userIds.length }), {
+    return new Response(JSON.stringify({
+      mode: 'parcel_broadcast',
+      tier: isTier2 ? 2 : 1,
+      drivers_count: userIds.length,
+      sent,
+    }), {
       headers: { 'Content-Type': 'application/json' },
     });
   }

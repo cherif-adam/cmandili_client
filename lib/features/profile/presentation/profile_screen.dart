@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_repository.dart' show User;
-import '../../auth/presentation/auth_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/profile_repository.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
@@ -267,10 +266,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   textColor: AppColors.error,
                   iconColor: AppColors.error,
                   showArrow: false,
-                  onTap: () => Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    (route) => false,
-                  ),
+                  // Just sign out — _RootGate (main.dart) reacts to
+                  // authStateProvider on its own and swaps to AuthScreen.
+                  // The previous version pushed a bare AuthScreen and wiped
+                  // the whole Navigator stack WITHOUT ever calling signOut(),
+                  // which (a) left the Supabase session logged in underneath
+                  // and (b) tore down _RootGate itself, so a later sign-in
+                  // attempt had no widget left watching authStateProvider —
+                  // the session updated but nothing was there to react to it.
+                  onTap: () => ref.read(authRepositoryProvider).signOut(),
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),
