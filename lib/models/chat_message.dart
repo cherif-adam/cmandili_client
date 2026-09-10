@@ -18,7 +18,7 @@ class ChatMessage {
 }
 
 class ProductResult {
-  final String type; // "food" | "shop" | "delivery"
+  final String type; // "food" | "restaurant" | "shop" | "delivery"
   final String id;
   final String name;
   final String? description;

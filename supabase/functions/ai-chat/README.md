@@ -35,6 +35,8 @@ OpenRouter call moved here.
 
 The structured intent the app's `_AiIntent` parses:
 
+`intent` is one of: `greeting` | `search_food` | `restaurant_search` | `delivery_request` | `shop_search` | `track_order` | `general`.
+
 ```jsonc
 {
   "message": "Bravo 3lik! Lel régime ...",

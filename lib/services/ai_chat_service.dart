@@ -9,9 +9,10 @@
 // cards below still run client-side against plain RLS-guarded tables.
 //
 // Supports:
-//   - Text messages (trilingual: FR / EN / Derja)
+//   - Text messages (quadrilingual: FR / EN / Derja / Arabic)
 //   - Image messages (base64 Vision)
-//   - Intents: search_food | delivery_request | shop_search | greeting | general
+//   - Intents: search_food | restaurant_search | shop_search | delivery_request
+//              | track_order | greeting | general
 
 import 'dart:convert';
 import 'dart:io';
@@ -31,6 +32,21 @@ class AiChatService {
   static const String _storageBase =
       'https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/';
 
+  // ── No-results fallback ───────────────────────────────────────────────────
+  // The LLM's own "message" for search_food/shop_search always reads as a
+  // promise of results ("Voici les meilleures pizzas disponibles !") because
+  // it's generated before the client ever runs the actual query — it has no
+  // way to know in advance the search will come back empty. Previously an
+  // empty products list just left that promise standing with nothing below
+  // it (identical-looking to any other card-less reply, e.g. a greeting).
+  // REPLACES rather than appends: keeping the LLM's "here you go" text next
+  // to an explicit "nothing found" line would read as self-contradictory.
+  // French-only for now, matching every other client-side fallback string in
+  // this file (e.g. the generic/network/server error messages below) — the
+  // edge function is the only place language detection actually happens.
+  static const String _kNoResultsMessage =
+      'Aucun résultat trouvé pour cette recherche, essayez autre chose 🔍';
+
   // ── System prompt ─────────────────────────────────────────────────────────
   // Lives SERVER-SIDE in supabase/functions/ai-chat/index.ts (SYSTEM_PROMPT),
   // ported verbatim from the old client-side implementation.
@@ -49,41 +65,64 @@ class AiChatService {
       intent = await _callChatFunction(userText, history, imageFile: imageFile);
     } catch (e) {
       debugPrint('AiChatService – ai-chat function error: $e');
-      return ChatMessage(
-        text: 'Une erreur est survenue 😕 Veuillez réessayer !',
-        isUser: false,
-      );
+      final kind = e is _ChatFailure ? e.kind : _ChatFailureKind.malformed;
+      return ChatMessage(text: _errorMessageFor(kind), isUser: false);
     }
 
-    _persistMessages(
-      userText: imageFile != null
-          ? '[Image] ${userText.isNotEmpty ? userText : "Identify this"}'
-          : userText,
-      aiReply: intent.message,
-    );
-
+    String finalText = intent.message;
     List<ProductResult> products = [];
     switch (intent.intentRaw) {
       case 'search_food':
         products = await _queryFoodItems(intent);
+        if (products.isEmpty) finalText = _kNoResultsMessage;
+        break;
+      case 'restaurant_search':
+        products = await _queryRestaurants(intent);
+        if (products.isEmpty) finalText = _kNoResultsMessage;
         break;
       case 'shop_search':
         products = await _queryShopItems(intent);
+        if (products.isEmpty) finalText = _kNoResultsMessage;
         break;
       case 'delivery_request':
         products = [_buildDeliveryCard()];
+        break;
+      case 'track_order':
+        finalText = await _buildOrderStatusReply(intent.message);
         break;
       default:
         break;
     }
 
+    // Persist AFTER finalText is resolved so history restoration (chat re-open)
+    // shows the same order-status text the user actually saw, not just the
+    // LLM's bare "Je vérifie ça !" lead-in.
+    _persistMessages(
+      userText: imageFile != null
+          ? '[Image] ${userText.isNotEmpty ? userText : "Identify this"}'
+          : userText,
+      aiReply: finalText,
+    );
+
     return ChatMessage(
-      text: intent.message,
+      text: finalText,
       isUser: false,
       intent: intent.intentRaw,
       products: products,
     );
   }
+
+  // ── Error messages by failure kind ────────────────────────────────────────
+  // Previously a single generic bubble regardless of cause. Distinguishes the
+  // 3 things that can actually go wrong (see _ChatFailureKind / _callChatFunction).
+  static String _errorMessageFor(_ChatFailureKind kind) => switch (kind) {
+        _ChatFailureKind.network =>
+          'Pas de connexion internet — vérifiez votre réseau et réessayez 📡',
+        _ChatFailureKind.server =>
+          "Notre assistant est momentanément indisponible — réessayez dans un instant 🔧",
+        _ChatFailureKind.malformed =>
+          'Réponse inattendue de notre serveur — réessayez 🔁',
+      };
 
   // ── Edge Function call (text + optional vision) ───────────────────────────
 
@@ -126,23 +165,91 @@ class AiChatService {
           )
           .timeout(const Duration(seconds: 60)); // longer for vision
     } on FunctionException catch (e) {
-      throw Exception(
+      // The edge function itself responded with a non-2xx (e.g. 502 when
+      // BOTH OpenRouter and Gemini failed) — that's a server-side failure,
+      // not a connectivity problem on the phone.
+      throw _ChatFailure(
+        _ChatFailureKind.server,
         'ai-chat Edge Function HTTP ${e.status}: ${e.details ?? e.reasonPhrase}',
       );
     } catch (e) {
-      throw Exception('Network error: $e');
+      // Anything else here (no signal, DNS failure, the 60s timeout above,
+      // socket reset, ...) — the request never got a real response at all.
+      throw _ChatFailure(_ChatFailureKind.network, 'Network error: $e');
     }
 
     final data = response.data;
     if (data is! Map<String, dynamic>) {
-      throw Exception('ai-chat returned an unexpected payload: $data');
+      throw _ChatFailure(
+        _ChatFailureKind.malformed,
+        'ai-chat returned an unexpected payload: $data',
+      );
     }
     if (data.containsKey('error')) {
+      // A well-formed { error, details? } from the function — also a
+      // server-side failure (both providers down, misconfiguration, etc.).
       final details = data['details'];
-      throw Exception('${data['error']}${details != null ? '\n$details' : ''}');
+      throw _ChatFailure(
+        _ChatFailureKind.server,
+        '${data['error']}${details != null ? '\n$details' : ''}',
+      );
     }
 
     return _AiIntent.fromJson(data);
+  }
+
+  // ── Load history (restore chat on screen open) ────────────────────────────
+  // _persistMessages has always written every turn to chat_messages, but
+  // nothing ever read it back — every chat open started blank despite the
+  // saved transcript. Returns newest-first (matches the screen's `reverse:
+  // true` ListView directly); the screen derives the chronological (oldest-
+  // first) _apiHistory shape itself by reversing this list.
+  //
+  // Secondary `is_user` sort: _persistMessages inserts [userRow, aiRow] in one
+  // statement, so both share the exact same `now()` (frozen per-transaction in
+  // Postgres) — without a tiebreaker a tied pair's order is undefined. Sorting
+  // is_user ascending (false/model before true/user) within a tie places the
+  // pair correctly in this newest-first list: [..., model_reply, user_msg, ...].
+  Future<List<ChatMessage>> loadHistory({int limit = 40}) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return [];
+    try {
+      final rows = await _supabase
+          .from('chat_messages')
+          .select('text, is_user, created_at')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .order('is_user', ascending: true)
+          .limit(limit) as List<dynamic>;
+
+      return rows.cast<Map<String, dynamic>>().map((r) {
+        return ChatMessage(
+          text: (r['text'] ?? '') as String,
+          isUser: (r['is_user'] ?? false) as bool,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('AiChatService – loadHistory error: $e');
+      return [];
+    }
+  }
+
+  // ── Clear history ("Effacer la conversation") ─────────────────────────────
+  // Permanently deletes every chat_messages row for this user — RLS ("Users
+  // delete own chat messages", auth.uid() = user_id) already scopes this to
+  // the caller's own rows, same as loadHistory's read. The screen is
+  // responsible for confirming with the user before calling this and for
+  // resetting its own local state (_messages/_apiHistory) on success.
+  Future<bool> clearHistory() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return false;
+    try {
+      await _supabase.from('chat_messages').delete().eq('user_id', userId);
+      return true;
+    } catch (e) {
+      debugPrint('AiChatService – clearHistory error: $e');
+      return false;
+    }
   }
 
   // ── Persist messages ──────────────────────────────────────────────────────
@@ -196,26 +303,38 @@ class AiChatService {
         query = query.ilike('category', '%${intent.category}%');
       }
 
-      // Build OR filter: explicit keyword + health-goal semantic terms
+      // Build OR filter: explicit keyword + health-goal semantic terms.
+      //
+      // BUGFIX: this used to add goal terms ONLY when there was no explicit
+      // keyword ("avoid over-broadening") — but the LLM almost always returns
+      // BOTH together for a health-goal message (e.g. health_goal:"sport" +
+      // keyword:"poulet"), per the system prompt's own few-shot examples. That
+      // made the goal terms dead code in the one case they actually mattered:
+      // Rule 4's health-goal search relied entirely on the LLM's one narrow
+      // literal keyword, which real menu text usually doesn't contain
+      // verbatim ("poulet" alone matched 1 item live; "protéines" matched 0)
+      // — so a health-goal question would get a nutrition-advice reply with
+      // silently EMPTY results, no cards, and no visible error. Unioning both
+      // term sets (deduped) fixes this without touching ordinary food search
+      // at all: goalTerms is only non-null when health_goal is actually set.
       final keywordParts = <String>[];
+      final seenTerms = <String>{};
+      void addKeywordTerm(String raw) {
+        final t = raw.trim();
+        if (t.isEmpty || !seenTerms.add(t.toLowerCase())) return;
+        keywordParts.add('name.ilike.%$t%');
+        keywordParts.add('description.ilike.%$t%');
+      }
+
       if (intent.keyword != null && intent.keyword!.isNotEmpty) {
         for (final term in intent.keyword!.split(',')) {
-          final t = term.trim();
-          if (t.isNotEmpty) {
-            keywordParts.add('name.ilike.%$t%');
-            keywordParts.add('description.ilike.%$t%');
-          }
+          addKeywordTerm(term);
         }
       }
       final goalTerms = _healthGoalKeyword(intent.healthGoal);
-      if (goalTerms != null && keywordParts.isEmpty) {
-        // Only use goal terms if there's no explicit keyword (avoid over-broadening)
+      if (goalTerms != null) {
         for (final term in goalTerms.split(',')) {
-          final t = term.trim();
-          if (t.isNotEmpty) {
-            keywordParts.add('name.ilike.%$t%');
-            keywordParts.add('description.ilike.%$t%');
-          }
+          addKeywordTerm(term);
         }
       }
       if (keywordParts.isNotEmpty) {
@@ -226,7 +345,16 @@ class AiChatService {
           as List<dynamic>;
 
       return rows
-          .where((r) => r['restaurants'] != null)
+          // Drop closed restaurants entirely — is_open was already fetched
+          // above but never checked, so a currently-closed place could be
+          // recommended with no indication the user couldn't actually order
+          // from it right now. Filtering (vs. showing a "closed" badge) keeps
+          // every card the assistant returns immediately actionable; the
+          // regular restaurant list elsewhere already handles browsing
+          // closed places by opening hours.
+          .where((r) =>
+              r['restaurants'] != null &&
+              (r['restaurants'] as Map<String, dynamic>)['is_open'] == true)
           .map<ProductResult>((r) {
         final restaurant = r['restaurants'] as Map<String, dynamic>;
         return ProductResult(
@@ -248,6 +376,67 @@ class AiChatService {
       }).toList();
     } catch (e) {
       debugPrint('AiChatService – food query error: $e');
+      return [];
+    }
+  }
+
+  // ── Query restaurants (restaurant_search intent) ──────────────────────────
+  // A VENUE list, not a dish list. Before this, "best restaurant" / "resto près
+  // de moi" had no code path at all — it fell through to search_food and came
+  // back as individual dish cards, which is what it looked like it was doing
+  // wrong. `restaurants` is publicly readable (RLS: SELECT USING true), so this
+  // is a plain client read like the food/shop queries.
+  Future<List<ProductResult>> _queryRestaurants(_AiIntent intent) async {
+    try {
+      var query = _supabase.from('restaurants').select('''
+        id, name, description, image_url, rating, review_count,
+        delivery_time_min, delivery_fee, is_open, categories
+      ''').eq('is_open', true).not('is_blocked', 'is', true);
+
+      // Single OR clause (repeated .or() calls AND together in PostgREST, which
+      // isn't what we want) — mirrors _queryFoodItems' keyword handling.
+      // `category` is matched against the text[] `categories` AND the name, so a
+      // cuisine word still finds an obviously-named place even when the row was
+      // never tagged (all rows are currently untagged).
+      final orParts = <String>[];
+      final cat = intent.category?.trim();
+      if (cat != null && cat.isNotEmpty) {
+        orParts.add('categories.cs.{$cat}');
+        orParts.add('name.ilike.%$cat%');
+      }
+      final kw = intent.keyword?.trim();
+      if (kw != null && kw.isNotEmpty) {
+        orParts.add('name.ilike.%$kw%');
+        orParts.add('description.ilike.%$kw%');
+      }
+      if (orParts.isNotEmpty) query = query.or(orParts.join(','));
+
+      // Best-first: rating, then review count. Most rows are unrated (rating 0)
+      // right now, so this quietly degrades to insertion order — the assistant's
+      // message is written NOT to over-promise "top rated" (SYSTEM_PROMPT RULE 2D).
+      final rows = await query
+          .order('rating', ascending: false, nullsFirst: false)
+          .order('review_count', ascending: false)
+          .limit(15) as List<dynamic>;
+
+      return rows.cast<Map<String, dynamic>>().map<ProductResult>((r) {
+        return ProductResult(
+          type: 'restaurant',
+          id: (r['id'] ?? '').toString(),
+          name: (r['name'] ?? '') as String,
+          description: r['description'] as String?,
+          price: 0.0,
+          currency: 'TND',
+          imageUrl: _resolveImageUrl(r['image_url']),
+          sourceName: (r['name'] ?? '') as String,
+          sourceId: (r['id'] ?? '').toString(),
+          rating: (r['rating'] as num?)?.toDouble(),
+          deliveryTime: (r['delivery_time_min'] as num?)?.toInt(),
+          deliveryFee: (r['delivery_fee'] as num?)?.toDouble(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('AiChatService – restaurant query error: $e');
       return [];
     }
   }
@@ -276,7 +465,10 @@ class AiChatService {
           as List<dynamic>;
 
       return rows
-          .where((r) => r['supermarkets'] != null)
+          // Same reasoning as the restaurant query above — drop closed shops.
+          .where((r) =>
+              r['supermarkets'] != null &&
+              (r['supermarkets'] as Map<String, dynamic>)['is_open'] == true)
           .map<ProductResult>((r) {
         final shop = r['supermarkets'] as Map<String, dynamic>;
         return ProductResult(
@@ -314,6 +506,103 @@ class AiChatService {
         rating: null,
       );
 
+  // ── Order tracking (track_order intent) ───────────────────────────────────
+  // Client-side, same pattern as the food/shop queries above: plain
+  // RLS-guarded reads against the customer's own session, no secret needed.
+  // Deliberately does NOT attempt to resolve driver name/phone: profiles' RLS
+  // only allows reading your OWN row (auth.uid() = id), so a customer-session
+  // query for a driver's profile always returns nothing — the same reason
+  // OrderRepository._mapOrderFromDb hardcodes driverName/driverPhone to null
+  // today. Not attempting it here avoids a query that would just silently
+  // fail; showing status + venue is what's actually reliable to promise.
+
+  static const Set<String> _terminalOrderStatuses = {'delivered', 'cancelled'};
+
+  /// The user's most recent NON-terminal order, or null if signed out, on any
+  /// read error, or if their most recent orders are all delivered/cancelled.
+  /// Shared by _buildOrderStatusReply and hasActiveOrder (chip context) so
+  /// there's exactly one place that defines "what counts as active."
+  Future<Map<String, dynamic>?> _fetchActiveOrderRow() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+    try {
+      final rows = await _supabase
+          .from('orders')
+          .select('id, status, order_type, restaurant_id, supermarket_id')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(10) as List<dynamic>;
+
+      final active = rows.cast<Map<String, dynamic>>().firstWhere(
+            (o) => !_terminalOrderStatuses.contains(o['status']),
+            orElse: () => const {},
+          );
+      return active.isEmpty ? null : active;
+    } catch (e) {
+      debugPrint('AiChatService – active order lookup error: $e');
+      return null;
+    }
+  }
+
+  /// Whether the user currently has an order in flight — used by the chat
+  /// screen to decide whether to show a "Suivre ma commande" starter chip.
+  /// Best-effort: any failure (including signed-out) reads as "no", which is
+  /// the safe default — worst case a chip that would have been useful is
+  /// simply not shown, never a chip promising a tracking result that isn't
+  /// really there.
+  Future<bool> hasActiveOrder() async => (await _fetchActiveOrderRow()) != null;
+
+  Future<String> _buildOrderStatusReply(String leadIn) async {
+    try {
+      final active = await _fetchActiveOrderRow();
+      if (active == null) {
+        return "$leadIn\n\nVous n'avez pas de commande en cours actuellement 🙂";
+      }
+
+      final shortId = (active['id'] as String).substring(0, 8).toUpperCase();
+      final status = (active['status'] ?? '') as String;
+
+      String? venueName;
+      final restaurantId = active['restaurant_id'] as String?;
+      final supermarketId = active['supermarket_id'] as String?;
+      if (restaurantId != null) {
+        final r = await _supabase
+            .from('restaurants')
+            .select('name')
+            .eq('id', restaurantId)
+            .maybeSingle();
+        venueName = r?['name'] as String?;
+      } else if (supermarketId != null) {
+        final s = await _supabase
+            .from('supermarkets')
+            .select('name')
+            .eq('id', supermarketId)
+            .maybeSingle();
+        venueName = s?['name'] as String?;
+      }
+
+      final buffer = StringBuffer(leadIn)
+        ..write('\n\n📦 Commande #$shortId');
+      if (venueName != null && venueName.isNotEmpty) buffer.write(' — $venueName');
+      buffer.write('\nStatut : ${_orderStatusLabel(status)}');
+
+      return buffer.toString();
+    } catch (e) {
+      debugPrint('AiChatService – order status lookup error: $e');
+      return "$leadIn\n\nImpossible de récupérer le statut de votre commande pour le moment 😕";
+    }
+  }
+
+  static String _orderStatusLabel(String status) => switch (status) {
+        'pending' => 'En attente de confirmation ⏳',
+        'confirmed' => 'Confirmée, en préparation 👨‍🍳',
+        'preparing' => 'En préparation 👨‍🍳',
+        'ready' => "Prête, en attente d'un livreur 📦",
+        'pickedUp' => 'Récupérée par le livreur 🛵',
+        'onTheWay' => 'En route vers vous 🛵',
+        _ => status,
+      };
+
   // ── Image URL resolver ────────────────────────────────────────────────────
 
   String? _resolveImageUrl(dynamic raw) {
@@ -323,6 +612,20 @@ class AiChatService {
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     return '$_storageBase$url';
   }
+}
+
+// ── Failure classification (distinct error messages, see sendMessage) ────────
+
+enum _ChatFailureKind { network, server, malformed }
+
+/// Thrown by _callChatFunction so sendMessage's catch can show a message
+/// specific to what actually went wrong, instead of one generic bubble.
+class _ChatFailure implements Exception {
+  final _ChatFailureKind kind;
+  final String detail;
+  const _ChatFailure(this.kind, this.detail);
+  @override
+  String toString() => 'ChatFailure(${kind.name}): $detail';
 }
 
 // ── Internal intent model ─────────────────────────────────────────────────────

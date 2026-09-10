@@ -50,6 +50,12 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _isLoading = false;
   final List<Map<String, dynamic>> _apiHistory = [];
 
+  // null = still checking; true/false = known. Empty-state chips render
+  // (see build()) whether this is null or resolved — null just means the
+  // "Suivre ma commande" chip isn't added yet, not that the whole section
+  // waits on it; it slots in the moment the check resolves.
+  bool? _hasActiveOrder;
+
   // ── Task 3: Voice — native Android speech via MethodChannel ───────────────
   // Uses Android's built-in SpeechRecognizer (no external package needed).
   // MethodChannel defined in MainActivity.kt (see comment below).
@@ -93,6 +99,78 @@ class _AiChatScreenState extends State<AiChatScreen>
         setState(() => _isListening = false);
       }
     });
+
+    _loadHistory();
+    _checkActiveOrder();
+  }
+
+  // ── Context-aware starter chips: is there an order to track right now? ────
+
+  Future<void> _checkActiveOrder() async {
+    final active = await _chatService.hasActiveOrder();
+    if (!mounted) return;
+    setState(() => _hasActiveOrder = active);
+  }
+
+  // ── Restore saved conversation on open ─────────────────────────────────────
+
+  Future<void> _loadHistory() async {
+    final loaded = await _chatService.loadHistory();
+    if (!mounted || loaded.isEmpty) return;
+    setState(() {
+      // loaded is already newest-first — matches _messages directly.
+      _messages.addAll(loaded);
+      // _apiHistory needs chronological (oldest-first) order for the LLM.
+      _apiHistory.addAll(loaded.reversed.map((m) => {
+            'role': m.isUser ? 'user' : 'model',
+            'parts': [
+              {'text': m.text}
+            ],
+          }));
+    });
+  }
+
+  // ── Clear conversation (app bar button) ────────────────────────────────────
+
+  Future<void> _confirmClearChat() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Effacer la conversation ?'),
+        content: const Text(
+          "Tout l'historique de cette conversation sera supprimé définitivement. Cette action est irréversible.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Effacer', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final ok = await _chatService.clearHistory();
+    if (!mounted) return;
+
+    if (ok) {
+      setState(() {
+        _messages.clear();
+        _apiHistory.clear();
+        _selectedImage = null;
+      });
+      // _hasActiveOrder is intentionally left as-is: clearing the CONVERSATION
+      // has no bearing on whether an order is in flight, so the "Suivre ma
+      // commande" chip (if it was showing) still shows on the now-empty state.
+      _showSnack('Conversation effacée');
+    } else {
+      _showSnack("Impossible d'effacer la conversation, réessayez", isError: true);
+    }
   }
 
   // ── Task 3: Toggle voice via native Android speech ────────────────────────
@@ -248,6 +326,79 @@ class _AiChatScreenState extends State<AiChatScreen>
     });
   }
 
+  // ── Starter suggestions (fresh/empty chat only) ────────────────────────────
+  // Deliberately no "Sport" chip — the sport/protein health goal still works
+  // perfectly fine when TYPED (Rule 4 in the system prompt is unchanged), this
+  // only affects which starter prompts are shown up front.
+  static const List<(String emoji, String label, String prompt)> _starterSuggestions = [
+    ('🥗', 'Manger léger', 'Je veux manger léger, propose-moi quelque chose de sain'),
+    ('🌙', 'Repas Iftar', "Je cherche un repas pour l'iftar"),
+    ('🌱', 'Végétarien', 'Je suis végétarien, propose-moi des plats'),
+    ('✨', 'Découvrir', 'Fais-moi découvrir des plats populaires'),
+  ];
+
+  // Prepended (not swapped in) when the user has an order in flight — food
+  // discovery is still something they might want, but tracking is very
+  // likely the actual reason they opened the chat right now, so it leads.
+  // Phrase matches the system prompt's own track_order few-shot example
+  // verbatim for reliable intent extraction.
+  static const (String, String, String) _trackOrderSuggestion =
+      ('📦', 'Suivre ma commande', 'Où est ma commande ?');
+
+  List<(String emoji, String label, String prompt)> get _effectiveSuggestions =>
+      _hasActiveOrder == true
+          ? [_trackOrderSuggestion, ..._starterSuggestions]
+          : _starterSuggestions;
+
+  void _sendSuggestion(String prompt) => _handleSubmitted(prompt);
+
+  Widget _buildEmptyState() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 12),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(colors: [_kOrangeLight, _kOrange]),
+              boxShadow: [
+                BoxShadow(color: _kOrange.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, 8)),
+              ],
+            ),
+            child: const Icon(Icons.restaurant_menu_rounded, color: Colors.white, size: 32),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Cmandili Assistant',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: _kTextDark),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Votre conseiller nutrition et découverte culinaire à Kairouan.\nDites-moi ce que vous cherchez !',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: _kTextMid, height: 1.4),
+          ),
+          const SizedBox(height: 24),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: _effectiveSuggestions.map((s) {
+              final (emoji, label, prompt) = s;
+              return _SuggestionChip(
+                emoji: emoji,
+                label: label,
+                onTap: () => _sendSuggestion(prompt),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -288,22 +439,24 @@ class _AiChatScreenState extends State<AiChatScreen>
             onRemove: () => setState(() => _selectedImage = null),
           ),
 
-          // ── Messages list ─────────────────────────────────────────────────
+          // ── Messages list (or starter suggestions on a fresh chat) ────────
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              reverse: true,
-              // ── Task 1: keyboard avoidance via Scaffold is automatic ──────
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (_isLoading && index == 0) {
-                  return _TypingIndicator(controller: _typingController);
-                }
-                final msgIndex = _isLoading ? index - 1 : index;
-                return _buildMessage(_messages[msgIndex]);
-              },
-            ),
+            child: _messages.isEmpty && !_isLoading
+                ? _buildEmptyState()
+                : ListView.builder(
+                    controller: _scrollController,
+                    reverse: true,
+                    // ── Task 1: keyboard avoidance via Scaffold is automatic ──
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    itemCount: _messages.length + (_isLoading ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (_isLoading && index == 0) {
+                        return _TypingIndicator(controller: _typingController);
+                      }
+                      final msgIndex = _isLoading ? index - 1 : index;
+                      return _buildMessage(_messages[msgIndex]);
+                    },
+                  ),
           ),
 
           // ── Input bar ─────────────────────────────────────────────────────
@@ -390,6 +543,11 @@ class _AiChatScreenState extends State<AiChatScreen>
                 const _Pill(emoji: '🍽️', label: 'Food'),
                 const SizedBox(width: 6),
                 const _Pill(emoji: '📦', label: 'P2P'),
+                const SizedBox(width: 6),
+                _AppBarBtn(
+                  icon: Icons.delete_outline_rounded,
+                  onTap: _confirmClearChat,
+                ),
               ],
             ),
           ),
@@ -500,9 +658,10 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Widget _buildCard(ProductResult product) {
     switch (product.type) {
-      case 'delivery': return _DeliveryCard(product: product);
-      case 'shop':     return _ShopCard(product: product);
-      default:         return _FoodCard(product: product, onTap: () => _navigateToRestaurant(product));
+      case 'delivery':   return _DeliveryCard(product: product);
+      case 'shop':       return _ShopCard(product: product);
+      case 'restaurant': return _RestaurantCard(product: product, onTap: () => _navigateToRestaurant(product));
+      default:           return _FoodCard(product: product, onTap: () => _navigateToRestaurant(product));
     }
   }
 
@@ -888,6 +1047,43 @@ class _Pill extends StatelessWidget {
   }
 }
 
+// ─── Starter suggestion chip (empty-state only) ─────────────────────────────
+
+class _SuggestionChip extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final VoidCallback onTap;
+  const _SuggestionChip({required this.emoji, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: _kOrange.withValues(alpha: 0.3)),
+            boxShadow: const [BoxShadow(color: _kAiBubbleShadow, blurRadius: 8, offset: Offset(0, 2))],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: _kTextDark)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Typing indicator ──────────────────────────────────────────────────────────
 
 class _TypingIndicator extends StatelessWidget {
@@ -1048,6 +1244,113 @@ class _FoodCard extends StatelessWidget {
                             Icon(Icons.touch_app_rounded, size: 11, color: _kOrange),
                             SizedBox(width: 3),
                             Text('Commander', style: TextStyle(fontSize: 10, color: _kOrange, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Restaurant Card (CLICKABLE → RestaurantDetailScreen) ─────────────────────
+// A VENUE card, not a dish card: no price, no "Commander" — shows the place,
+// its rating (when it has one), delivery info, and opens its full menu on tap.
+
+class _RestaurantCard extends StatelessWidget {
+  final ProductResult product;
+  final VoidCallback onTap;
+  const _RestaurantCard({required this.product, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasRating = product.rating != null && product.rating! > 0;
+    final dt = product.deliveryTime;
+    final fee = product.deliveryFee;
+
+    return Container(
+      width: 162,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 16, offset: Offset(0, 6))],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  children: [
+                    SizedBox(
+                      height: 112, width: double.infinity,
+                      child: _ProductImage(
+                        imageUrl: product.imageUrl,
+                        iconFallback: '🍴',
+                        bgColor: const Color(0xFFFFF3E0),
+                      ),
+                    ),
+                    Positioned(
+                      top: 8, left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: const Color(0xFF2E7D32), borderRadius: BorderRadius.circular(20)),
+                        child: const Text('Ouvert',
+                            style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: _kTextDark, height: 1.3),
+                        ),
+                        if (hasRating) ...[
+                          const SizedBox(height: 4),
+                          _StarRating(rating: product.rating!),
+                        ],
+                        if (dt != null || fee != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.schedule_rounded, size: 11, color: _kTextMid.withValues(alpha: 0.7)),
+                              const SizedBox(width: 3),
+                              Text(
+                                [
+                                  if (dt != null) '~$dt min',
+                                  if (fee != null) '${fee.toStringAsFixed(3)} TND',
+                                ].join(' · '),
+                                style: TextStyle(fontSize: 10, color: _kTextMid.withValues(alpha: 0.7)),
+                              ),
+                            ],
+                          ),
+                        ],
+                        const Spacer(),
+                        const Row(
+                          children: [
+                            Icon(Icons.restaurant_menu_rounded, size: 11, color: _kOrange),
+                            SizedBox(width: 3),
+                            Text('Voir le menu', style: TextStyle(fontSize: 10, color: _kOrange, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ],
