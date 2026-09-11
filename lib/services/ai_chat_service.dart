@@ -85,12 +85,22 @@ class AiChatService {
         if (products.isEmpty) finalText = _kNoResultsMessage;
         break;
       case 'delivery_request':
+        finalText = await _appendRecipientHint(intent.message);
         products = [_buildDeliveryCard()];
         break;
       case 'track_order':
         finalText = await _buildOrderStatusReply(intent.message);
         break;
       default:
+        // 'general' is also where Facture questions land (SYSTEM_PROMPT RULE
+        // 2 routes them here — there's no dedicated intent for it, deliberately
+        // not building one: see the restaurant_search vs facture/colis
+        // investigation). Only touch the message when the raw text actually
+        // looks facture-shaped, so off-topic redirects / disambiguation
+        // questions / every other 'general' reply is left untouched.
+        if (intent.intentRaw == 'general' && _looksLikeFactureQuestion(userText)) {
+          finalText = await _appendBillTypeHint(intent.message);
+        }
         break;
     }
 
@@ -506,6 +516,86 @@ class AiChatService {
         rating: null,
       );
 
+  // ── Colis personalization (delivery_request) ──────────────────────────────
+  // Light touch, not a search: mention the user's most recently saved
+  // recipient (courier_screen.dart already lets a driver save one after
+  // delivery) so "how do I send a package" isn't purely generic when we
+  // already know who they usually send to. No new intent, no cards — one
+  // extra sentence appended to the existing explanation.
+  Future<String> _appendRecipientHint(String leadIn) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return leadIn;
+    try {
+      final row = await _supabase
+          .from('saved_recipients')
+          .select('name')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      final name = (row?['name'] as String?)?.trim();
+      if (name == null || name.isEmpty) return leadIn;
+      return "$leadIn\n\nD'ailleurs, tu as déjà $name enregistré comme destinataire — tu peux lui "
+          'renvoyer un colis en un clic depuis la section Colis 📦';
+    } catch (e) {
+      debugPrint('AiChatService – recipient hint error: $e');
+      return leadIn;
+    }
+  }
+
+  // ── Facture personalization (general intent, facture-shaped text) ─────────
+  // There's no "saved bill references" table (unlike saved_recipients for
+  // colis), so this infers a pattern from past facture orders' bill_type
+  // instead of a dedicated saved list. With only test data in the DB today
+  // this mostly has nothing to say yet — it silently falls back to the plain
+  // explanation, which is the correct behaviour, not a bug.
+  bool _looksLikeFactureQuestion(String text) {
+    final t = text.toLowerCase();
+    const triggers = ['facture', 'fatoura', 'steg', 'sonede', 'topnet', 'bill', 'invoice'];
+    return triggers.any(t.contains);
+  }
+
+  Future<String> _appendBillTypeHint(String leadIn) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return leadIn;
+    try {
+      final rows = await _supabase
+          .from('orders')
+          .select('bill_type')
+          .eq('user_id', userId)
+          .eq('order_type', 'facture')
+          .not('bill_type', 'is', null)
+          .order('created_at', ascending: false)
+          .limit(20) as List<dynamic>;
+      if (rows.isEmpty) return leadIn;
+
+      // Most frequent bill_type in the last 20 factures; ties favour the more
+      // recent one since rows arrive newest-first and reduce() keeps the
+      // earlier-seen entry on a tie (b.value > a.value is false, so a wins).
+      final counts = <String, int>{};
+      for (final r in rows.cast<Map<String, dynamic>>()) {
+        final bt = (r['bill_type'] as String?)?.trim();
+        if (bt != null && bt.isNotEmpty) counts[bt] = (counts[bt] ?? 0) + 1;
+      }
+      if (counts.isEmpty) return leadIn;
+      final topType =
+          counts.entries.reduce((a, b) => b.value > a.value ? b : a).key;
+
+      return '$leadIn\n\nTu payes souvent ta facture ${_billTypeLabel(topType)} par ici — dis-moi '
+          "si c'est celle-ci 👍";
+    } catch (e) {
+      debugPrint('AiChatService – bill type hint error: $e');
+      return leadIn;
+    }
+  }
+
+  static String _billTypeLabel(String billType) => switch (billType.toLowerCase()) {
+        'steg' => 'STEG',
+        'sonede' => 'SONEDE',
+        'topnet' => 'Topnet',
+        _ => billType,
+      };
+
   // ── Order tracking (track_order intent) ───────────────────────────────────
   // Client-side, same pattern as the food/shop queries above: plain
   // RLS-guarded reads against the customer's own session, no secret needed.
@@ -561,6 +651,7 @@ class AiChatService {
 
       final shortId = (active['id'] as String).substring(0, 8).toUpperCase();
       final status = (active['status'] ?? '') as String;
+      final isFacture = active['order_type'] == 'facture';
 
       String? venueName;
       final restaurantId = active['restaurant_id'] as String?;
@@ -582,9 +673,9 @@ class AiChatService {
       }
 
       final buffer = StringBuffer(leadIn)
-        ..write('\n\n📦 Commande #$shortId');
+        ..write(isFacture ? '\n\n🧾 Facture #$shortId' : '\n\n📦 Commande #$shortId');
       if (venueName != null && venueName.isNotEmpty) buffer.write(' — $venueName');
-      buffer.write('\nStatut : ${_orderStatusLabel(status)}');
+      buffer.write('\nStatut : ${_orderStatusLabel(status, isFacture: isFacture)}');
 
       return buffer.toString();
     } catch (e) {
@@ -593,13 +684,23 @@ class AiChatService {
     }
   }
 
-  static String _orderStatusLabel(String status) => switch (status) {
+  // isFacture branches the mid-lifecycle labels to match what the driver app
+  // itself shows for a facture (order_tracking_screen.dart: "Espèces
+  // collectées" at pickedUp) — a generic "Récupérée par le livreur 🛵" reads
+  // like a package, which is confusing when nothing physical was picked up.
+  static String _orderStatusLabel(String status, {bool isFacture = false}) => switch (status) {
         'pending' => 'En attente de confirmation ⏳',
         'confirmed' => 'Confirmée, en préparation 👨‍🍳',
         'preparing' => 'En préparation 👨‍🍳',
-        'ready' => "Prête, en attente d'un livreur 📦",
-        'pickedUp' => 'Récupérée par le livreur 🛵',
-        'onTheWay' => 'En route vers vous 🛵',
+        'ready' => isFacture
+            ? "En attente qu'un livreur se charge de votre facture 🧾"
+            : "Prête, en attente d'un livreur 📦",
+        'pickedUp' => isFacture
+            ? 'Espèces collectées par le livreur 💵'
+            : 'Récupérée par le livreur 🛵',
+        'onTheWay' => isFacture
+            ? 'Le livreur est en route pour payer votre facture 🧾'
+            : 'En route vers vous 🛵',
         _ => status,
       };
 
