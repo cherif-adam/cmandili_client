@@ -15,6 +15,17 @@ class SupermarketRepository {
     return (response as List).map((json) => _mapFromDb(json)).toList();
   }
 
+  /// Live version of [getSupermarkets] — pushes a new list the moment a
+  /// supermarket is added, edited, or removed, instead of waiting for the
+  /// screen to be reopened.
+  Stream<List<Supermarket>> watchSupermarkets() {
+    return _supabase
+        .from('supermarkets')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((rows) => rows.map((json) => _mapFromDb(json)).toList());
+  }
+
   Future<List<GroceryItem>> getGroceryItems(String supermarketId) async {
     final response = await _supabase
         .from('grocery_items')

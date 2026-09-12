@@ -8,10 +8,11 @@ import '../data/models/food_item.dart';
 // Repository provider
 final restaurantRepositoryProvider = Provider((ref) => RestaurantRepository());
 
-// Fetch all restaurants from Supabase
-final restaurantsProvider = FutureProvider<List<Restaurant>>((ref) async {
+// Live list of restaurants — updates automatically when a partner adds,
+// edits, or removes one, no manual refresh needed.
+final restaurantsProvider = StreamProvider<List<Restaurant>>((ref) {
   final repository = ref.watch(restaurantRepositoryProvider);
-  return repository.getRestaurants();
+  return repository.watchRestaurants();
 });
 
 // Fetch food items for a specific restaurant from Supabase

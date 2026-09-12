@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/utils/delivery_fee.dart';
 import '../../../core/utils/platform_pricing.dart';
 import '../../home/data/models/restaurant.dart';
 import '../../cart/providers/cart_provider.dart';
@@ -249,7 +250,13 @@ class _RestaurantDetailScreenState
                         _buildDivider(),
                         _buildStat(
                           Icons.delivery_dining,
-                          CurrencyFormatter.formatPrice(widget.restaurant.deliveryFee),
+                          // restaurant.deliveryFee reads the DB's now-dead
+                          // restaurants.delivery_fee column (checkout hasn't
+                          // priced off it since the platform moved to a
+                          // distance-based fee — see delivery_fee.dart) and
+                          // is 0 for every restaurant. Show the real base
+                          // fee floor instead of a stale zero.
+                          CurrencyFormatter.formatPrice(kDeliveryBaseFee),
                           'Delivery fee',
                           AppColors.secondary,
                         ),

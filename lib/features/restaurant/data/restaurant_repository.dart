@@ -18,6 +18,18 @@ class RestaurantRepository {
         .toList();
   }
 
+  /// Live version of [getRestaurants] — pushes a new list the moment a
+  /// restaurant is added, edited, or removed, instead of waiting for the
+  /// screen to be reopened.
+  Stream<List<Restaurant>> watchRestaurants() {
+    return _supabase
+        .from('restaurants')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((rows) =>
+            rows.map((json) => Restaurant.fromJson(_mapFromDb(json))).toList());
+  }
+
   Future<List<FoodItem>> getFoodItems(String restaurantId) async {
     final response = await _supabase
         .from('food_items')

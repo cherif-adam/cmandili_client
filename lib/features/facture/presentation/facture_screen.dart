@@ -270,7 +270,10 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      // Bottom padding clears the floating bottom nav bar (~11.5% of screen
+      // height) so the "Envoyer la demande" button isn't hidden under it —
+      // matches the clearance used by SupermarketListScreen.
+      padding: EdgeInsets.fromLTRB(16, 8, 16, widget.screenHeight * 0.12),
       child: Form(
         key: _formKey,
         child: Column(

@@ -7,10 +7,11 @@ import '../../menu/data/models/item_variant.dart';
 // Repository provider
 final supermarketRepositoryProvider = Provider((ref) => SupermarketRepository());
 
-// Fetch all supermarkets from Supabase
-final supermarketsProvider = FutureProvider<List<Supermarket>>((ref) async {
+// Live list of supermarkets — updates automatically when a partner adds,
+// edits, or removes one, no manual refresh needed.
+final supermarketsProvider = StreamProvider<List<Supermarket>>((ref) {
   final repository = ref.watch(supermarketRepositoryProvider);
-  return repository.getSupermarkets();
+  return repository.watchSupermarkets();
 });
 
 // Fetch grocery items for a specific supermarket from Supabase

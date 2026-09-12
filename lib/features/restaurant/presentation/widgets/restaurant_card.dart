@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/delivery_fee.dart';
 import '../../../../core/utils/venue_hours.dart';
 import '../../../home/data/models/restaurant.dart';
 import '../restaurant_detail_screen.dart';
@@ -343,7 +344,12 @@ class RestaurantCard extends StatelessWidget {
                     children: [
                       _buildInfoItem(
                         Icons.delivery_dining_outlined,
-                        CurrencyFormatter.formatPrice(restaurant.deliveryFee),
+                        // restaurant.deliveryFee is the DB's dead
+                        // restaurants.delivery_fee column (0 for every
+                        // restaurant — checkout prices off a distance-based
+                        // formula instead, see delivery_fee.dart). Show the
+                        // real base fee floor rather than a stale zero.
+                        CurrencyFormatter.formatPrice(kDeliveryBaseFee),
                         'Delivery',
                         screenWidth,
                       ),
