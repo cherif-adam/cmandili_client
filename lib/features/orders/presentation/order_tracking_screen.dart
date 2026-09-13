@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -45,7 +46,19 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   StreamSubscription? _driverSubscription;
   String? _driverId;
   List<({double lat, double lng})>? _routePolyline;
-  bool _routeFetched = false;
+  // Where the driver was standing the last time we asked Mapbox for a route.
+  // Null means never fetched. Re-fetching only when the driver has moved far
+  // enough from this point (see _kRouteRefetchThresholdMeters) keeps the
+  // drawn line from going stale as the driver progresses or deviates, without
+  // re-hitting the Directions API on every single GPS tick.
+  ({double lat, double lng})? _lastRouteFetchOrigin;
+  // Facture orders switch destination mid-delivery (customer's address while
+  // onTheWay, then the office once pickedUp) — a route drawn to the old
+  // destination is wrong outright, not just stale, so any destination change
+  // forces a re-fetch regardless of how far the driver has moved.
+  ({double lat, double lng})? _lastRouteFetchDestination;
+  bool _routeFetchInFlight = false;
+  static const double _kRouteRefetchThresholdMeters = 300;
   bool _boundsFitted = false;
   bool _loyaltySheetScheduled = false;
   final _supabase = Supabase.instance.client;
@@ -145,7 +158,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   }
 
   /// Fetch a route polyline from the Mapbox Directions API and draw it on the
-  /// map. Called once when driver location first becomes available.
+  /// map. Called whenever the driver has moved far enough from
+  /// [_lastRouteFetchOrigin] for the currently-drawn line to be considered
+  /// stale (see the caller in [_buildTracking]) — not just once.
   ///
   /// We request `geometries=geojson` so the response contains an already-decoded
   /// list of [lng, lat] pairs — no encoded-polyline decoding needed.
@@ -153,6 +168,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     required ({double lat, double lng}) origin,
     required ({double lat, double lng}) destination,
   }) async {
+    if (_routeFetchInFlight) return;
+    _routeFetchInFlight = true;
+    _lastRouteFetchOrigin = origin;
+    _lastRouteFetchDestination = destination;
+
     final token = dotenv.env['MAPBOX_PUBLIC_TOKEN'] ?? '';
     final url = Uri.parse(
       'https://api.mapbox.com/directions/v5/mapbox/driving/'
@@ -180,6 +200,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       setState(() => _routePolyline = points);
     } catch (e) {
       debugPrint('Route fetch failed: $e');
+    } finally {
+      _routeFetchInFlight = false;
     }
   }
 
@@ -366,11 +388,25 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         ? (lat: order.pickupAddress!.latitude, lng: order.pickupAddress!.longitude)
         : (lat: order.deliveryAddress.latitude, lng: order.deliveryAddress.longitude);
 
-    // Fetch route once when driver location first becomes available.
-    // For facture: when driver is going to customer (onTheWay → pickupAddress)
-    // or going to office (pickedUp → deliveryAddress).
-    if (showMap && !_routeFetched) {
-      _routeFetched = true;
+    // Fetch the route when driver location first becomes available, then
+    // re-fetch whenever the drawn line would be stale: the destination
+    // changed (facture's onTheWay → pickupAddress / pickedUp → deliveryAddress
+    // switch — the old line would point at the wrong place entirely), or the
+    // driver has moved more than _kRouteRefetchThresholdMeters from where the
+    // last route was computed (deviation, wrong turn, or just having covered
+    // real distance since it was drawn). Previously this ran exactly once per
+    // screen instance and the line never updated again for the rest of the
+    // delivery, even though the live marker kept moving correctly.
+    final destinationChanged = _lastRouteFetchDestination != destination;
+    final driverMovedSinceLastFetch = _lastRouteFetchOrigin == null ||
+        Geolocator.distanceBetween(
+              _lastRouteFetchOrigin!.lat,
+              _lastRouteFetchOrigin!.lng,
+              _driverLat!,
+              _driverLng!,
+            ) >
+            _kRouteRefetchThresholdMeters;
+    if (showMap && !_routeFetchInFlight && (destinationChanged || driverMovedSinceLastFetch)) {
       _fetchRoute(
         origin: (lat: _driverLat!, lng: _driverLng!),
         destination: destination,

@@ -73,7 +73,15 @@ class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen>
       ),
       builder: (context) => _AddAddressSheet(
         onAddressAdded: (address) {
-          ref.read(addressProvider.notifier).addAddress(address.label, address.fullAddress);
+          // Pass through the coordinates _saveAddress() already geocoded —
+          // avoids a second geocode call and, more importantly, avoids the
+          // notifier's own hardcoded-placeholder fallback for this address.
+          ref.read(addressProvider.notifier).addAddress(
+                address.label,
+                address.fullAddress,
+                latitude: address.latitude,
+                longitude: address.longitude,
+              );
           Navigator.pop(context);
         },
       ),
@@ -176,8 +184,8 @@ class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen>
               id: saved.id,
               label: saved.name,
               fullAddress: saved.fullAddress,
-              latitude: 36.8065,
-              longitude: 10.1815,
+              latitude: saved.latitude,
+              longitude: saved.longitude,
               isDefault: saved.isDefault,
             );
             return _AddressCard(
