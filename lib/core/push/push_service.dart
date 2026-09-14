@@ -9,7 +9,16 @@ const String _kChannelName = 'Order updates';
 const String _kChannelDesc = 'Notifications about your orders';
 
 // High-priority channel for driver-arrival / on-the-way alerts.
-const String _kUrgentChannelId   = 'cmandili_orders_urgent';
+//
+// _v2: the original channel was created with a custom sound
+// (RawResourceAndroidNotificationSound('new_order')) pointing at a raw
+// resource that was never actually bundled into this app (it only exists
+// in the driver app's project) -- every onTheWay/pickedUp push crashed with
+// PlatformException(invalid_sound) instead of displaying. Android channels
+// are immutable once created, so devices that already created the old
+// channel would keep the broken config even after this fix; bumping the id
+// makes every device create a fresh, correctly-configured channel instead.
+const String _kUrgentChannelId   = 'cmandili_orders_urgent_v2';
 const String _kUrgentChannelName = 'Delivery alerts';
 const String _kUrgentChannelDesc =
     'High-priority alerts when your driver is on the way';
@@ -61,15 +70,16 @@ class PushService {
       importance: Importance.high,
     ));
 
-    // Urgent channel for on-the-way / arrival alerts.
+    // Urgent channel for on-the-way / arrival alerts. Default sound (no
+    // `sound:` override) -- same as every other client status update; see
+    // the _kUrgentChannelId comment for why this can't reference a custom
+    // resource.
     await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
       _kUrgentChannelId,
       _kUrgentChannelName,
       description: _kUrgentChannelDesc,
       importance: Importance.max,
       playSound: true,
-      // File: android/app/src/main/res/raw/new_order.mp3
-      sound: RawResourceAndroidNotificationSound('new_order'),
     ));
 
     await _fcm.setForegroundNotificationPresentationOptions(
@@ -129,13 +139,9 @@ class PushService {
           importance: isDriverAlert ? Importance.max : Importance.high,
           priority:   isDriverAlert ? Priority.max  : Priority.high,
           playSound: true,
-          sound: isDriverAlert
-              ? const RawResourceAndroidNotificationSound('new_order')
-              : null,
         ),
-        iOS: DarwinNotificationDetails(
+        iOS: const DarwinNotificationDetails(
           presentSound: true,
-          sound: isDriverAlert ? 'new_order.wav' : null,
         ),
       ),
     );
