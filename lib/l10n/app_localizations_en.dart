@@ -586,7 +586,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'We need your phone number so drivers can reach you about deliveries. This is a one-time step.';
 
   @override
-  String get phoneInvalid => 'Please enter a valid phone number';
+  String get phoneInvalid => 'Please enter a valid 8-digit Tunisian number';
 
   @override
   String get continueButton => 'Continue';

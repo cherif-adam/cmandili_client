@@ -599,7 +599,8 @@ class AppLocalizationsFr extends AppLocalizations {
       'Nous avons besoin de votre numéro de téléphone pour que les livreurs puissent vous joindre. Étape unique.';
 
   @override
-  String get phoneInvalid => 'Veuillez entrer un numéro de téléphone valide';
+  String get phoneInvalid =>
+      'Veuillez entrer un numéro tunisien valide à 8 chiffres';
 
   @override
   String get continueButton => 'Continuer';

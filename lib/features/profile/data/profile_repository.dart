@@ -35,7 +35,6 @@ class ProfileRepository {
       if (userId == null) return false;
 
       final updates = <String, dynamic>{
-        'id': userId,
         'updated_at': DateTime.now().toIso8601String(),
       };
 
@@ -43,12 +42,25 @@ class ProfileRepository {
       if (avatarUrl != null) updates['avatar_url'] = avatarUrl;
       if (phone != null) updates['phone'] = phone;
 
-      // upsert instead of update: if the profiles row was never created
-      // (e.g. the auth trigger failed), this creates it rather than silently
-      // matching 0 rows and returning success with nothing saved.
-      await _supabase
+      // NOTE: `id` must never appear in this payload. 20260824120000 revoked
+      // the blanket table-level UPDATE grant and replaced it with a column
+      // allowlist that excludes `id`, so any statement writing `id` fails with
+      // "permission denied for table profiles". That rules out upsert(), whose
+      // ON CONFLICT DO UPDATE branch re-writes every payload column including
+      // the conflict target -- it failed for every user who already had a row.
+      //
+      // Update first, and fall back to an insert only when no row matched
+      // (auth trigger never fired). The INSERT grant does include `id`, and
+      // needs it to satisfy the RLS WITH CHECK (auth.uid() = id).
+      final updated = await _supabase
           .from('profiles')
-          .upsert(updates, onConflict: 'id');
+          .update(updates)
+          .eq('id', userId)
+          .select('id');
+
+      if (updated.isEmpty) {
+        await _supabase.from('profiles').insert({...updates, 'id': userId});
+      }
       return true;
     } catch (e, st) {
       debugPrint('Error updating profile: $e\n$st');

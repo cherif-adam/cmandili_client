@@ -191,7 +191,7 @@
     "saveChanges": "Enregistrer les modifications",
     "addYourPhoneNumber": "Ajoutez votre numéro de téléphone",
     "phoneRequiredExplain": "Nous avons besoin de votre numéro de téléphone pour que les livreurs puissent vous joindre. Étape unique.",
-    "phoneInvalid": "Veuillez entrer un numéro de téléphone valide",
+    "phoneInvalid": "Veuillez entrer un numéro tunisien valide à 8 chiffres",
     "continueButton": "Continuer",
     "promoCode": "Code promo",
     "promoCodePlaceholder": "Entrez votre code promo",

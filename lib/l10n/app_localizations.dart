@@ -1225,7 +1225,7 @@ abstract class AppLocalizations {
   /// No description provided for @phoneInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Please enter a valid phone number'**
+  /// **'Please enter a valid 8-digit Tunisian number'**
   String get phoneInvalid;
 
   /// No description provided for @continueButton.

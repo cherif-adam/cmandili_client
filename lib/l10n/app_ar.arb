@@ -191,7 +191,7 @@
     "saveChanges": "حفظ التغييرات",
     "addYourPhoneNumber": "أضف رقم هاتفك",
     "phoneRequiredExplain": "نحتاج إلى رقم هاتفك حتى يتمكن السائقون من التواصل معك بخصوص التوصيلات. خطوة لمرة واحدة.",
-    "phoneInvalid": "يرجى إدخال رقم هاتف صحيح",
+    "phoneInvalid": "يرجى إدخال رقم هاتف تونسي صحيح من 8 أرقام",
     "continueButton": "متابعة",
     "promoCode": "رمز الخصم",
     "promoCodePlaceholder": "أدخل رمز الخصم",

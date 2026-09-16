@@ -581,7 +581,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'نحتاج إلى رقم هاتفك حتى يتمكن السائقون من التواصل معك بخصوص التوصيلات. خطوة لمرة واحدة.';
 
   @override
-  String get phoneInvalid => 'يرجى إدخال رقم هاتف صحيح';
+  String get phoneInvalid => 'يرجى إدخال رقم هاتف تونسي صحيح من 8 أرقام';
 
   @override
   String get continueButton => 'متابعة';

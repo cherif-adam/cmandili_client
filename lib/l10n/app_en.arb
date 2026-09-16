@@ -191,7 +191,7 @@
     "saveChanges": "Save Changes",
     "addYourPhoneNumber": "Add your phone number",
     "phoneRequiredExplain": "We need your phone number so drivers can reach you about deliveries. This is a one-time step.",
-    "phoneInvalid": "Please enter a valid phone number",
+    "phoneInvalid": "Please enter a valid 8-digit Tunisian number",
     "continueButton": "Continue",
     "promoCode": "Promo Code",
     "promoCodePlaceholder": "Enter your promo code",
