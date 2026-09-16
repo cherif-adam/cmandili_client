@@ -173,6 +173,40 @@ class RestaurantCard extends StatelessWidget {
                     ),
                   ),
 
+                  // "Nouveau" badge — venues added within the last 7 days.
+                  // Top-right is the one corner the time/category/rating
+                  // badges don't already occupy.
+                  if (restaurant.isNew)
+                    Positioned(
+                      top: screenHeight * 0.02,
+                      right: screenWidth * 0.04,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.03,
+                          vertical: screenHeight * 0.008,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success,
+                          borderRadius: BorderRadius.circular(screenWidth * 0.05),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: screenWidth * 0.01,
+                              offset: Offset(0, screenHeight * 0.0025),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'Nouveau',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: screenWidth * 0.03,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Category Badge (first category, e.g. "Pâtisseries") —
                   // placed after the closed-state overlay so it stays visible
                   // above the dim, like the time and rating badges.

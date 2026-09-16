@@ -17,6 +17,12 @@ class Restaurant {
   /// configured hours. Used only for the "Ouvre à HH:MM" hint on cards.
   final String? openingTime;
 
+  final DateTime? createdAt;
+
+  /// True for a week after the venue is added — drives the "Nouveau" badge.
+  bool get isNew =>
+      createdAt != null && DateTime.now().difference(createdAt!).inDays < 7;
+
   Restaurant({
     required this.id,
     required this.name,
@@ -32,6 +38,7 @@ class Restaurant {
     required this.latitude,
     required this.longitude,
     this.openingTime,
+    this.createdAt,
   });
 
   factory Restaurant.fromJson(Map<String, dynamic> json) {
@@ -50,6 +57,9 @@ class Restaurant {
       latitude: (json['latitude'] ?? 0).toDouble(),
       longitude: (json['longitude'] ?? 0).toDouble(),
       openingTime: json['openingTime'] as String?,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'] as String)
+          : null,
     );
   }
 
@@ -69,6 +79,7 @@ class Restaurant {
       'latitude': latitude,
       'longitude': longitude,
       'openingTime': openingTime,
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 }

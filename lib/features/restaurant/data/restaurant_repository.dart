@@ -116,6 +116,7 @@ class RestaurantRepository {
       'latitude': dbJson['latitude'],
       'longitude': dbJson['longitude'],
       'openingTime': dbJson['opening_time'],
+      'createdAt': dbJson['created_at'],
     };
   }
 

@@ -6,6 +6,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/delivery_fee.dart';
+import '../../../core/utils/location_service.dart';
 import '../../../core/payment/payment_service.dart';
 import '../data/models/delivery_address.dart';
 import 'address_selection_screen.dart';
@@ -264,6 +265,24 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // Base 3.500 TND + 0.500 TND/km beyond 3 km.
       final finalDeliveryFee = calculateDeliveryFee(distanceKm: distanceKm);
 
+      // Best-effort ETA — reuses the same pickup/destination pair as the
+      // delivery-fee distance call above, just keeping the duration that
+      // call already receives from Mapbox and discards. Null (no estimate
+      // shown) on any failure — this is a display nicety, never worth
+      // blocking or retrying checkout over.
+      DateTime? estimatedDeliveryTime;
+      if (pickupLat != null && pickupLng != null &&
+          !(pickupLat == 0 && pickupLng == 0)) {
+        final durationSeconds = await LocationService.estimateRouteDurationSeconds(
+          pickupLat, pickupLng,
+          _selectedAddress!.latitude, _selectedAddress!.longitude,
+        );
+        if (durationSeconds != null) {
+          estimatedDeliveryTime =
+              DateTime.now().add(Duration(seconds: durationSeconds));
+        }
+      }
+
       // effectiveSubtotal already has the promo discount baked in (or equals
       // widget.subtotal when no promo was applied).
       final finalTotal = effectiveSubtotal + finalDeliveryFee;
@@ -306,6 +325,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 : null,
             paymentMethod: _selectedPaymentMethod,
             distanceKm: distanceKm,
+            estimatedDeliveryTime: estimatedDeliveryTime,
           );
       final orderId = createdOrder.orderId;
 

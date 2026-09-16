@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../cart/data/models/cart_item.dart';
 import '../../cart/data/models/order_customization.dart';
 import '../../checkout/data/models/delivery_address.dart';
+import '../../restaurant/data/models/food_item.dart';
 import '../data/models/order.dart';
 
 class OrderRepository {
@@ -38,6 +39,7 @@ class OrderRepository {
     String? notes,
     String paymentMethod = 'cash',
     double? distanceKm,
+    DateTime? estimatedDeliveryTime,
   }) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
@@ -56,6 +58,8 @@ class OrderRepository {
         'notes': notes,
         'delivery_address': deliveryAddress.toJson(),
         'order_type': orderType.toString().split('.').last,
+        if (estimatedDeliveryTime != null)
+          'estimated_delivery_time': estimatedDeliveryTime.toIso8601String(),
       }).select().single();
 
       final orderId = orderResponse['id'] as String;
@@ -134,6 +138,122 @@ class OrderRepository {
     return (response as List)
         .map((json) => Order.fromJson(_mapOrderFromDb(json)))
         .toList();
+  }
+
+  /// Fresh, current-price/current-availability items for a past order — used
+  /// by "Reorder" on order history. Deliberately does NOT replay the
+  /// original order's variant/option-group picks (order_items.options) or
+  /// its snapshot price; it re-adds the same base items the way the
+  /// customer would by picking them again from today's menu. Food orders
+  /// only — the client app has no supermarket reorder entry point (yet).
+  /// Returns the resolvable items plus how many were skipped (item deleted,
+  /// no longer available, or its restaurant is now closed) so the caller can
+  /// tell the customer rather than silently reordering less than expected.
+  Future<({List<CartItem> items, int skippedCount})> getReorderItems(
+      String orderId) async {
+    final itemRows = await _supabase
+        .from('order_items')
+        .select('food_item_id, quantity')
+        .eq('order_id', orderId);
+
+    final items = <CartItem>[];
+    var skipped = 0;
+
+    for (final row in (itemRows as List).cast<Map<String, dynamic>>()) {
+      final foodItemId = row['food_item_id'] as String?;
+      final quantity = (row['quantity'] as num?)?.toInt() ?? 1;
+      if (foodItemId == null) {
+        skipped++; // courier/facture orders, or a grocery line — not reorderable here
+        continue;
+      }
+      try {
+        final itemRow = await _supabase
+            .from('food_items')
+            .select('*, restaurants(is_open)')
+            .eq('id', foodItemId)
+            .maybeSingle();
+        final isAvailable = itemRow?['is_available'] as bool? ?? false;
+        final restaurantOpen =
+            (itemRow?['restaurants'] as Map?)?['is_open'] as bool? ?? true;
+        if (itemRow == null || !isAvailable || !restaurantOpen) {
+          skipped++;
+          continue;
+        }
+        items.add(CartItem.restaurant(
+          foodItem: FoodItem.fromJson(_mapFoodItemFromDbForReorder(itemRow)),
+          quantity: quantity,
+        ));
+      } catch (_) {
+        skipped++;
+      }
+    }
+
+    return (items: items, skippedCount: skipped);
+  }
+
+  // Same shape as RestaurantRepository._mapFoodItemFromDb — duplicated
+  // rather than shared, matching this codebase's existing convention of each
+  // repository owning its own DB-row-to-model mapping.
+  Map<String, dynamic> _mapFoodItemFromDbForReorder(Map<String, dynamic> dbJson) {
+    return {
+      'id': dbJson['id'],
+      'restaurantId': dbJson['restaurant_id'],
+      'name': dbJson['name'],
+      'description': dbJson['description'],
+      'imageUrl': dbJson['image_url'],
+      'price': dbJson['price'],
+      'category': dbJson['category'],
+      'isAvailable': dbJson['is_available'],
+      'tags': [],
+      'preparationTime': dbJson['preparation_time'],
+      'isVegetarian': dbJson['is_vegetarian'],
+      'isSpicy': dbJson['is_spicy'],
+      'discountPrice': dbJson['discount_price'],
+      'discountEndTime': dbJson['discount_end_time'],
+      'discountQuantity': null,
+    };
+  }
+
+  /// Whether the customer has already rated this order. Used to gate the
+  /// post-delivery rating prompt so it never reappears once submitted (the
+  /// DB's own UNIQUE(order_id) + write-once RLS policy are the real
+  /// enforcement — this is just what lets the UI decide whether to ask).
+  Future<bool> hasRating(String orderId) async {
+    final row = await _supabase
+        .from('order_ratings')
+        .select('id')
+        .eq('order_id', orderId)
+        .maybeSingle();
+    return row != null;
+  }
+
+  /// Records a 1-5 star rating (+ optional comment) for a delivered food
+  /// order. The DB trigger recomputes restaurants.rating/review_count from
+  /// the full order_ratings set right after this insert — no client-side
+  /// average to keep in sync. Returns false (instead of throwing) on any
+  /// failure — RLS rejecting a stale/ineligible order, or a duplicate
+  /// insert racing another device — since the caller only needs to know
+  /// whether to show a confirmation or a generic retry message.
+  Future<bool> submitRating({
+    required String orderId,
+    required String restaurantId,
+    required int rating,
+    String? comment,
+  }) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+      await _supabase.from('order_ratings').insert({
+        'order_id': orderId,
+        'user_id': userId,
+        'restaurant_id': restaurantId,
+        'rating': rating,
+        if (comment != null && comment.trim().isNotEmpty) 'comment': comment.trim(),
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   // Update order status

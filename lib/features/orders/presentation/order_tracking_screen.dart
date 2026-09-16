@@ -15,6 +15,7 @@ import '../data/models/order.dart';
 import '../providers/order_provider.dart';
 import '../../loyalty/presentation/loyalty_card_sheet.dart';
 import '../../loyalty/presentation/loyalty_cancel_dialog.dart';
+import '../../rating/presentation/rating_prompt_sheet.dart';
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
@@ -61,6 +62,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   static const double _kRouteRefetchThresholdMeters = 300;
   bool _boundsFitted = false;
   bool _loyaltySheetScheduled = false;
+  bool _ratingPromptScheduled = false;
   final _supabase = Supabase.instance.client;
 
   /// A delivery row is created with placeholder (0,0) coordinates the moment a
@@ -81,6 +83,22 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       LoyaltyCardSheet.maybeShow(context, ref: ref, order: order);
+    });
+  }
+
+  // Gated on order.status itself (not just "first build", unlike the
+  // loyalty sheet's justPlaced gate) because a customer can be watching
+  // this exact screen live as the order transitions into 'delivered' --
+  // latching the one-shot flag before that transition happens would mean
+  // the prompt never fires for anyone actually watching delivery complete.
+  // Fine-grained eligibility (food order, not already rated) still lives in
+  // RatingPromptSheet.maybeShow itself.
+  void _maybeScheduleRatingPrompt(Order order) {
+    if (order.status != OrderStatus.delivered || _ratingPromptScheduled) return;
+    _ratingPromptScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      RatingPromptSheet.maybeShow(context, ref: ref, order: order);
     });
   }
 
@@ -367,6 +385,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       ),
       data: (order) {
         _maybeScheduleLoyaltySheet(order);
+        _maybeScheduleRatingPrompt(order);
         return _buildTracking(order);
       },
     );

@@ -134,4 +134,39 @@ class LocationService {
       return calculateDistance(lat1, lon1, lat2, lon2);
     }
   }
+
+  /// Same Directions API call as [calculateRouteDistance], but also keeps the
+  /// `duration` field that call already receives and discards — used to seed
+  /// `orders.estimated_delivery_time` at checkout. A separate function
+  /// (rather than changing calculateRouteDistance's return type) so the
+  /// delivery-fee path — real money, already relied on — is untouched.
+  /// Returns null (no estimate) wherever the distance-only path would have
+  /// silently fallen back to Haversine, since straight-line distance carries
+  /// no duration.
+  static Future<int?> estimateRouteDurationSeconds(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) async {
+    final token = dotenv.env['MAPBOX_PUBLIC_TOKEN'];
+    if (token == null || token.isEmpty) return null;
+
+    try {
+      final url = Uri.parse(
+          'https://api.mapbox.com/directions/v5/mapbox/driving/$lon1,$lat1;$lon2,$lat2?access_token=$token');
+      final response = await http.get(url).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
+          final durationSeconds = data['routes'][0]['duration'];
+          return (durationSeconds as num).round();
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }
