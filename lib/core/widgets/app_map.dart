@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 
 /// Role/color of a marker on [AppMap]. Pre-defined palette that replaces the
 /// `BitmapDescriptor.hue*` constants used under Google Maps.
@@ -94,11 +94,27 @@ class AppMapController {
   void dispose() => _detach();
 }
 
-/// Mapbox-backed map widget that accepts declarative markers and a single
-/// optional polyline. Drop-in replacement for the previous `GoogleMap` usage:
-/// the parent passes a fresh [markers] set and optional [polyline] on each
-/// build, we diff against what's currently rendered, and update the
-/// annotation managers accordingly.
+/// On-screen size of a pin, in logical pixels. The bitmap behind it is drawn
+/// at this size multiplied by the device pixel ratio, so it stays sharp.
+const double _kPinLogicalSize = 48;
+
+/// Declutters the basemap for delivery use: business/park/school points of
+/// interest and transit lines are hidden, because their tappable labels compete
+/// with our own pickup/delivery/driver markers for the same pixels and carry no
+/// meaning in this app. Roads, road labels and place names are left intact --
+/// those are what a courier actually navigates by.
+const String _kMapStyle = '''
+[
+  {"featureType":"poi","stylers":[{"visibility":"off"}]},
+  {"featureType":"transit","stylers":[{"visibility":"off"}]},
+  {"featureType":"road","elementType":"labels.icon","stylers":[{"visibility":"off"}]}
+]
+''';
+
+/// Google Maps-backed map widget that accepts declarative markers and a single
+/// optional polyline. The parent passes a fresh [markers] set and optional
+/// [polyline] on each build and Google reconciles them, so there is no
+/// imperative annotation syncing to do here.
 class AppMap extends StatefulWidget {
   final double initialLatitude;
   final double initialLongitude;
@@ -108,6 +124,15 @@ class AppMap extends StatefulWidget {
   final bool showUserLocationPuck;
   final AppMapController? controller;
   final VoidCallback? onMapReady;
+
+  /// Area of the map obscured by the parent's own overlays (bottom sheets,
+  /// floating cards). Google keeps its controls out of it and centres camera
+  /// moves on what is left, so a fitted route is not hidden behind a sheet.
+  final EdgeInsets contentPadding;
+
+  /// Live traffic shading. Useful while a delivery is in progress; noise on a
+  /// static "where is this address" map, so it is opt-in.
+  final bool showTraffic;
 
   const AppMap({
     super.key,
@@ -119,6 +144,8 @@ class AppMap extends StatefulWidget {
     this.showUserLocationPuck = false,
     this.controller,
     this.onMapReady,
+    this.contentPadding = EdgeInsets.zero,
+    this.showTraffic = false,
   });
 
   @override
@@ -126,33 +153,39 @@ class AppMap extends StatefulWidget {
 }
 
 class _AppMapState extends State<AppMap> {
-  mb.MapboxMap? _map;
-  mb.PointAnnotationManager? _markerManager;
-  mb.PolylineAnnotationManager? _polylineManager;
+  gm.GoogleMapController? _map;
 
-  final Map<String, mb.PointAnnotation> _renderedMarkers = {};
-  mb.PolylineAnnotation? _renderedPolyline;
-  mb.PolylineAnnotation? _renderedPolylineCasing;
-
+  /// Rasterized pins, keyed by kind. Built once per kind and reused -- the
+  /// drawing code below is unchanged from the Mapbox version, since Google
+  /// Maps also takes raw PNG bytes (via BitmapDescriptor.bytes).
   final Map<AppMapMarkerKind, Uint8List> _iconCache = {};
 
-  // _syncMarkers is async but called fire-and-forget from didUpdateWidget,
-  // which can fire again (e.g. on a fast-following GPS tick) before the
-  // previous call finishes. Without serializing, two overlapping calls can
-  // race on _renderedMarkers -- one call's create()/update()/delete() can
-  // target an annotation the other is simultaneously touching, throw, and
-  // (since nothing awaited or caught it) silently stop the driver marker
-  // from ever moving again with no visible error. _syncMarkers is now
-  // queued: a call that arrives mid-sync sets _markerSyncQueued and the
-  // in-flight call re-runs once more after finishing, so no update is lost
-  // and only one call touches the manager at a time.
-  bool _markerSyncInFlight = false;
-  bool _markerSyncQueued = false;
+  /// Icons resolve asynchronously but markers must be built synchronously in
+  /// build(), so the decoded descriptors are cached here and a rebuild is
+  /// triggered once they are ready.
+  final Map<AppMapMarkerKind, gm.BitmapDescriptor> _descriptors = {};
+
+  /// Device pixel ratio the cached descriptors were rasterized for.
+  double? _descriptorRatio;
+
+  /// Camera moves requested before the map finished creating. Google Maps
+  /// throws if the controller is used too early, so the most recent request is
+  /// held here and replayed from onMapCreated.
+  Future<void> Function()? _pendingCameraMove;
 
   @override
   void initState() {
     super.initState();
     widget.controller?._attach(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Not initState: rasterizing needs the device pixel ratio from MediaQuery,
+    // which is not available until dependencies resolve. This also re-fires if
+    // the ratio changes, which is what re-cuts the bitmaps for the new density.
+    _loadDescriptors();
   }
 
   @override
@@ -162,214 +195,140 @@ class _AppMapState extends State<AppMap> {
       oldWidget.controller?._detach();
       widget.controller?._attach(this);
     }
-    if (_map != null) {
-      if (widget.markers != oldWidget.markers) {
-        _syncMarkers();
-      }
-      if (widget.polyline != oldWidget.polyline) {
-        _syncPolyline();
-      }
-    }
+    // Markers and polylines are rebuilt declaratively in build(); unlike the
+    // Mapbox annotation managers there is nothing to diff or sync here, which
+    // is what removes the marker-sync race the old implementation guarded
+    // against with an in-flight/queued pair of flags.
+    _loadDescriptors();
   }
 
   @override
   void dispose() {
     widget.controller?._detach();
+    _map?.dispose();
     super.dispose();
+  }
+
+  /// Rasterizes any pin kind currently in use that has not been built yet.
+  ///
+  /// Pins are drawn at the device pixel ratio and handed to Google with their
+  /// LOGICAL size, so they stay crisp on high-density screens instead of being
+  /// upscaled from a fixed 96px bitmap. The cache is keyed by kind *and* ratio
+  /// so moving to a different-density display re-rasterizes rather than
+  /// reusing a bitmap cut for the old one.
+  Future<void> _loadDescriptors() async {
+    final ratio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
+    if (ratio != _descriptorRatio) {
+      _descriptors.clear();
+      _iconCache.clear();
+      _descriptorRatio = ratio;
+    }
+    final needed = {for (final m in widget.markers) m.kind};
+    var added = false;
+    for (final kind in needed) {
+      if (_descriptors.containsKey(kind)) continue;
+      final bytes = await _iconFor(kind, ratio);
+      _descriptors[kind] = gm.BitmapDescriptor.bytes(
+        bytes,
+        width: _kPinLogicalSize,
+        height: _kPinLogicalSize,
+      );
+      added = true;
+    }
+    if (added && mounted) setState(() {});
+  }
+
+  Set<gm.Marker> get _markers => {
+        for (final m in widget.markers)
+          gm.Marker(
+            markerId: gm.MarkerId(m.id),
+            position: gm.LatLng(m.latitude, m.longitude),
+            // Falls back to the default pin until the custom bitmap is ready,
+            // so a marker is never missing from the map while it rasterizes.
+            icon: _descriptors[m.kind] ?? gm.BitmapDescriptor.defaultMarker,
+            // Only the driver marker conveys heading. The driver badge is drawn
+            // radially symmetric precisely so it can be rotated about its centre
+            // without the pin tip leaving the real coordinate.
+            rotation:
+                m.kind == AppMapMarkerKind.driver ? (m.bearing ?? 0) : 0,
+            anchor: m.kind == AppMapMarkerKind.driver
+                ? const Offset(0.5, 0.5)
+                : const Offset(0.5, 1.0),
+            flat: m.kind == AppMapMarkerKind.driver,
+            infoWindow: m.title == null
+                ? gm.InfoWindow.noText
+                : gm.InfoWindow(title: m.title),
+          ),
+      };
+
+  /// White casing drawn under the brand-colored line so the route reads like a
+  /// layered nav route rather than a flat stroke. Google draws polylines in
+  /// zIndex order, which replaces Mapbox's implicit creation order.
+  Set<gm.Polyline> get _polylines {
+    final line = widget.polyline;
+    if (line == null || line.length < 2) return const {};
+    final points = [for (final p in line) gm.LatLng(p.lat, p.lng)];
+    return {
+      gm.Polyline(
+        polylineId: const gm.PolylineId('route_casing'),
+        points: points,
+        color: const Color(0xFFFFFFFF),
+        width: 11,
+        jointType: gm.JointType.round,
+        // Rounded caps stop the casing ending in a hard rectangle at the pins.
+        startCap: gm.Cap.roundCap,
+        endCap: gm.Cap.roundCap,
+        zIndex: 0,
+      ),
+      gm.Polyline(
+        polylineId: const gm.PolylineId('route'),
+        points: points,
+        color: const Color(0xFF059669), // brand emerald
+        width: 6,
+        jointType: gm.JointType.round,
+        startCap: gm.Cap.roundCap,
+        endCap: gm.Cap.roundCap,
+        zIndex: 1,
+      ),
+    };
   }
 
   @override
   Widget build(BuildContext context) {
-    return mb.MapWidget(
+    return gm.GoogleMap(
       key: const ValueKey('app_map'),
-      cameraOptions: mb.CameraOptions(
-        center: mb.Point(
-          coordinates: mb.Position(
-            widget.initialLongitude,
-            widget.initialLatitude,
-          ),
-        ),
+      initialCameraPosition: gm.CameraPosition(
+        target: gm.LatLng(widget.initialLatitude, widget.initialLongitude),
         zoom: widget.initialZoom,
       ),
-      styleUri: mb.MapboxStyles.LIGHT,
+      markers: _markers,
+      polylines: _polylines,
+      myLocationEnabled: widget.showUserLocationPuck,
+      myLocationButtonEnabled: widget.showUserLocationPuck,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      // Keeps Google's own controls and the copyright notice clear of sheets
+      // and cards the parent overlays on the map, and biases the camera so a
+      // fitted route is centred in the *visible* area rather than behind them.
+      padding: widget.contentPadding,
+      trafficEnabled: widget.showTraffic,
+      style: _kMapStyle,
       onMapCreated: _onMapCreated,
     );
   }
 
-  Future<void> _onMapCreated(mb.MapboxMap map) async {
+  Future<void> _onMapCreated(gm.GoogleMapController map) async {
     _map = map;
-    if (widget.showUserLocationPuck) {
-      await map.location.updateSettings(
-        mb.LocationComponentSettings(
-          enabled: true,
-          puckBearingEnabled: true,
-        ),
-      );
-    }
-    _markerManager = await map.annotations.createPointAnnotationManager();
-    // MAP alignment (not the VIEWPORT default) rotates icons relative to true
-    // north, so a driver marker's bearing keeps pointing the right physical
-    // direction even as the user rotates/tilts the map. Best-effort: this is
-    // a purely cosmetic setting, but an uncaught failure here (e.g. a
-    // platform-channel hiccup during initial map setup) would otherwise
-    // throw out of _onMapCreated and skip every line after it -- including
-    // creating the polyline manager and the very first marker sync, which
-    // would make the driver marker (and every other marker) never appear or
-    // update at all, with no visible error.
-    try {
-      await _markerManager?.setIconRotationAlignment(mb.IconRotationAlignment.MAP);
-    } catch (e) {
-      debugPrint('AppMap: setIconRotationAlignment failed (non-fatal): $e');
-    }
-    _polylineManager = await map.annotations.createPolylineAnnotationManager();
-    await _syncMarkers();
-    await _syncPolyline();
+    final pending = _pendingCameraMove;
+    _pendingCameraMove = null;
+    if (pending != null) await pending();
     if (mounted) widget.onMapReady?.call();
   }
 
-  /// Entry point every caller uses. Serializes against a concurrent
-  /// in-flight sync (see the fields above) and never lets an exception from
-  /// the platform channel (e.g. a stale annotation reference on a fast-
-  /// following GPS tick) permanently stop future syncs — it's logged and
-  /// swallowed instead, since a single missed marker update is far less bad
-  /// than the driver marker silently freezing for the rest of the session.
-  Future<void> _syncMarkers() async {
-    if (_markerSyncInFlight) {
-      _markerSyncQueued = true;
-      return;
-    }
-    _markerSyncInFlight = true;
-    try {
-      await _syncMarkersNow();
-    } catch (e, st) {
-      debugPrint('AppMap: marker sync failed, will retry on next update: $e\n$st');
-    } finally {
-      _markerSyncInFlight = false;
-      if (_markerSyncQueued) {
-        _markerSyncQueued = false;
-        // A newer marker set arrived while we were syncing — run once more
-        // so it isn't lost, using the current widget.markers (already the
-        // latest, since Flutter updates the widget before didUpdateWidget
-        // fires again).
-        unawaited(_syncMarkers());
-      }
-    }
-  }
-
-  Future<void> _syncMarkersNow() async {
-    final manager = _markerManager;
-    if (manager == null) return;
-
-    final incoming = {for (final m in widget.markers) m.id: m};
-
-    final toRemove = <String>[];
-    for (final id in _renderedMarkers.keys) {
-      if (!incoming.containsKey(id)) toRemove.add(id);
-    }
-    for (final id in toRemove) {
-      final ann = _renderedMarkers.remove(id);
-      if (ann != null) await manager.delete(ann);
-    }
-
-    for (final marker in incoming.values) {
-      final existing = _renderedMarkers[marker.id];
-      final icon = await _iconFor(marker.kind);
-      final isDriver = marker.kind == AppMapMarkerKind.driver;
-      final point = mb.Point(
-        coordinates: mb.Position(marker.longitude, marker.latitude),
-      );
-      if (existing == null) {
-        final ann = await manager.create(
-          mb.PointAnnotationOptions(
-            geometry: point,
-            image: icon,
-            iconSize: 1.0,
-            // The driver badge is a symmetric disc with no tail, so it's
-            // centered on the coordinate rather than anchored by its base
-            // like the delivery/pickup teardrop pins.
-            iconAnchor: isDriver ? mb.IconAnchor.CENTER : mb.IconAnchor.BOTTOM,
-            iconRotate: isDriver ? marker.bearing : null,
-            textField: marker.title,
-            textOffset: [0, 0.6],
-            textSize: 12,
-            textColor: 0xFF2D3436,
-            textHaloColor: 0xFFFFFFFF,
-            textHaloWidth: 1.5,
-            textAnchor: mb.TextAnchor.TOP,
-          ),
-        );
-        _renderedMarkers[marker.id] = ann;
-      } else {
-        existing.geometry = point;
-        existing.textField = marker.title;
-        if (isDriver) existing.iconRotate = marker.bearing;
-        await manager.update(existing);
-      }
-    }
-  }
-
-  Future<void> _syncPolyline() async {
-    final manager = _polylineManager;
-    if (manager == null) return;
-
-    final line = widget.polyline;
-    if (line == null || line.length < 2) {
-      final existingCasing = _renderedPolylineCasing;
-      if (existingCasing != null) {
-        await manager.delete(existingCasing);
-        _renderedPolylineCasing = null;
-      }
-      final existing = _renderedPolyline;
-      if (existing != null) {
-        await manager.delete(existing);
-        _renderedPolyline = null;
-      }
-      return;
-    }
-
-    final geometry = mb.LineString(
-      coordinates: [
-        for (final p in line) mb.Position(p.lng, p.lat),
-      ],
-    );
-
-    // White casing drawn first so the brand-colored line on top reads like a
-    // layered nav route rather than a flat stroke.
-    final existingCasing = _renderedPolylineCasing;
-    if (existingCasing == null) {
-      _renderedPolylineCasing = await manager.create(
-        mb.PolylineAnnotationOptions(
-          geometry: geometry,
-          lineColor: 0xFFFFFFFF,
-          lineWidth: 8.0,
-          lineJoin: mb.LineJoin.ROUND,
-        ),
-      );
-    } else {
-      existingCasing.geometry = geometry;
-      await manager.update(existingCasing);
-    }
-
-    final existing = _renderedPolyline;
-    if (existing == null) {
-      _renderedPolyline = await manager.create(
-        mb.PolylineAnnotationOptions(
-          geometry: geometry,
-          lineColor: 0xFF059669, // brand emerald
-          lineWidth: 5.0,
-          lineJoin: mb.LineJoin.ROUND,
-        ),
-      );
-    } else {
-      existing.geometry = geometry;
-      await manager.update(existing);
-    }
-  }
-
-  Future<Uint8List> _iconFor(AppMapMarkerKind kind) async {
+  Future<Uint8List> _iconFor(AppMapMarkerKind kind, double ratio) async {
     final cached = _iconCache[kind];
     if (cached != null) return cached;
-    final bytes = await _renderPinBytes(kind);
+    final bytes = await _renderPinBytes(kind, ratio);
     _iconCache[kind] = bytes;
     return bytes;
   }
@@ -396,7 +355,7 @@ class _AppMapState extends State<AppMap> {
     }
   }
 
-  // Mapbox's PointAnnotation needs raw PNG bytes; rasterize a teardrop pin
+  // Rasterize a teardrop pin
   // with a glyph + soft drop shadow at runtime so we don't have to ship
   // per-density asset PNGs. Mirrors the pin style used by MapAddressPicker.
   //
@@ -406,15 +365,19 @@ class _AppMapState extends State<AppMap> {
   // coordinate, so rotating the whole image to show heading (iconRotate)
   // would visibly swing the tail off the driver's real position. A
   // radially-symmetric badge has no such constraint.
-  Future<Uint8List> _renderPinBytes(AppMapMarkerKind kind) async {
+  Future<Uint8List> _renderPinBytes(AppMapMarkerKind kind, double ratio) async {
     if (kind == AppMapMarkerKind.driver) {
-      return _renderDriverBadgeBytes();
+      return _renderDriverBadgeBytes(ratio);
     }
     final color = _colorFor(kind);
     final glyph = _glyphFor(kind);
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
+    // Everything below is laid out in a fixed 96-unit design space; scaling the
+    // canvas up front renders that same artwork at device resolution without
+    // touching a single coordinate.
+    canvas.scale(ratio);
     const double size = 96;
     const double bubbleRadius = 26;
     const Offset bubbleCenter = Offset(size / 2, bubbleRadius + 6);
@@ -463,7 +426,10 @@ class _AppMapState extends State<AppMap> {
     );
 
     final picture = recorder.endRecording();
-    final image = await picture.toImage(size.toInt(), size.toInt());
+    final image = await picture.toImage(
+      (size * ratio).round(),
+      (size * ratio).round(),
+    );
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }
@@ -474,7 +440,7 @@ class _AppMapState extends State<AppMap> {
   // the whole badge — chevron included — turns to face the driver's actual
   // direction of travel between consecutive GPS fixes, so the customer can
   // see at a glance which way the driver is heading, not just where they are.
-  Future<Uint8List> _renderDriverBadgeBytes() async {
+  Future<Uint8List> _renderDriverBadgeBytes(double ratio) async {
     const color = Color(0xFFF59E0B); // brand amber
     final glyph = _glyphFor(AppMapMarkerKind.driver);
 
@@ -525,7 +491,10 @@ class _AppMapState extends State<AppMap> {
     );
 
     final picture = recorder.endRecording();
-    final image = await picture.toImage(size.toInt(), size.toInt());
+    final image = await picture.toImage(
+      (size * ratio).round(),
+      (size * ratio).round(),
+    );
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
   }
@@ -535,12 +504,18 @@ class _AppMapState extends State<AppMap> {
     double lng, {
     double? zoom,
   }) async {
-    await _map?.flyTo(
-      mb.CameraOptions(
-        center: mb.Point(coordinates: mb.Position(lng, lat)),
-        zoom: zoom,
+    final map = _map;
+    if (map == null) {
+      _pendingCameraMove = () => _animateToPoint(lat, lng, zoom: zoom);
+      return;
+    }
+    await map.animateCamera(
+      gm.CameraUpdate.newCameraPosition(
+        gm.CameraPosition(
+          target: gm.LatLng(lat, lng),
+          zoom: zoom ?? widget.initialZoom,
+        ),
       ),
-      mb.MapAnimationOptions(duration: 600),
     );
   }
 
@@ -548,23 +523,40 @@ class _AppMapState extends State<AppMap> {
     List<({double lat, double lng})> points, {
     EdgeInsets padding = const EdgeInsets.all(48),
   }) async {
+    if (points.isEmpty) return;
     final map = _map;
-    if (map == null || points.isEmpty) return;
-    final coords = [
-      for (final p in points) mb.Point(coordinates: mb.Position(p.lng, p.lat)),
-    ];
-    final cam = await map.cameraForCoordinatesPadding(
-      coords,
-      mb.CameraOptions(),
-      mb.MbxEdgeInsets(
-        top: padding.top,
-        left: padding.left,
-        bottom: padding.bottom,
-        right: padding.right,
-      ),
-      null,
-      null,
+    if (map == null) {
+      _pendingCameraMove = () => _fitBounds(points, padding: padding);
+      return;
+    }
+
+    // A single point has no extent: LatLngBounds requires sw <= ne on both
+    // axes, and a zero-area box makes Google Maps zoom to maximum. Centre on
+    // it instead.
+    if (points.length == 1) {
+      await _animateToPoint(points.first.lat, points.first.lng);
+      return;
+    }
+
+    var minLat = points.first.lat, maxLat = points.first.lat;
+    var minLng = points.first.lng, maxLng = points.first.lng;
+    for (final p in points) {
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lng < minLng) minLng = p.lng;
+      if (p.lng > maxLng) maxLng = p.lng;
+    }
+
+    final bounds = gm.LatLngBounds(
+      southwest: gm.LatLng(minLat, minLng),
+      northeast: gm.LatLng(maxLat, maxLng),
     );
-    await map.flyTo(cam, mb.MapAnimationOptions(duration: 600));
+
+    // CameraUpdate.newLatLngBounds takes one padding value, so use the largest
+    // side to guarantee nothing is clipped.
+    final pad = [padding.top, padding.left, padding.bottom, padding.right]
+        .reduce((a, b) => a > b ? a : b);
+
+    await map.animateCamera(gm.CameraUpdate.newLatLngBounds(bounds, pad));
   }
 }

@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mb;
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 
 import '../utils/location_service.dart';
 import '../../features/checkout/data/models/delivery_address.dart';
@@ -13,7 +13,7 @@ import '../../features/checkout/data/models/delivery_address.dart';
 ///
 /// Phase 1 — Choice screen
 ///   • "Utiliser ma position actuelle" button (GPS)
-///   • Search field with Mapbox Geocoding autocomplete
+///   • Search field with Google Places autocomplete
 ///
 /// Phase 2 — Map fine-tune
 ///   • Map pre-centred on the chosen location
@@ -131,25 +131,36 @@ class _ChoiceScreenState extends State<_ChoiceScreen> {
   }
 
   Future<void> _fetchSuggestions(String query) async {
-    final token = dotenv.env['MAPBOX_PUBLIC_TOKEN'];
-    if (token == null || token.isEmpty) return;
+    final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
+    if (key == null || key.isEmpty) return;
 
     setState(() => _isSearching = true);
     try {
       final encoded = Uri.encodeComponent(query);
+      // Places Text Search rather than the Geocoding API: it matches business
+      // and place names, not just formatted addresses, which is what the old
+      // Mapbox `places` endpoint did. `region=tn` biases toward Tunisia --
+      // Google has no hard country filter equivalent to Mapbox's `country=TN`,
+      // so results are filtered client-side below.
       final url = Uri.parse(
-        'https://api.mapbox.com/geocoding/v5/mapbox.places/$encoded.json'
-        '?access_token=$token'
+        'https://maps.googleapis.com/maps/api/place/textsearch/json'
+        '?query=$encoded'
         '&language=fr'
-        '&limit=5'
-        '&country=TN',
+        '&region=tn'
+        '&key=$key',
       );
       final resp = await http.get(url).timeout(const Duration(seconds: 5));
       if (resp.statusCode == 200 && mounted) {
         final data = json.decode(resp.body) as Map<String, dynamic>;
-        final features = (data['features'] as List?) ?? [];
+        // 200 is returned even for REQUEST_DENIED / ZERO_RESULTS.
+        if (data['status'] != 'OK') {
+          setState(() => _suggestions = []);
+          return;
+        }
+        final results = (data['results'] as List?) ?? [];
         setState(() {
-          _suggestions = features
+          _suggestions = results
+              .take(5)
               .map((f) => _GeocodingResult.fromJson(f as Map<String, dynamic>))
               .toList();
         });
@@ -364,13 +375,16 @@ class _GeocodingResult {
     required this.lng,
   });
 
+  /// Parses one Google Places Text Search result. Google nests the coordinates
+  /// under `geometry.location` as named lat/lng fields, rather than Mapbox's
+  /// flat `center: [lng, lat]` array.
   factory _GeocodingResult.fromJson(Map<String, dynamic> json) {
-    final coords = (json['center'] as List).cast<num>();
+    final loc = json['geometry']?['location'] as Map<String, dynamic>?;
     return _GeocodingResult(
-      text: json['text'] as String? ?? '',
-      placeName: json['place_name'] as String? ?? '',
-      lat: coords[1].toDouble(),
-      lng: coords[0].toDouble(),
+      text: json['name'] as String? ?? '',
+      placeName: json['formatted_address'] as String? ?? '',
+      lat: (loc?['lat'] as num?)?.toDouble() ?? 0,
+      lng: (loc?['lng'] as num?)?.toDouble() ?? 0,
     );
   }
 }
@@ -400,7 +414,7 @@ class _MapFineTune extends StatefulWidget {
 
 class _MapFineTuneState extends State<_MapFineTune>
     with SingleTickerProviderStateMixin {
-  mb.MapboxMap? _map;
+  gm.GoogleMapController? _map;
   bool _isDragging = false;
   bool _isGeocoding = false;
   bool _hasAddress = false;
@@ -446,25 +460,28 @@ class _MapFineTuneState extends State<_MapFineTune>
   Future<void> _programmaticFlyTo(double lat, double lng) async {
     _programmaticMoveTimer?.cancel();
     _isProgrammaticMove = true;
-    await _map?.flyTo(
-      mb.CameraOptions(
-        center: mb.Point(coordinates: mb.Position(lng, lat)),
-        zoom: 16,
+    await _map?.animateCamera(
+      gm.CameraUpdate.newCameraPosition(
+        gm.CameraPosition(target: gm.LatLng(lat, lng), zoom: 16),
       ),
-      mb.MapAnimationOptions(duration: 800),
     );
     _programmaticMoveTimer = Timer(const Duration(milliseconds: 300), () {
       if (mounted) _isProgrammaticMove = false;
     });
   }
 
-  void _onMapCreated(mb.MapboxMap map) {
+  void _onMapCreated(gm.GoogleMapController map) {
     _map = map;
     // Fly to the pre-chosen location once the map is ready.
     _programmaticFlyTo(widget.initialLatitude, widget.initialLongitude);
   }
 
-  void _onCameraChange(mb.CameraChangedEventData _) {
+  /// Google reports the camera position on every move tick, so the centre is
+  /// tracked here instead of being queried from the controller on idle (Mapbox's
+  /// getCameraState has no direct Google equivalent).
+  void _onCameraMove(gm.CameraPosition position) {
+    _currentLat = position.target.latitude;
+    _currentLng = position.target.longitude;
     if (!_isProgrammaticMove && !_userHasDragged) {
       setState(() => _userHasDragged = true);
     }
@@ -475,7 +492,7 @@ class _MapFineTuneState extends State<_MapFineTune>
     _geocodeDebounce?.cancel();
   }
 
-  void _onMapIdle(mb.MapIdleEventData _) {
+  void _onCameraIdle() {
     if (_isDragging) {
       setState(() => _isDragging = false);
       _pinController.reverse();
@@ -485,15 +502,12 @@ class _MapFineTuneState extends State<_MapFineTune>
   }
 
   Future<void> _geocodeCenter() async {
-    final map = _map;
-    if (map == null) return;
+    if (_map == null) return;
     setState(() => _isGeocoding = true);
     try {
-      final state = await map.getCameraState();
-      final lat = state.center.coordinates.lat.toDouble();
-      final lng = state.center.coordinates.lng.toDouble();
-      _currentLat = lat;
-      _currentLng = lng;
+      // _currentLat/_currentLng are kept current by _onCameraMove.
+      final lat = _currentLat;
+      final lng = _currentLng;
       final address = await LocationService.getAddressFromCoordinates(lat, lng);
       if (mounted) {
         setState(() {
@@ -527,17 +541,17 @@ class _MapFineTuneState extends State<_MapFineTune>
       body: Stack(
         children: [
           // ── Map ─────────────────────────────────────────────────────────────
-          mb.MapWidget(
-            cameraOptions: mb.CameraOptions(
-              center: mb.Point(
-                coordinates: mb.Position(_currentLng, _currentLat),
-              ),
+          gm.GoogleMap(
+            initialCameraPosition: gm.CameraPosition(
+              target: gm.LatLng(_currentLat, _currentLng),
               zoom: 16,
             ),
-            styleUri: mb.MapboxStyles.MAPBOX_STREETS,
             onMapCreated: _onMapCreated,
-            onCameraChangeListener: _onCameraChange,
-            onMapIdleListener: _onMapIdle,
+            onCameraMove: _onCameraMove,
+            onCameraIdle: _onCameraIdle,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            myLocationButtonEnabled: false,
           ),
 
           // ── Center pin ───────────────────────────────────────────────────────

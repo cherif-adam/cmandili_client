@@ -15,7 +15,6 @@ import 'core/config/supabase_config.dart';
 import 'core/push/push_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 import 'firebase_options.dart';
@@ -28,11 +27,10 @@ void main() async {
   // Default to local device timezone.
   tz.setLocalLocation(tz.getLocation('Africa/Tunis'));
 
-  // dotenv MUST resolve first — SupabaseConfig and the Mapbox token both
-  // read from it. Then run Supabase + Firebase in parallel.
+  // dotenv MUST resolve first — SupabaseConfig reads from it. The Google Maps
+  // key is read from the native manifest, not here. Then run Supabase +
+  // Firebase in parallel.
   await dotenv.load(fileName: '.env');
-
-  MapboxOptions.setAccessToken(dotenv.env['MAPBOX_PUBLIC_TOKEN'] ?? '');
 
   await Future.wait([
     Supabase.initialize(

@@ -175,13 +175,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     });
   }
 
-  /// Fetch a route polyline from the Mapbox Directions API and draw it on the
+  /// Fetch a route polyline from the Google Directions API and draw it on the
   /// map. Called whenever the driver has moved far enough from
   /// [_lastRouteFetchOrigin] for the currently-drawn line to be considered
   /// stale (see the caller in [_buildTracking]) — not just once.
   ///
-  /// We request `geometries=geojson` so the response contains an already-decoded
-  /// list of [lng, lat] pairs — no encoded-polyline decoding needed.
+  /// Google has no GeoJSON geometry option, so unlike the previous Mapbox call
+  /// the overview geometry comes back as an encoded polyline string that has to
+  /// be decoded (see [_decodePolyline]). Coordinates are also `lat,lng` here,
+  /// the opposite of Mapbox's `lng,lat`.
   Future<void> _fetchRoute({
     required ({double lat, double lng}) origin,
     required ({double lat, double lng}) destination,
@@ -191,28 +193,32 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     _lastRouteFetchOrigin = origin;
     _lastRouteFetchDestination = destination;
 
-    final token = dotenv.env['MAPBOX_PUBLIC_TOKEN'] ?? '';
+    final key = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
     final url = Uri.parse(
-      'https://api.mapbox.com/directions/v5/mapbox/driving/'
-      '${origin.lng},${origin.lat};${destination.lng},${destination.lat}'
-      '?geometries=geojson&overview=full&access_token=$token',
+      'https://maps.googleapis.com/maps/api/directions/json'
+      '?origin=${origin.lat},${origin.lng}'
+      '&destination=${destination.lat},${destination.lng}'
+      '&mode=driving&key=$key',
     );
 
     try {
       final response = await http.get(url);
       if (response.statusCode != 200) return;
       final data = json.decode(response.body) as Map<String, dynamic>;
+      // Google answers 200 even for REQUEST_DENIED / ZERO_RESULTS, so the
+      // payload status is what actually says whether a route came back.
+      if (data['status'] != 'OK') {
+        debugPrint('Route fetch rejected: ${data['status']} '
+            '${data['error_message'] ?? ''}');
+        return;
+      }
       final routes = data['routes'] as List?;
       if (routes == null || routes.isEmpty) return;
 
-      final coords = routes.first['geometry']['coordinates'] as List;
-      final points = <({double lat, double lng})>[
-        for (final c in coords)
-          (
-            lat: (c[1] as num).toDouble(),
-            lng: (c[0] as num).toDouble(),
-          ),
-      ];
+      final encoded = routes.first['overview_polyline']?['points'] as String?;
+      if (encoded == null || encoded.isEmpty) return;
+      final points = _decodePolyline(encoded);
+      if (points.length < 2) return;
 
       if (!mounted) return;
       setState(() => _routePolyline = points);
@@ -221,6 +227,43 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     } finally {
       _routeFetchInFlight = false;
     }
+  }
+
+  /// Decodes Google's encoded-polyline format into lat/lng pairs.
+  ///
+  /// The format stores each coordinate as a delta from the previous one, in
+  /// units of 1e-5 degrees, chunked into 5-bit groups with a continuation bit
+  /// and zig-zag encoded so negatives pack small.
+  static List<({double lat, double lng})> _decodePolyline(String encoded) {
+    final points = <({double lat, double lng})>[];
+    var index = 0;
+    var lat = 0;
+    var lng = 0;
+
+    while (index < encoded.length) {
+      // Each coordinate is two varints: the latitude delta then the longitude.
+      var result = 0;
+      var shift = 0;
+      int byte;
+      do {
+        byte = encoded.codeUnitAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20 && index < encoded.length);
+      lat += (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
+
+      result = 0;
+      shift = 0;
+      do {
+        byte = encoded.codeUnitAt(index++) - 63;
+        result |= (byte & 0x1f) << shift;
+        shift += 5;
+      } while (byte >= 0x20 && index < encoded.length);
+      lng += (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
+
+      points.add((lat: lat / 1e5, lng: lng / 1e5));
+    }
+    return points;
   }
 
   @override

@@ -105,28 +105,59 @@ class LocationService {
     return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) / 1000;
   }
 
-  // Calculate real route distance using Mapbox Directions API
+  /// Builds a Google Directions request. Note the coordinate order differs
+  /// from Mapbox: Google takes `lat,lng` while Mapbox took `lng,lat`.
+  static Uri? _directionsUri(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
+    if (key == null || key.isEmpty) return null;
+    return Uri.parse(
+      'https://maps.googleapis.com/maps/api/directions/json'
+      '?origin=$lat1,$lon1&destination=$lat2,$lon2&mode=driving&key=$key',
+    );
+  }
+
+  /// Sums the per-leg values of a Google Directions route. Unlike Mapbox,
+  /// which reports `routes[0].distance` / `.duration` at the route level,
+  /// Google only reports these per leg, so they must be added up.
+  static num? _sumLegs(Map<String, dynamic> data, String field) {
+    final routes = data['routes'];
+    if (routes is! List || routes.isEmpty) return null;
+    final legs = routes.first['legs'];
+    if (legs is! List || legs.isEmpty) return null;
+    num total = 0;
+    for (final leg in legs) {
+      final v = leg[field]?['value'];
+      if (v is! num) return null;
+      total += v;
+    }
+    return total;
+  }
+
+  // Calculate real route distance using the Google Directions API.
   static Future<double> calculateRouteDistance(
     double lat1,
     double lon1,
     double lat2,
     double lon2,
   ) async {
-    final token = dotenv.env['MAPBOX_PUBLIC_TOKEN'];
-    if (token == null || token.isEmpty) {
-      return calculateDistance(lat1, lon1, lat2, lon2);
-    }
+    final url = _directionsUri(lat1, lon1, lat2, lon2);
+    if (url == null) return calculateDistance(lat1, lon1, lat2, lon2);
 
     try {
-      final url = Uri.parse(
-          'https://api.mapbox.com/directions/v5/mapbox/driving/$lon1,$lat1;$lon2,$lat2?access_token=$token');
       final response = await http.get(url).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
-          final distanceMeters = data['routes'][0]['distance'];
-          return (distanceMeters as num).toDouble() / 1000;
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        // Google returns HTTP 200 even for REQUEST_DENIED / ZERO_RESULTS, so
+        // the payload status has to be checked rather than the status code.
+        if (data['status'] == 'OK') {
+          final meters = _sumLegs(data, 'distance');
+          if (meters != null) return meters.toDouble() / 1000;
         }
       }
       return calculateDistance(lat1, lon1, lat2, lon2);
@@ -149,19 +180,17 @@ class LocationService {
     double lat2,
     double lon2,
   ) async {
-    final token = dotenv.env['MAPBOX_PUBLIC_TOKEN'];
-    if (token == null || token.isEmpty) return null;
+    final url = _directionsUri(lat1, lon1, lat2, lon2);
+    if (url == null) return null;
 
     try {
-      final url = Uri.parse(
-          'https://api.mapbox.com/directions/v5/mapbox/driving/$lon1,$lat1;$lon2,$lat2?access_token=$token');
       final response = await http.get(url).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['routes'] != null && (data['routes'] as List).isNotEmpty) {
-          final durationSeconds = data['routes'][0]['duration'];
-          return (durationSeconds as num).round();
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        if (data['status'] == 'OK') {
+          final seconds = _sumLegs(data, 'duration');
+          if (seconds != null) return seconds.round();
         }
       }
       return null;

@@ -43,6 +43,12 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="cmandili_orders" />
+        <!-- Google Maps SDK key. Unlike Mapbox (which took its token at runtime
+             via MapboxOptions.setAccessToken), the Maps SDK reads this from the
+             manifest at process start, so it must live here. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyB7OWrWJqmgV_ZU9EYFMxBYC_TOHwgy0" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

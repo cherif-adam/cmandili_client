@@ -32,7 +32,7 @@ dependencies:
   flutter_local_notifications: ^17.0.0
   
   # Maps & Location
-  mapbox_maps_flutter: ^2.3.0
+  google_maps_flutter: ^2.9.0
   geolocator: ^10.1.0
   geocoding: ^2.1.1
   
@@ -58,7 +58,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   badges: ^3.1.2
 
-  # HTTP client for Mapbox Directions API (route polyline)
+  # HTTP client for the Google Directions API (route polyline)
   http: ^1.6.0
   flutter_dotenv: ^6.0.0
 
