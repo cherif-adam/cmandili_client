@@ -331,12 +331,53 @@ class OrderRepository {
         .from('orders')
         .stream(primaryKey: ['id'])
         .eq('id', orderId)
-        .map((event) {
+        .asyncMap((event) async {
           if (event.isEmpty) {
             throw Exception('Order not found');
           }
-          return Order.fromJson(_mapOrderFromDb(event.first));
+          return Order.fromJson(await _mapOrderWithDriverInfo(event.first));
         });
+  }
+
+  /// Same fields as [_mapOrderFromDb], plus the assigned driver's name/phone
+  /// (from `profiles`) and vehicle (from `drivers`) for the tracking
+  /// screen's driver-info card. `.stream()` can't do embedded joins, so this
+  /// is two small extra queries -- fine here since this is the only caller,
+  /// tracking a single live order. [_mapOrderFromDb] itself stays
+  /// synchronous and driver-info-free because it's also used to map order
+  /// LISTS (getUserOrders, getBillOrders below) -- doing this per row there
+  /// would be a real N+1 cost for screens that never show driver contact
+  /// details in the first place.
+  Future<Map<String, dynamic>> _mapOrderWithDriverInfo(Map<String, dynamic> dbJson) async {
+    final base = _mapOrderFromDb(dbJson);
+    final driverId = dbJson['driver_id'] as String?;
+    if (driverId == null) return base;
+
+    try {
+      final driverRow = await _supabase
+          .from('drivers')
+          .select('user_id, vehicle_type, vehicle_make')
+          .eq('id', driverId)
+          .maybeSingle();
+      if (driverRow == null) return base;
+
+      base['driverVehicleType'] = driverRow['vehicle_type'];
+      base['driverVehicleMake'] = driverRow['vehicle_make'];
+
+      final driverUserId = driverRow['user_id'] as String?;
+      if (driverUserId != null) {
+        final profileRow = await _supabase
+            .from('profiles')
+            .select('full_name, phone')
+            .eq('id', driverUserId)
+            .maybeSingle();
+        base['driverName'] = profileRow?['full_name'];
+        base['driverPhone'] = profileRow?['phone'];
+      }
+    } catch (e) {
+      debugPrint('Driver info lookup failed: $e');
+    }
+    return base;
   }
 
   /// Uploads a local AAC voice clip to the public `voice-messages` bucket and

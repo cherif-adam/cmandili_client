@@ -60,6 +60,17 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   ({double lat, double lng})? _lastRouteFetchDestination;
   bool _routeFetchInFlight = false;
   static const double _kRouteRefetchThresholdMeters = 300;
+  // Live ETA/distance, recomputed every time a route fetch succeeds (piggy-
+  // backs on the existing refetch cadence above -- no extra network calls).
+  // Null until the first successful fetch, matching order.estimatedDeliveryTime's
+  // own "not known yet" state.
+  int? _liveEtaMinutes;
+  double? _liveDistanceKm;
+  // Distance under which the driver is considered to have arrived at the
+  // current destination. Wide enough to absorb ordinary urban GPS drift
+  // without firing early, tight enough to still mean "right outside".
+  static const double _kArrivedThresholdMeters = 60;
+  bool _hasArrivedTriggered = false;
   bool _boundsFitted = false;
   bool _loyaltySheetScheduled = false;
   bool _ratingPromptScheduled = false;
@@ -220,8 +231,31 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       final points = _decodePolyline(encoded);
       if (points.length < 2) return;
 
+      // Google reports duration/distance per LEG, not per route (a route can
+      // have multiple legs with waypoints; ours never does, but the fields
+      // still live one level down), so they're summed here the same way the
+      // geometry decoding above already accounts for Google's response shape
+      // differing from the old Mapbox call.
+      final legs = routes.first['legs'] as List?;
+      int? etaMinutes;
+      double? distanceKm;
+      if (legs != null && legs.isNotEmpty) {
+        var totalSeconds = 0;
+        var totalMeters = 0;
+        for (final leg in legs) {
+          totalSeconds += (leg['duration']?['value'] as num?)?.toInt() ?? 0;
+          totalMeters += (leg['distance']?['value'] as num?)?.toInt() ?? 0;
+        }
+        etaMinutes = (totalSeconds / 60).ceil();
+        distanceKm = totalMeters / 1000;
+      }
+
       if (!mounted) return;
-      setState(() => _routePolyline = points);
+      setState(() {
+        _routePolyline = points;
+        if (etaMinutes != null) _liveEtaMinutes = etaMinutes;
+        if (distanceKm != null) _liveDistanceKm = distanceKm;
+      });
     } catch (e) {
       debugPrint('Route fetch failed: $e');
     } finally {
@@ -475,6 +509,36 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       );
     }
 
+    // "Driver has arrived" — one-time latch so it fires exactly once even
+    // if GPS noise puts the driver back and forth across the threshold right
+    // at the boundary. Reset per destination change (facture's mid-delivery
+    // pickupAddress -> deliveryAddress switch is a genuinely new arrival to
+    // detect, not a continuation of the first one).
+    if (destinationChanged) _hasArrivedTriggered = false;
+    final hasArrived = showMap &&
+        Geolocator.distanceBetween(
+              _driverLat!,
+              _driverLng!,
+              destination.lat,
+              destination.lng,
+            ) <
+            _kArrivedThresholdMeters;
+    if (hasArrived && !_hasArrivedTriggered) {
+      _hasArrivedTriggered = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isFacture && order.status == OrderStatus.onTheWay
+                ? 'Le livreur est arrivé chez vous !'
+                : 'Le livreur est arrivé à destination !'),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      });
+    }
+
     // Frame driver + destination once the map first becomes visible, then
     // leave the camera under the user's control — see _updateDriverPosition.
     if (showMap && !_boundsFitted) {
@@ -572,6 +636,44 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
+                  const Spacer(),
+                  // Floating ETA/arrival pill — mirrors the bottom sheet's own
+                  // ETA text (same _liveEtaMinutes/_liveDistanceKm state) but
+                  // visible without dragging the sheet up, matching the
+                  // always-on-map info chip pattern from Uber/Glovo.
+                  if (showMap && (hasArrived || _liveEtaMinutes != null))
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: hasArrived ? AppColors.success : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            hasArrived ? Icons.check_circle_rounded : Icons.access_time_rounded,
+                            size: 16,
+                            color: hasArrived ? Colors.white : AppColors.primary,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            hasArrived
+                                ? 'Arrivé'
+                                : '~$_liveEtaMinutes min'
+                                    '${_liveDistanceKm != null ? ' • ${_liveDistanceKm!.toStringAsFixed(1)} km' : ''}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: hasArrived ? Colors.white : AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -636,7 +738,16 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    if (order.estimatedDeliveryTime != null)
+                    if (_liveEtaMinutes != null)
+                      Text(
+                        // Recomputed on every route refresh (see _fetchRoute)
+                        // instead of the fixed value computed once at order
+                        // creation, so it tracks real remaining distance.
+                        'Estimated delivery: ~$_liveEtaMinutes min'
+                        '${_liveDistanceKm != null ? ' (${_liveDistanceKm!.toStringAsFixed(1)} km)' : ''}',
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      )
+                    else if (order.estimatedDeliveryTime != null)
                       Text(
                         'Estimated delivery: ${_formatTime(order.estimatedDeliveryTime!)}',
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
@@ -765,6 +876,17 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                                     style: const TextStyle(
                                         color: AppColors.textSecondary, fontSize: 14),
                                   ),
+                                  if (order.driverVehicleType != null)
+                                    Text(
+                                      [
+                                        order.driverVehicleType![0].toUpperCase() +
+                                            order.driverVehicleType!.substring(1),
+                                        if ((order.driverVehicleMake ?? '').trim().isNotEmpty)
+                                          order.driverVehicleMake!.trim(),
+                                      ].join(' · '),
+                                      style: const TextStyle(
+                                          color: AppColors.textSecondary, fontSize: 12),
+                                    ),
                                 ],
                               ),
                             ),

@@ -36,6 +36,8 @@ class Order {
   final String? driverId;
   final String? driverName;
   final String? driverPhone;
+  final String? driverVehicleType;
+  final String? driverVehicleMake;
   final double? driverLatitude;
   final double? driverLongitude;
   final String paymentMethod;
@@ -77,6 +79,8 @@ class Order {
     this.driverId,
     this.driverName,
     this.driverPhone,
+    this.driverVehicleType,
+    this.driverVehicleMake,
     this.driverLatitude,
     this.driverLongitude,
     this.paymentMethod = 'Cash on Delivery',
@@ -122,6 +126,8 @@ class Order {
       driverId: json['driverId'],
       driverName: json['driverName'],
       driverPhone: json['driverPhone'],
+      driverVehicleType: json['driverVehicleType'],
+      driverVehicleMake: json['driverVehicleMake'],
       driverLatitude: json['driverLatitude']?.toDouble(),
       driverLongitude: json['driverLongitude']?.toDouble(),
       paymentMethod: json['paymentMethod'] ?? 'Cash on Delivery',
@@ -165,6 +171,8 @@ class Order {
       'driverId': driverId,
       'driverName': driverName,
       'driverPhone': driverPhone,
+      'driverVehicleType': driverVehicleType,
+      'driverVehicleMake': driverVehicleMake,
       'driverLatitude': driverLatitude,
       'driverLongitude': driverLongitude,
       'paymentMethod': paymentMethod,

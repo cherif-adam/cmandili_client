@@ -152,8 +152,25 @@ class AppMap extends StatefulWidget {
   State<AppMap> createState() => _AppMapState();
 }
 
-class _AppMapState extends State<AppMap> {
+class _AppMapState extends State<AppMap> with SingleTickerProviderStateMixin {
   gm.GoogleMapController? _map;
+
+  /// Drives the glide between a marker's last position and its newest one,
+  /// instead of the marker jumping straight to each new GPS fix. Linear (no
+  /// curve) so it reads as constant motion rather than easing in/out on
+  /// every ~30m hop, which would look like a stutter more than a glide.
+  late final AnimationController _markerAnim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..addListener(() {
+      if (mounted) setState(() {});
+    });
+
+  /// Per-marker id: where the current glide started and where it's headed.
+  /// Absent entries mean "not animating -- render at the raw target", which
+  /// is also correctly the state for a marker's very first appearance.
+  final Map<String, ({double lat, double lng, double? bearing})> _animFrom = {};
+  final Map<String, ({double lat, double lng, double? bearing})> _animTo = {};
 
   /// Rasterized pins, keyed by kind. Built once per kind and reused -- the
   /// drawing code below is unchanged from the Mapbox version, since Google
@@ -199,12 +216,72 @@ class _AppMapState extends State<AppMap> {
     // Mapbox annotation managers there is nothing to diff or sync here, which
     // is what removes the marker-sync race the old implementation guarded
     // against with an in-flight/queued pair of flags.
+    _syncMarkerAnimations(oldWidget.markers);
     _loadDescriptors();
+  }
+
+  /// Detects which markers actually moved between builds and (re)starts a
+  /// glide for each. Restarting always reads the CURRENT interpolated
+  /// position as the new "from" -- not the old marker's raw position -- so a
+  /// fresh GPS fix arriving mid-glide redirects smoothly instead of snapping
+  /// back to the previous target first.
+  void _syncMarkerAnimations(Set<AppMapMarker> oldMarkers) {
+    final oldById = {for (final m in oldMarkers) m.id: m};
+    final newIds = {for (final m in widget.markers) m.id};
+    _animFrom.removeWhere((id, _) => !newIds.contains(id));
+    _animTo.removeWhere((id, _) => !newIds.contains(id));
+
+    var anyChanged = false;
+    for (final m in widget.markers) {
+      final old = oldById[m.id];
+      if (old == null) continue; // first appearance -- render at target, no glide
+      if (old.latitude == m.latitude &&
+          old.longitude == m.longitude &&
+          old.bearing == m.bearing) {
+        continue; // unchanged
+      }
+      _animFrom[m.id] = (
+        lat: _lerpMarkerLat(m.id) ?? old.latitude,
+        lng: _lerpMarkerLng(m.id) ?? old.longitude,
+        bearing: _lerpMarkerBearing(m.id) ?? old.bearing,
+      );
+      _animTo[m.id] = (lat: m.latitude, lng: m.longitude, bearing: m.bearing);
+      anyChanged = true;
+    }
+    if (anyChanged) {
+      _markerAnim
+        ..stop()
+        ..forward(from: 0);
+    }
+  }
+
+  double? _lerpMarkerLat(String id) {
+    final from = _animFrom[id], to = _animTo[id];
+    if (from == null || to == null) return null;
+    return ui.lerpDouble(from.lat, to.lat, _markerAnim.value);
+  }
+
+  double? _lerpMarkerLng(String id) {
+    final from = _animFrom[id], to = _animTo[id];
+    if (from == null || to == null) return null;
+    return ui.lerpDouble(from.lng, to.lng, _markerAnim.value);
+  }
+
+  /// Shortest-path angle interpolation -- lerping 350deg toward 10deg
+  /// naively would sweep the long way through 180deg; this takes the 20deg
+  /// route instead.
+  double? _lerpMarkerBearing(String id) {
+    final from = _animFrom[id]?.bearing;
+    final to = _animTo[id]?.bearing;
+    if (from == null || to == null) return to ?? from;
+    final diff = ((to - from + 540) % 360) - 180;
+    return (from + diff * _markerAnim.value + 360) % 360;
   }
 
   @override
   void dispose() {
     widget.controller?._detach();
+    _markerAnim.dispose();
     _map?.dispose();
     super.dispose();
   }
@@ -242,15 +319,22 @@ class _AppMapState extends State<AppMap> {
         for (final m in widget.markers)
           gm.Marker(
             markerId: gm.MarkerId(m.id),
-            position: gm.LatLng(m.latitude, m.longitude),
+            // Mid-glide position when one is running (see _syncMarkerAnimations),
+            // else the raw target -- covers both a settled marker and one's
+            // very first appearance, which never animates.
+            position: gm.LatLng(
+              _lerpMarkerLat(m.id) ?? m.latitude,
+              _lerpMarkerLng(m.id) ?? m.longitude,
+            ),
             // Falls back to the default pin until the custom bitmap is ready,
             // so a marker is never missing from the map while it rasterizes.
             icon: _descriptors[m.kind] ?? gm.BitmapDescriptor.defaultMarker,
             // Only the driver marker conveys heading. The driver badge is drawn
             // radially symmetric precisely so it can be rotated about its centre
             // without the pin tip leaving the real coordinate.
-            rotation:
-                m.kind == AppMapMarkerKind.driver ? (m.bearing ?? 0) : 0,
+            rotation: m.kind == AppMapMarkerKind.driver
+                ? (_lerpMarkerBearing(m.id) ?? m.bearing ?? 0)
+                : 0,
             anchor: m.kind == AppMapMarkerKind.driver
                 ? const Offset(0.5, 0.5)
                 : const Offset(0.5, 1.0),
@@ -449,6 +533,17 @@ class _AppMapState extends State<AppMap> {
     const double size = 96;
     const Offset center = Offset(size / 2, size / 2);
     const double discRadius = 26;
+
+    // Soft glow behind the whole badge -- gives the live driver marker a bit
+    // more visual weight/"presence" on the map. A true pulsing animation
+    // would need re-rasterizing this bitmap every frame (icons are drawn
+    // once and cached, not redrawn per-frame -- see _iconCache), which is
+    // not a cheap fit for this architecture, so this is a static accent
+    // rather than an animated one.
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: 0.28)
+      ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 14);
+    canvas.drawCircle(center, discRadius + 16, glowPaint);
 
     // Soft drop shadow, centered under the disc (no tail to offset it).
     final shadowPaint = Paint()
