@@ -1,15 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../../core/services/route_service.dart';
 import '../../../core/widgets/app_map.dart';
 import '../data/models/order.dart';
 import '../providers/order_provider.dart';
@@ -46,20 +43,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   StreamSubscription? _deliverySubscription;
   StreamSubscription? _driverSubscription;
   String? _driverId;
-  List<({double lat, double lng})>? _routePolyline;
-  // Where the driver was standing the last time we asked Mapbox for a route.
-  // Null means never fetched. Re-fetching only when the driver has moved far
-  // enough from this point (see _kRouteRefetchThresholdMeters) keeps the
-  // drawn line from going stale as the driver progresses or deviates, without
-  // re-hitting the Directions API on every single GPS tick.
-  ({double lat, double lng})? _lastRouteFetchOrigin;
+  /// The street-following route currently drawn on the map, plus its ETA,
+  /// distance and the list of road names it runs along.
+  AppRoute? _route;
+  List<({double lat, double lng})>? get _routePolyline => _route?.points;
   // Facture orders switch destination mid-delivery (customer's address while
   // onTheWay, then the office once pickedUp) — a route drawn to the old
   // destination is wrong outright, not just stale, so any destination change
-  // forces a re-fetch regardless of how far the driver has moved.
+  // forces a re-fetch regardless of where the driver is.
   ({double lat, double lng})? _lastRouteFetchDestination;
   bool _routeFetchInFlight = false;
-  static const double _kRouteRefetchThresholdMeters = 300;
+  /// When the last Directions call went out, used to rate-limit re-routing.
+  DateTime? _lastRouteFetchAt;
   bool _boundsFitted = false;
   bool _loyaltySheetScheduled = false;
   bool _ratingPromptScheduled = false;
@@ -175,95 +170,29 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     });
   }
 
-  /// Fetch a route polyline from the Google Directions API and draw it on the
-  /// map. Called whenever the driver has moved far enough from
-  /// [_lastRouteFetchOrigin] for the currently-drawn line to be considered
-  /// stale (see the caller in [_buildTracking]) — not just once.
-  ///
-  /// Google has no GeoJSON geometry option, so unlike the previous Mapbox call
-  /// the overview geometry comes back as an encoded polyline string that has to
-  /// be decoded (see [_decodePolyline]). Coordinates are also `lat,lng` here,
-  /// the opposite of Mapbox's `lng,lat`.
+  /// Fetch the street-following route from the driver to [destination] and
+  /// draw it. Delegates to [RouteService], which stitches the per-step
+  /// geometry (so the line follows the actual roadway rather than the
+  /// simplified overview) and reports the road names along the way.
   Future<void> _fetchRoute({
     required ({double lat, double lng}) origin,
     required ({double lat, double lng}) destination,
   }) async {
     if (_routeFetchInFlight) return;
     _routeFetchInFlight = true;
-    _lastRouteFetchOrigin = origin;
     _lastRouteFetchDestination = destination;
-
-    final key = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
-    final url = Uri.parse(
-      'https://maps.googleapis.com/maps/api/directions/json'
-      '?origin=${origin.lat},${origin.lng}'
-      '&destination=${destination.lat},${destination.lng}'
-      '&mode=driving&key=$key',
-    );
+    _lastRouteFetchAt = DateTime.now();
 
     try {
-      final response = await http.get(url);
-      if (response.statusCode != 200) return;
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      // Google answers 200 even for REQUEST_DENIED / ZERO_RESULTS, so the
-      // payload status is what actually says whether a route came back.
-      if (data['status'] != 'OK') {
-        debugPrint('Route fetch rejected: ${data['status']} '
-            '${data['error_message'] ?? ''}');
-        return;
-      }
-      final routes = data['routes'] as List?;
-      if (routes == null || routes.isEmpty) return;
-
-      final encoded = routes.first['overview_polyline']?['points'] as String?;
-      if (encoded == null || encoded.isEmpty) return;
-      final points = _decodePolyline(encoded);
-      if (points.length < 2) return;
-
-      if (!mounted) return;
-      setState(() => _routePolyline = points);
-    } catch (e) {
-      debugPrint('Route fetch failed: $e');
+      final route = await RouteService.fetchDrivingRoute(
+        origin: origin,
+        destination: destination,
+      );
+      if (route == null || !mounted) return;
+      setState(() => _route = route);
     } finally {
       _routeFetchInFlight = false;
     }
-  }
-
-  /// Decodes Google's encoded-polyline format into lat/lng pairs.
-  ///
-  /// The format stores each coordinate as a delta from the previous one, in
-  /// units of 1e-5 degrees, chunked into 5-bit groups with a continuation bit
-  /// and zig-zag encoded so negatives pack small.
-  static List<({double lat, double lng})> _decodePolyline(String encoded) {
-    final points = <({double lat, double lng})>[];
-    var index = 0;
-    var lat = 0;
-    var lng = 0;
-
-    while (index < encoded.length) {
-      // Each coordinate is two varints: the latitude delta then the longitude.
-      var result = 0;
-      var shift = 0;
-      int byte;
-      do {
-        byte = encoded.codeUnitAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
-        shift += 5;
-      } while (byte >= 0x20 && index < encoded.length);
-      lat += (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
-
-      result = 0;
-      shift = 0;
-      do {
-        byte = encoded.codeUnitAt(index++) - 63;
-        result |= (byte & 0x1f) << shift;
-        shift += 5;
-      } while (byte >= 0x20 && index < encoded.length);
-      lng += (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
-
-      points.add((lat: lat / 1e5, lng: lng / 1e5));
-    }
-    return points;
   }
 
   @override
@@ -460,15 +389,25 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     // screen instance and the line never updated again for the rest of the
     // delivery, even though the live marker kept moving correctly.
     final destinationChanged = _lastRouteFetchDestination != destination;
-    final driverMovedSinceLastFetch = _lastRouteFetchOrigin == null ||
-        Geolocator.distanceBetween(
-              _lastRouteFetchOrigin!.lat,
-              _lastRouteFetchOrigin!.lng,
-              _driverLat!,
-              _driverLng!,
-            ) >
-            _kRouteRefetchThresholdMeters;
-    if (showMap && !_routeFetchInFlight && (destinationChanged || driverMovedSinceLastFetch)) {
+    // Re-route on *deviation*, not on distance travelled. A driver following
+    // the drawn line stays within GPS noise of it however far they go, so no
+    // call is made; a driver who turns down a different street is off the
+    // line within a block and the route is redrawn immediately — which is
+    // what makes the customer see the new streets they are actually taking.
+    final wentAnotherWay = showMap &&
+        RouteFreshness.isOffRoute(
+          _routePolyline,
+          (lat: _driverLat!, lng: _driverLng!),
+        );
+    // A destination change is wrong outright, so it bypasses the rate limit;
+    // deviation re-routes are throttled so a noisy GPS track cannot spam the
+    // Directions API.
+    final rateLimitPassed = _lastRouteFetchAt == null ||
+        DateTime.now().difference(_lastRouteFetchAt!) >
+            RouteFreshness.kMinRefetchInterval;
+    if (showMap &&
+        !_routeFetchInFlight &&
+        (destinationChanged || (wentAnotherWay && rateLimitPassed))) {
       _fetchRoute(
         origin: (lat: _driverLat!, lng: _driverLng!),
         destination: destination,
@@ -511,6 +450,16 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               initialLongitude: initialCenter.lng,
               initialZoom: 12,
               polyline: _routePolyline,
+              // The details sheet covers the lower ~45% of the screen; telling
+              // the map about it keeps Google's own controls clear of the
+              // sheet and centres the fitted route in the part still visible,
+              // instead of behind it.
+              contentPadding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).size.height * 0.45,
+              ),
+              // A delivery is actively under way on this screen, so traffic
+              // shading is signal rather than noise here.
+              showTraffic: true,
               markers: {
                 AppMapMarker(
                   id: 'delivery',
@@ -641,6 +590,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         'Estimated delivery: ${_formatTime(order.estimatedDeliveryTime!)}',
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       ),
+
+                    // Live route: traffic-aware ETA, remaining distance, and
+                    // the streets the driver is taking. Redrawn whenever they
+                    // deviate, so this always describes the way they are
+                    // actually going rather than the way first proposed.
+                    if (showMap && _route != null) ...[
+                      const SizedBox(height: 16),
+                      _RouteCard(route: _route!),
+                    ],
 
                     if (order.status == OrderStatus.delivered &&
                         order.loyaltyMilestoneType != null) ...[
@@ -1035,6 +993,109 @@ class _DetailRow extends StatelessWidget {
                 style: const TextStyle(
                     color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Live route summary shown above the order timeline: traffic-aware ETA,
+/// remaining driving distance, and the named streets the driver's current
+/// route runs along. Rebuilt whenever the route is re-fetched, so if the
+/// driver takes a different street the list here changes with the drawn line.
+class _RouteCard extends StatelessWidget {
+  final AppRoute route;
+
+  const _RouteCard({required this.route});
+
+  @override
+  Widget build(BuildContext context) {
+    // Enough streets to show the shape of the journey without turning the
+    // card into a full turn-by-turn list, which the customer does not need.
+    const maxStreets = 4;
+    final streets = route.streetNames.take(maxStreets).toList();
+    final remaining = route.streetNames.length - streets.length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.route_rounded,
+                  color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                route.etaLabel,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '• ${route.distanceLabel}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          if (streets.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Itinéraire',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+                color: AppColors.textSecondary.withValues(alpha: 0.9),
+              ),
+            ),
+            const SizedBox(height: 6),
+            // Streets in travel order, separated by chevrons so the sequence
+            // reads as a path rather than an unordered set of names.
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (var i = 0; i < streets.length; i++) ...[
+                  if (i > 0)
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: AppColors.textLight.withValues(alpha: 0.8),
+                    ),
+                  Text(
+                    streets[i],
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                if (remaining > 0)
+                  Text(
+                    '+$remaining',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

@@ -3,6 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/models/service_category.dart';
 import '../../../../core/providers/service_provider.dart';
 
+/// The category grid at the top of the home screen.
+///
+/// Previously a fixed `Row` of four `Expanded` tiles, which worked only
+/// because there were exactly four services: at nine it would squeeze each
+/// tile to about a finger-width and clip the labels. This lays them out in a
+/// wrapping four-per-row grid instead, so categories can keep being added
+/// without the layout degrading.
+///
+/// Each tile is a rounded icon chip over its label — the pattern Glovo,
+/// Yassir and Jumia all converged on, because it keeps a large tap target
+/// while letting the colour do the work of distinguishing categories.
 class ServiceSelector extends ConsumerWidget {
   final double screenWidth;
   final double screenHeight;
@@ -13,91 +24,127 @@ class ServiceSelector extends ConsumerWidget {
     required this.screenHeight,
   });
 
-  Color _getColorFromHex(String hexColor) {
-    hexColor = hexColor.replaceAll('#', '');
-    return Color(int.parse('FF$hexColor', radix: 16));
+  static Color colorFromHex(String hexColor) {
+    final cleaned = hexColor.replaceAll('#', '');
+    return Color(int.parse('FF$cleaned', radix: 16));
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedService = ref.watch(selectedServiceProvider);
+    const categories = ServiceCategory.categories;
 
-    return Container(
-      height: screenHeight * 0.12,
-      margin: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.05,
-        vertical: screenHeight * 0.015,
-      ),
-      child: Row(
-        children: ServiceCategory.categories.map((category) {
-          final isSelected = selectedService == category.type;
-          final color = _getColorFromHex(category.colorHex);
+    // Four per row on a normal phone, five once there is room for them. The
+    // tile sizes itself from the available width rather than from a fraction
+    // of the screen, so it stays correct inside padding and on tablets.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 10.0;
+        final perRow = constraints.maxWidth > 420 ? 5 : 4;
+        final tileWidth =
+            (constraints.maxWidth - spacing * (perRow - 1)) / perRow;
 
-          return Expanded(
-            child: GestureDetector(
-              onTap: () {
-                ref.read(selectedServiceProvider.notifier).selectService(category.type);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.01),
-                decoration: BoxDecoration(
-                  gradient: isSelected
-                      ? LinearGradient(
-                          colors: [color, color.withValues(alpha: 0.8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                  color: isSelected ? null : Colors.white,
-                  borderRadius: BorderRadius.circular(screenWidth * 0.04),
-                  border: Border.all(
-                    color: isSelected ? Colors.transparent : Colors.grey.shade300,
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isSelected
-                          ? color.withValues(alpha: 0.3)
-                          : Colors.black.withValues(alpha: 0.05),
-                      blurRadius: isSelected ? 12 : 8,
-                      offset: Offset(0, isSelected ? 6 : 3),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      category.icon,
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.08,
-                      ),
-                    ),
-                    SizedBox(height: screenHeight * 0.005),
-                    Text(
-                      _getLocalizedName(context, category),
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.028,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                        color: isSelected ? Colors.white : Colors.grey.shade700,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final category in categories)
+              SizedBox(
+                width: tileWidth,
+                child: _CategoryTile(
+                  category: category,
+                  isSelected: selectedService == category.type,
+                  onTap: () => ref
+                      .read(selectedServiceProvider.notifier)
+                      .selectService(category.type),
                 ),
               ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  final ServiceCategory category;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryTile({
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = ServiceSelector.colorFromHex(category.colorHex);
+    final locale = Localizations.localeOf(context).languageCode;
+
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: _localizedName(locale),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              height: 58,
+              decoration: BoxDecoration(
+                // Selected tiles fill with the category colour; the rest sit
+                // on a soft tint of it, so the whole grid still reads as
+                // colour-coded without nine saturated blocks competing.
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: [color, Color.lerp(color, Colors.black, 0.18)!],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isSelected ? null : color.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 5),
+                        ),
+                      ]
+                    : null,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                category.icon,
+                style: const TextStyle(fontSize: 26),
+              ),
             ),
-          );
-        }).toList(),
+            const SizedBox(height: 6),
+            Text(
+              _localizedName(locale),
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.15,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? color : Colors.grey.shade700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  String _getLocalizedName(BuildContext context, ServiceCategory category) {
-    final locale = Localizations.localeOf(context).languageCode;
+  String _localizedName(String locale) {
     switch (locale) {
       case 'ar':
         return category.nameAr;

@@ -102,8 +102,14 @@ class OrderRepository {
 
         await _supabase.from('order_items').insert({
           'order_id': orderId,
+          // One nullable FK per vertical; exactly one is set per line. A
+          // generic-vendor line (flowers, pets, gifts, bakery, electronics)
+          // uses the third column — without it the line would save with every
+          // product reference null and the partner could not tell what was
+          // ordered.
           'food_item_id': item.type == CartItemType.restaurant ? item.foodItem?.id : null,
           'grocery_item_id': item.type == CartItemType.grocery ? item.groceryItem?.id : null,
+          'vendor_item_id': item.type == CartItemType.vendor ? item.vendorItem?.id : null,
           'quantity': item.quantity,
           'price': item.price,
           'options': options,

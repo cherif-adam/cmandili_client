@@ -25,6 +25,7 @@ import '../../ai_search/presentation/ai_search_screen.dart';
 import '../../../screens/ai_chat_screen.dart';
 import '../../courier/presentation/courier_screen.dart';
 import '../../facture/presentation/facture_screen.dart';
+import '../../vendors/presentation/vendor_list_screen.dart';
 
 import '../../restaurant/providers/restaurant_provider.dart';
 
@@ -503,11 +504,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
 
-        // Service Selector (Food, Supermarket, Bills)
+        // Category grid. The selector now lays itself out from the width it
+        // is given (it wraps onto as many rows as the category count needs),
+        // so the horizontal padding lives here rather than as a margin inside
+        // the widget.
         SliverToBoxAdapter(
-          child: ServiceSelector(
-            screenWidth: screenWidth,
-            screenHeight: screenHeight,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.categories,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ServiceSelector(
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+              ],
+            ),
           ),
         ),
 
@@ -753,6 +773,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             screenHeight: screenHeight,
           ),
 
+        // Every other shop category — bakery, flowers, pets, gifts,
+        // electronics — is served by the one generic list screen. Food and
+        // supermarket keep their bespoke screens above for now because they
+        // carry extra features (happy hour, hero banners) the generic list
+        // does not; both read the same `vendors` table underneath.
+        if (selectedService.isVendorCategory &&
+            selectedService != ServiceType.foodDelivery &&
+            selectedService != ServiceType.supermarket)
+          VendorListScreen(
+            category: selectedService.vendorCategory!,
+            emptyLabel: _emptyLabelFor(selectedService),
+          ),
+
         // Courier / Colis
         if (selectedService == ServiceType.courier)
           SliverToBoxAdapter(
@@ -774,6 +807,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ],
     ),
     );
+  }
+
+  /// Category-appropriate wording for the "nothing here yet" state. A
+  /// generic "no shops" reads as a bug; naming the category makes it clear
+  /// the category is simply new.
+  static String _emptyLabelFor(ServiceType service) {
+    switch (service) {
+      case ServiceType.bakery:
+        return 'Aucune pâtisserie disponible près de vous.';
+      case ServiceType.flowers:
+        return 'Aucun fleuriste disponible près de vous.';
+      case ServiceType.pets:
+        return 'Aucune animalerie disponible près de vous.';
+      case ServiceType.gifts:
+        return 'Aucune boutique de cadeaux près de vous.';
+      case ServiceType.electronics:
+        return "Aucune boutique d'électronique près de vous.";
+      default:
+        return 'Aucune boutique disponible près de vous.';
+    }
   }
 
   Widget _buildNavItem(

@@ -120,28 +120,24 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final cartItems = ref.read(cartProvider);
     if (cartItems.isEmpty) return true;
     final first = cartItems.first;
-    final restaurantId = first.foodItem?.restaurantId;
-    final supermarketId = first.groceryItem?.supermarketId;
+    // Every shop — restaurant, supermarket, florist, pet shop — is a row in
+    // `vendors`, so one lookup covers all of them. Reading the legacy views
+    // instead would return nothing for the newer categories and wrongly
+    // report a closed shop as open.
+    final vendorId = first.foodItem?.restaurantId ??
+        first.groceryItem?.supermarketId ??
+        first.vendorItem?.vendorId;
+    if (vendorId == null) return true;
     try {
-      if (restaurantId != null) {
-        final r = await Supabase.instance.client
-            .from('restaurants')
-            .select('is_open')
-            .eq('id', restaurantId)
-            .maybeSingle();
-        return (r?['is_open'] as bool?) ?? true;
-      } else if (supermarketId != null) {
-        final s = await Supabase.instance.client
-            .from('supermarkets')
-            .select('is_open')
-            .eq('id', supermarketId)
-            .maybeSingle();
-        return (s?['is_open'] as bool?) ?? true;
-      }
+      final row = await Supabase.instance.client
+          .from('vendors')
+          .select('is_open')
+          .eq('id', vendorId)
+          .maybeSingle();
+      return (row?['is_open'] as bool?) ?? true;
     } catch (_) {
       return true; // DB trigger is the authoritative guard
     }
-    return true;
   }
 
   Future<void> _placeOrder() async {
@@ -222,8 +218,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // ── Delivery fee computation ───────────────────────────────────────
       final cartItems = ref.read(cartProvider);
       final firstItem = cartItems.isNotEmpty ? cartItems.first : null;
-      final restaurantId = firstItem?.foodItem?.restaurantId;
       final supermarketId = firstItem?.groceryItem?.supermarketId;
+      // `orders.restaurant_id` is a plain FK to what is now the generic
+      // `vendors` table, so a florist/pet/gift/bakery order rides the same
+      // column. Leaving it null (as it was before the generic categories)
+      // would orphan the order from its shop: the partner app looks its
+      // orders up by this id, and the driver resolves the pickup pin from it.
+      final restaurantId = firstItem?.foodItem?.restaurantId ??
+          firstItem?.vendorItem?.vendorId;
       final orderType =
           supermarketId != null ? OrderType.supermarket : OrderType.food;
 
@@ -232,26 +234,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
       // Fetch pickup coordinates only — delivery_fee is no longer taken from
       // the partner row; the platform fee algorithm uses a fixed base instead.
+      // One lookup for every category — see the note in _isVenueOpen. Without
+      // the vendorItem fallback a flower or pet-supply order would carry no
+      // pickup coordinates, and the distance-based delivery fee would be
+      // computed from nothing.
       try {
-        if (restaurantId != null) {
-          final r = await Supabase.instance.client
-              .from('restaurants')
+        final vendorId = restaurantId ??
+            supermarketId ??
+            cartItems.first.vendorItem?.vendorId;
+        if (vendorId != null) {
+          final row = await Supabase.instance.client
+              .from('vendors')
               .select('latitude, longitude')
-              .eq('id', restaurantId)
+              .eq('id', vendorId)
               .maybeSingle();
-          if (r != null) {
-            pickupLat = (r['latitude'] as num?)?.toDouble();
-            pickupLng = (r['longitude'] as num?)?.toDouble();
-          }
-        } else if (supermarketId != null) {
-          final s = await Supabase.instance.client
-              .from('supermarkets')
-              .select('latitude, longitude')
-              .eq('id', supermarketId)
-              .maybeSingle();
-          if (s != null) {
-            pickupLat = (s['latitude'] as num?)?.toDouble();
-            pickupLng = (s['longitude'] as num?)?.toDouble();
+          if (row != null) {
+            pickupLat = (row['latitude'] as num?)?.toDouble();
+            pickupLng = (row['longitude'] as num?)?.toDouble();
           }
         }
       } catch (_) {}

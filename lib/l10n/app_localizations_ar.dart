@@ -80,6 +80,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get search => 'ابحث عن الطعام...';
 
   @override
+  String get categories => 'الفئات';
+
+  @override
   String get popular => 'شائع';
 
   @override

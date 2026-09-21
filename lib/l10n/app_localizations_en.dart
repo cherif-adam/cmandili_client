@@ -80,6 +80,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get search => 'Search for food...';
 
   @override
+  String get categories => 'Categories';
+
+  @override
   String get popular => 'Popular';
 
   @override

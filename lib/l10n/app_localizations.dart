@@ -238,6 +238,12 @@ abstract class AppLocalizations {
   /// **'Search for food...'**
   String get search;
 
+  /// No description provided for @categories.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories'**
+  String get categories;
+
   /// No description provided for @popular.
   ///
   /// In en, this message translates to:
