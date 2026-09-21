@@ -90,14 +90,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  /// Priority: local file (just picked) → remote URL from auth metadata → fallback.
-  ImageProvider _avatarImageProvider(User? authUser) {
+  /// True once the user actually has a picture of their own.
+  bool _hasAvatar(User? authUser) =>
+      _localAvatar != null || (authUser?.photoURL?.isNotEmpty ?? false);
+
+  /// Priority: local file (just picked) → remote URL from auth metadata → none.
+  /// Returns null when the user has no picture; the caller draws a person icon
+  /// rather than a stock photo of a stranger pulled off the internet.
+  ImageProvider? _avatarImageProvider(User? authUser) {
     if (_localAvatar != null) return FileImage(_localAvatar!);
     final url = authUser?.photoURL;
     if (url != null && url.isNotEmpty) return NetworkImage(url);
-    return const NetworkImage(
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400',
-    );
+    return null;
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -315,6 +319,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               radius: radius,
               backgroundColor: Colors.white,
               backgroundImage: _avatarImageProvider(authUser),
+              child: _hasAvatar(authUser)
+                  ? null
+                  : Icon(Icons.person, size: radius, color: Colors.grey.shade400),
             ),
 
             // ── Upload loading overlay ──────────────────────────────────────

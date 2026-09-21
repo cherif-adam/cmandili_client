@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
@@ -79,11 +78,11 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    CachedNetworkImage(
-                      imageUrl: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=1350&q=80',
+                    Image.asset(
+                      'assets/images/happy_hour_banner.jpg',
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(color: Colors.orange.shade200),
-                      errorWidget: (context, url, error) => Container(color: Colors.orange.shade200),
+                      errorBuilder: (context, error, stack) =>
+                          Container(color: Colors.orange.shade200),
                     ),
                     Container(
                       decoration: BoxDecoration(

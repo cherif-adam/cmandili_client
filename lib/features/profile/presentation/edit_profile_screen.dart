@@ -120,10 +120,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                 image: FileImage(_imageFile!),
                                 fit: BoxFit.cover,
                               )
-                            : const DecorationImage(
-                                image: NetworkImage('https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400'),
-                                fit: BoxFit.cover,
-                              ),
+                            : null,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
@@ -132,6 +129,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           ),
                         ],
                       ),
+                      child: _imageFile == null
+                          ? Icon(Icons.person,
+                              size: size.width * 0.15, color: Colors.grey[400])
+                          : null,
                     ),
                     Positioned(
                       bottom: 0,

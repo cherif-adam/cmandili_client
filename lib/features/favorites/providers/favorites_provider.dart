@@ -15,7 +15,9 @@ class FavoritesNotifier extends StateNotifier<List<Restaurant>> {
     try {
       final rows = await _supabase
           .from('user_favorites')
-          .select('restaurant_id, restaurants(*)')
+          // See order_repository: user_favorites.restaurant_id also still FKs
+          // to restaurants_legacy, so embed through it and alias back.
+          .select('restaurant_id, restaurants:restaurants_legacy(*)')
           .eq('user_id', userId);
 
       state = (rows as List).map((row) {

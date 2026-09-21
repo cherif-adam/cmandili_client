@@ -137,7 +137,18 @@ class OrderRepository {
 
     final response = await _supabase
         .from('orders')
-        .select('*, restaurants(name), order_items(*)')
+        // Embeds via restaurants_legacy: orders.restaurant_id still FKs to the
+        // pre-multi-category table, so PostgREST cannot resolve the 'restaurants'
+        // view. The alias keeps the JSON key the mappers below expect.
+        //
+        // order_items is deliberately NOT embedded. Its rows are raw FK lines
+        // (food_item_id / grocery_item_id / vendor_item_id) while
+        // CartItem.fromJson expects a cart-shaped map with a nested foodItem,
+        // so feeding them straight in threw 'Null is not a subtype of
+        // Map<String, dynamic>'. Nothing reads Order.items on this path --
+        // history does not render them, tracking loads via streamOrder, and
+        // reorder re-queries through getReorderItems.
+        .select('*, restaurants:restaurants_legacy(name)')
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 

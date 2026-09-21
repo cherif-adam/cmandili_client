@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/address_provider.dart';
+import '../../../core/widgets/map_address_picker.dart';
+import '../../checkout/data/models/delivery_address.dart';
 
 class SavedAddressesScreen extends ConsumerWidget {
   const SavedAddressesScreen({super.key});
@@ -78,45 +80,71 @@ class SavedAddressesScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddAddressDialog(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    final addressController = TextEditingController();
+  /// Pick the location on the map, then ask only for a label. The old flow was
+  /// two free-text fields with no coordinates at all, so addAddress() fell back
+  /// to 0,0 whenever geocoding the typed string failed -- a pin in the Gulf of
+  /// Guinea that no driver could ever deliver to.
+  Future<void> _showAddAddressDialog(BuildContext context, WidgetRef ref) async {
+    final picked = await Navigator.push<DeliveryAddress>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapAddressPicker(
+          label: AppLocalizations.of(context)!.addNewAddress,
+        ),
+      ),
+    );
+    if (picked == null || !context.mounted) return;
 
-    showDialog(
+    final nameController = TextEditingController(text: picked.label);
+
+    await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.addNewAddress),
+      builder: (dialogContext) => AlertDialog(
+        title: Text(AppLocalizations.of(dialogContext)!.addNewAddress),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.location_on, size: 20, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    picked.fullAddress,
+                    style: const TextStyle(fontSize: 13, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: nameController,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.labelHint),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: addressController,
-              decoration: InputDecoration(labelText: AppLocalizations.of(context)!.fullAddressLabel),
-              maxLines: 2,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(dialogContext)!.labelHint,
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppLocalizations.of(dialogContext)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
-              if (nameController.text.isNotEmpty && addressController.text.isNotEmpty) {
-                ref.read(addressProvider.notifier).addAddress(
-                      nameController.text,
-                      addressController.text,
-                    );
-                Navigator.pop(context);
-              }
+              if (nameController.text.isEmpty) return;
+              ref.read(addressProvider.notifier).addAddress(
+                    nameController.text,
+                    picked.fullAddress,
+                    latitude: picked.latitude,
+                    longitude: picked.longitude,
+                  );
+              Navigator.pop(dialogContext);
             },
-            child: Text(AppLocalizations.of(context)!.save),
+            child: Text(AppLocalizations.of(dialogContext)!.save),
           ),
         ],
       ),

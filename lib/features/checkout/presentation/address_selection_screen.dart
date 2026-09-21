@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:uuid/uuid.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/location_service.dart';
+import '../../../core/widgets/map_address_picker.dart';
 import '../data/models/delivery_address.dart';
 import '../../profile/providers/address_provider.dart';
 
@@ -64,7 +64,21 @@ class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen>
     }
   }
 
-  void _addNewAddress() {
+  Future<void> _addNewAddress() async {
+    // Pick the spot on the map first. Typing a free-text address and geocoding
+    // it silently fell back to a hardcoded Tunis point whenever the lookup
+    // missed, so addresses could be saved kilometres from where the customer
+    // actually lives. The map always yields real coordinates.
+    final picked = await Navigator.push<DeliveryAddress>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapAddressPicker(
+          label: AppLocalizations.of(context)!.addNewAddress,
+        ),
+      ),
+    );
+    if (picked == null || !mounted) return;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -72,6 +86,7 @@ class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => _AddAddressSheet(
+        picked: picked,
         onAddressAdded: (address) {
           // Pass through the coordinates _saveAddress() already geocoded —
           // avoids a second geocode call and, more importantly, avoids the
@@ -308,7 +323,11 @@ class _AddressCard extends StatelessWidget {
 class _AddAddressSheet extends StatefulWidget {
   final Function(DeliveryAddress) onAddressAdded;
 
-  const _AddAddressSheet({required this.onAddressAdded});
+  /// The point the customer dropped on the map. Its coordinates are used
+  /// verbatim; only the label and apartment/floor details are typed here.
+  final DeliveryAddress picked;
+
+  const _AddAddressSheet({required this.onAddressAdded, required this.picked});
 
   @override
   State<_AddAddressSheet> createState() => _AddAddressSheetState();
@@ -320,6 +339,12 @@ class _AddAddressSheetState extends State<_AddAddressSheet> {
   final _addressController = TextEditingController();
   final _aptController = TextEditingController();
   final _floorController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _addressController.text = widget.picked.fullAddress;
+  }
 
   @override
   void dispose() {
@@ -336,19 +361,13 @@ class _AddAddressSheetState extends State<_AddAddressSheet> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSaving = true);
     try {
-      double lat = 36.8065;
-      double lng = 10.1815;
-      final locations = await locationFromAddress(_addressController.text);
-      if (locations.isNotEmpty) {
-        lat = locations.first.latitude;
-        lng = locations.first.longitude;
-      }
       final address = DeliveryAddress(
         id: const Uuid().v4(),
         label: _labelController.text,
         fullAddress: _addressController.text,
-        latitude: lat,
-        longitude: lng,
+        // Straight from the map pin — never geocoded, never a fallback.
+        latitude: widget.picked.latitude,
+        longitude: widget.picked.longitude,
         apartmentNumber: _aptController.text.isNotEmpty ? _aptController.text : null,
         floor: _floorController.text.isNotEmpty ? _floorController.text : null,
       );
