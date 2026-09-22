@@ -261,8 +261,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         destLat: _selectedAddress!.latitude,
         destLng: _selectedAddress!.longitude,
       );
-      // Base 3.500 TND + 0.500 TND/km beyond 3 km.
-      final finalDeliveryFee = calculateDeliveryFee(distanceKm: distanceKm);
+      // Food: base 3.500 TND + 0.500 TND/km beyond 3 km.
+      // Supermarket: flat 5 TND — the driver shops in store, so the cost is
+      // per-trip, not per-kilometre.
+      final isSupermarket = orderType == OrderType.supermarket;
+      final finalDeliveryFee = calculateDeliveryFee(
+        distanceKm: distanceKm,
+        partnerFlatFee: isSupermarket ? kFlatDeliveryFee : kDeliveryBaseFee,
+        isFlatRate: isSupermarket,
+      );
 
       // Best-effort ETA — reuses the same pickup/destination pair as the
       // delivery-fee distance call above, just keeping the duration that

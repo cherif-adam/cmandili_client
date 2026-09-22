@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/vendor.dart';
 import '../../../core/providers/vendor_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/delivery_fee.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/venue_hours.dart';
 import 'vendor_detail_screen.dart';
@@ -262,9 +263,8 @@ class _VendorCard extends StatelessWidget {
                           size: 15, color: AppColors.textLight),
                       const SizedBox(width: 4),
                       Text(
-                        vendor.deliveryFee <= 0
-                            ? 'Gratuit'
-                            : CurrencyFormatter.formatPrice(vendor.deliveryFee),
+                        // Platform base fee — see vendor_detail_screen.
+                        CurrencyFormatter.formatPrice(kDeliveryBaseFee),
                         style: const TextStyle(
                             fontSize: 12.5, color: AppColors.textSecondary),
                       ),

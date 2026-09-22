@@ -12,6 +12,7 @@ import '../../checkout/data/models/delivery_address.dart';
 import '../../orders/presentation/order_success_screen.dart';
 import '../../bills/services/bill_reminder_service.dart';
 import '../../loyalty/data/loyalty_eligibility.dart';
+import '../../../core/utils/delivery_fee.dart';
 
 // ── Bill types ────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,10 @@ class FactureScreen extends ConsumerStatefulWidget {
 
 class _FactureScreenState extends ConsumerState<FactureScreen> {
   static const _orange = Color(0xFFFF9500);
-  static const _serviceFee = 5.000;
+  // Single source of truth for the flat rate — shared with supermarket
+  // orders. Previously a second, independent hardcoded 5.000 that could
+  // drift from kFlatDeliveryFee without anything noticing.
+  static const _serviceFee = kFlatDeliveryFee;
   static const _tunisianPhone = r'^\d{8}$';
 
   final _formKey = GlobalKey<FormState>();

@@ -111,13 +111,25 @@ final cartItemCountProvider = Provider<int>((ref) {
 });
 
 // Preview delivery fee shown in the cart screen before the customer picks a
-// delivery address. Distance is unknown at this point so we return the base
-// fee (3.500 TND). The final fee — which adds 0.500 TND/km beyond 3 km — is
-// recomputed in checkout once the delivery address is known.
+// delivery address.
+//
+// Food carts: distance is unknown here, so this is the base fee (3.500 TND).
+// Checkout recomputes it once the address is known, adding 0.500 TND/km beyond
+// 3 km — so the preview is a floor the customer may see rise.
+//
+// Supermarket carts: flat rate, so the preview is the EXACT figure checkout
+// will charge. Previewing the base fee here instead would advertise 3.500 and
+// then bill 5.000 at checkout.
 final cartDeliveryFeeProvider = Provider<double>((ref) {
   final cart = ref.watch(cartProvider);
   if (cart.isEmpty) return 0.0;
-  return calculateDeliveryFee(); // base fee: 3.500 TND
+  // Mirrors how checkout classifies the order (a grocery line carries a
+  // supermarketId); a cart never mixes verticals.
+  final isSupermarket = cart.first.type == CartItemType.grocery;
+  return calculateDeliveryFee(
+    partnerFlatFee: isSupermarket ? kFlatDeliveryFee : kDeliveryBaseFee,
+    isFlatRate: isSupermarket,
+  );
 });
 
 final cartTotalProvider = Provider<double>((ref) {

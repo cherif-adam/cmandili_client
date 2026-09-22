@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/vendor.dart';
 import '../../../core/providers/vendor_provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/delivery_fee.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../cart/data/models/cart_item.dart';
 import '../../cart/providers/cart_provider.dart';
@@ -99,9 +100,13 @@ class VendorDetailScreen extends ConsumerWidget {
                           size: 17, color: AppColors.textLight),
                       const SizedBox(width: 4),
                       Text(
-                        vendor.deliveryFee <= 0
-                            ? 'Gratuit'
-                            : CurrencyFormatter.formatPrice(vendor.deliveryFee),
+                        // Platform base fee, not vendors.delivery_fee — that
+                        // column is 0 for every vendor, so this advertised
+                        // "Gratuit" while checkout charged the distance-based
+                        // fee (3.500 + 0.500/km beyond 3 km). Flowers, pets
+                        // and gifts price exactly like food. Same fix as
+                        // restaurant_card.dart.
+                        CurrencyFormatter.formatPrice(kDeliveryBaseFee),
                         style: const TextStyle(
                             fontSize: 13, color: AppColors.textSecondary),
                       ),

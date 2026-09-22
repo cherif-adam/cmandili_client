@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:badges/badges.dart' as badges;
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/delivery_fee.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/platform_pricing.dart';
 import '../data/models/supermarket.dart';
@@ -117,7 +118,11 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
                           const SizedBox(width: 12),
                           _buildInfoChip(
                             Icons.delivery_dining,
-                            CurrencyFormatter.formatPrice(widget.supermarket.deliveryFee),
+                            // Platform flat rate, not the venue's own
+                            // delivery_fee column — that column is unused for
+                            // pricing and is 0 for most stores, so showing it
+                            // advertised a fee the customer would never pay.
+                            CurrencyFormatter.formatPrice(kFlatDeliveryFee),
                             AppColors.primary,
                           ),
                         ],

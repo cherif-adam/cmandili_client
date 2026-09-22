@@ -14,19 +14,32 @@ const double kDeliveryBaseFee = 3.5;
 const double _kThresholdKm = 3.0;
 const double _kPerKmSurcharge = 0.5;
 
+/// Flat, distance-independent fee for supermarket and bill-payment (facture)
+/// orders. These two are priced per-trip rather than per-kilometre: a
+/// supermarket run means the driver shops in store, and a facture means they
+/// queue at a payment office — the time cost has little to do with how far
+/// they drove, so the distance formula never applied well to either.
+const double kFlatDeliveryFee = 5.0;
+
 /// Computes the customer-facing delivery fee.
 ///
-/// [partnerFlatFee] defaults to [kDeliveryBaseFee] (the platform base for
-/// restaurant and supermarket orders). Pass a different value for special
-/// order types (courier = 5 DT, bill payment = 2 DT) — the platform base
-/// still acts as the floor so the fee is always ≥ [kDeliveryBaseFee].
+/// Two pricing modes:
+///   - distance-based (default) — food and courier: [kDeliveryBaseFee] covers
+///     the first [_kThresholdKm] km, then [_kPerKmSurcharge] per extra km.
+///   - flat ([isFlatRate]) — supermarket and facture: [partnerFlatFee] exactly,
+///     ignoring distance. Note this bypasses the [kDeliveryBaseFee] floor,
+///     which is intentional: the floor exists to stop a distance calculation
+///     undercutting the base, and a flat price is a deliberate figure, not a
+///     computed one.
 ///
-/// When [distanceKm] is null the base fee is returned as-is; the exact fee
-/// is re-computed at checkout once the delivery address is known.
+/// When [distanceKm] is null in distance-based mode the base fee is returned
+/// as-is; the exact fee is re-computed at checkout once the address is known.
 double calculateDeliveryFee({
   double partnerFlatFee = kDeliveryBaseFee,
   double? distanceKm,
+  bool isFlatRate = false,
 }) {
+  if (isFlatRate) return partnerFlatFee;
   final extraKm = (distanceKm ?? 0) - _kThresholdKm;
   final surcharge = extraKm > 0 ? extraKm * _kPerKmSurcharge : 0.0;
   final candidate = partnerFlatFee + surcharge;

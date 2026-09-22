@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/delivery_fee.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/venue_hours.dart';
 import '../data/models/supermarket.dart';
@@ -412,7 +413,8 @@ class _SupermarketCard extends StatelessWidget {
                     children: [
                       _buildInfoItem(
                         Icons.delivery_dining_outlined,
-                        CurrencyFormatter.formatPrice(supermarket.deliveryFee),
+                        // Platform flat rate — see supermarket_detail_screen.
+                        CurrencyFormatter.formatPrice(kFlatDeliveryFee),
                         'Delivery',
                         screenWidth,
                       ),
