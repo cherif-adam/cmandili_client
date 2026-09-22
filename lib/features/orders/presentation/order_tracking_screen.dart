@@ -585,7 +585,26 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     ),
                     const SizedBox(height: 8),
 
-                    if (order.estimatedDeliveryTime != null)
+                    // Prefer the LIVE route's duration over the estimate
+                    // frozen at checkout. Same Directions response already
+                    // fetched for the polyline below — no extra API call.
+                    //
+                    // The stored value is a single restaurant→customer
+                    // duration captured the moment the order was placed: it
+                    // never updates, and it ignores where the driver actually
+                    // is. Once a driver is assigned and moving, _route runs
+                    // driver→customer from their live position, so it answers
+                    // the question the customer is actually asking.
+                    //
+                    // Falls back to the stored value before a driver is
+                    // assigned, which is the only point where nothing live
+                    // exists yet.
+                    if (showMap && _route != null)
+                      Text(
+                        'Estimated delivery: ${_route!.etaLabel}',
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      )
+                    else if (order.estimatedDeliveryTime != null)
                       Text(
                         'Estimated delivery: ${_formatTime(order.estimatedDeliveryTime!)}',
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),

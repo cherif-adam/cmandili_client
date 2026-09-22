@@ -59,7 +59,14 @@ class OrderRepository {
         'delivery_address': deliveryAddress.toJson(),
         'order_type': orderType.toString().split('.').last,
         if (estimatedDeliveryTime != null)
-          'estimated_delivery_time': estimatedDeliveryTime.toIso8601String(),
+          // .toUtc() is load-bearing. DateTime.now() is LOCAL, and
+          // toIso8601String() on a local DateTime emits no timezone suffix
+          // ("2026-09-22T00:10:17.123"). Postgres reads a naive string into a
+          // TIMESTAMPTZ column as UTC, so in Tunisia (UTC+1) every stored ETA
+          // landed exactly 60 minutes late — a 5-minute drive displayed as
+          // "65 minutes" on the customer's tracking screen.
+          'estimated_delivery_time':
+              estimatedDeliveryTime.toUtc().toIso8601String(),
       }).select().single();
 
       final orderId = orderResponse['id'] as String;

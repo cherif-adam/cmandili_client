@@ -392,8 +392,13 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             : _recipientNameController.text.trim(),
         'recipient_phone': _recipientPhoneController.text.trim(),
         if (photoUrl != null) 'package_photo_url': photoUrl,
-        'estimated_delivery_time':
-            DateTime.now().add(const Duration(minutes: 45)).toIso8601String(),
+        // .toUtc() — see order_repository.dart. Without it this 45-minute
+        // estimate was stored as 105 minutes in Tunisia (45 + the UTC+1
+        // offset), which is how the timezone bug was first confirmed.
+        'estimated_delivery_time': DateTime.now()
+            .add(const Duration(minutes: 45))
+            .toUtc()
+            .toIso8601String(),
       }).select('id').single();
 
       // Persist saved recipient (non-fatal if it fails)
