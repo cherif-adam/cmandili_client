@@ -126,16 +126,24 @@ class _CategoryTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              _localizedName(locale),
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11.5,
-                height: 1.15,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? color : Colors.grey.shade700,
+            // Une seule ligne, quitte a reduire legerement la taille. A 11.5 px
+            // dans une tuile de quart d'ecran, "Supermarche" et "Electronique"
+            // debordaient et repassaient a la ligne sur une seule lettre
+            // ("Supermarch" / "e"). scaleDown ne retrecit que les libelles qui
+            // en ont besoin : les courts gardent leur taille d'origine.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                _localizedName(locale),
+                maxLines: 1,
+                softWrap: false,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  height: 1.15,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? color : Colors.grey.shade700,
+                ),
               ),
             ),
           ],
