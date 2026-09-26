@@ -238,6 +238,18 @@ abstract class AppLocalizations {
   /// **'Search for food...'**
   String get search;
 
+  /// No description provided for @chooseOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose on the map'**
+  String get chooseOnMap;
+
+  /// No description provided for @chooseOnMapSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop the pin exactly where you want the delivery'**
+  String get chooseOnMapSubtitle;
+
   /// No description provided for @categories.
   ///
   /// In en, this message translates to:

@@ -20,7 +20,6 @@ import '../../happy_hour/presentation/happy_hour_screen.dart';
 import '../../orders/presentation/order_history_screen.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
 import '../../orders/providers/order_provider.dart';
-import '../../orders/data/models/order.dart';
 import '../../ai_search/presentation/ai_search_screen.dart';
 import '../../../screens/ai_chat_screen.dart';
 import '../../courier/presentation/courier_screen.dart';
@@ -856,14 +855,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildActiveOrderBanner(double sw, double sh) {
-    final activeOrdersAsync = ref.watch(userOrdersProvider);
+    // activeOrderProvider re-polls, unlike the one-shot userOrdersProvider the
+    // banner used to read: an order placed during this session now appears
+    // here, and a delivered one disappears, without a restart.
+    final activeOrdersAsync = ref.watch(activeOrderProvider);
     return activeOrdersAsync.maybeWhen(
-      data: (orders) {
-        final activeOrder = orders.where((o) => 
-          o.status != OrderStatus.delivered && 
-          o.status != OrderStatus.cancelled
-        ).firstOrNull;
-
+      data: (activeOrder) {
         if (activeOrder == null) return const SliverToBoxAdapter(child: SizedBox.shrink());
 
         return SliverToBoxAdapter(

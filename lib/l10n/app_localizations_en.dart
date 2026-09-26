@@ -80,6 +80,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get search => 'Search for food...';
 
   @override
+  String get chooseOnMap => 'Choose on the map';
+
+  @override
+  String get chooseOnMapSubtitle =>
+      'Drop the pin exactly where you want the delivery';
+
+  @override
   String get categories => 'Categories';
 
   @override

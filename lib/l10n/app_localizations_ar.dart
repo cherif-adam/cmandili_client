@@ -80,6 +80,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get search => 'ابحث عن الطعام...';
 
   @override
+  String get chooseOnMap => 'اختر من الخريطة';
+
+  @override
+  String get chooseOnMapSubtitle => 'ضع المؤشّر في مكان التسليم بالضبط';
+
+  @override
   String get categories => 'الفئات';
 
   @override

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/location_service.dart';
+import '../../../core/widgets/map_address_picker.dart';
 import '../data/models/delivery_address.dart';
 import '../../profile/providers/address_provider.dart';
 
@@ -17,6 +18,22 @@ class AddressSelectionScreen extends ConsumerStatefulWidget {
 
 class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen> {
   bool _isLoadingCurrentLocation = false;
+
+
+  /// Opens the map directly and returns whatever point the customer drops,
+  /// without saving it to their address book. Used for one-off deliveries.
+  Future<void> _pickOnMap() async {
+    final address = await Navigator.push<DeliveryAddress>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MapAddressPicker(
+          label: AppLocalizations.of(context)!.chooseOnMap,
+          startOnMap: true,
+        ),
+      ),
+    );
+    if (address != null && mounted) Navigator.pop(context, address);
+  }
 
   Future<void> _useCurrentLocation() async {
     setState(() => _isLoadingCurrentLocation = true);
@@ -156,6 +173,62 @@ class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen>
             ),
           ),
           
+
+          const SizedBox(height: 12),
+
+          // ── Choose a point on the map ──────────────────────────────────
+          // A one-off delivery does not belong in the saved list: the
+          // customer is at a friend's place, a café, a building site. Making
+          // them name and save it clutters the list with entries they will
+          // never reuse. This drops them straight on the map — no name, no
+          // save, just a pin.
+          Card(
+            child: InkWell(
+              onTap: _pickOnMap,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.map_rounded,
+                          color: AppColors.secondary),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.chooseOnMap,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            AppLocalizations.of(context)!.chooseOnMapSubtitle,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios,
+                        size: 16, color: AppColors.textLight),
+                  ],
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           
           // Saved Addresses

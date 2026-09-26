@@ -883,8 +883,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     ),
 
                     // ── Cancellation section ──────────────────────────────
+                    // Mirrors the status list in
+                    // OrderRepository.cancelOrderByCustomer: cancellable right
+                    // up to pickup. Stopping at 'confirmed' left a customer
+                    // trapped whenever a shop marked an order ready and no
+                    // driver ever collected it.
                     if (order.status == OrderStatus.pending ||
-                        order.status == OrderStatus.confirmed) ...[
+                        order.status == OrderStatus.confirmed ||
+                        order.status == OrderStatus.preparing ||
+                        order.status == OrderStatus.ready) ...[
                       const SizedBox(height: 24),
                       const Divider(),
                       const SizedBox(height: 8),

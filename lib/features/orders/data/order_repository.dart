@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../cart/data/models/cart_item.dart';
 import '../../cart/data/models/order_customization.dart';
 import '../../checkout/data/models/delivery_address.dart';
+import '../../../core/utils/platform_pricing.dart';
 import '../../restaurant/data/models/food_item.dart';
 import '../data/models/order.dart';
 
@@ -137,7 +138,21 @@ class OrderRepository {
 
     final response = await _supabase
         .from('orders')
-        .select('*, restaurants(name), order_items(*)')
+        // `restaurants!orders_restaurant_id_fkey` rather than plain
+        // `restaurants`. Since restaurants became a view over the generic
+        // `vendors` table, PostgREST sees TWO paths from orders to it —
+        // orders.restaurant_id and orders.supermarket_id both land there —
+        // and refuses to guess, failing the whole order history with
+        // PGRST201. Naming the constraint picks the restaurant leg.
+        // Join each line's product row so the history/tracking screens can
+        // show "2x Pizza Margherita" instead of a blank name. `food_items`
+        // and `grocery_items` are now views over `vendors`, so PostgREST
+        // can't resolve an embed through them — point the embed at the
+        // underlying tables (same aliases the partner app uses) and keep
+        // the view's name as the alias so the mapping below is unchanged.
+        .select('*, restaurants!orders_restaurant_id_fkey(name), '
+            'order_items(*, food_items:food_items_legacy(*), '
+            'grocery_items:grocery_items_legacy(*), vendor_items(*))')
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
@@ -175,7 +190,9 @@ class OrderRepository {
       try {
         final itemRow = await _supabase
             .from('food_items')
-            .select('*, restaurants(is_open)')
+            // Same PGRST201 ambiguity as above: food_items reaches
+            // restaurants through its own restaurant_id.
+            .select('*, restaurants!food_items_restaurant_id_fkey(is_open)')
             .eq('id', foodItemId)
             .maybeSingle();
         final isAvailable = itemRow?['is_available'] as bool? ?? false;
@@ -304,7 +321,14 @@ class OrderRepository {
   }
 
   /// Customer-initiated cancellation. Only succeeds if the order belongs to the
-  /// current user AND is still in a cancellable status ('pending' or 'confirmed').
+  /// current user AND the goods have not been picked up yet.
+  ///
+  /// 'preparing' and 'ready' are cancellable too: an order the shop marked
+  /// ready but that no driver ever collected used to trap the customer — the
+  /// button refused it, and the only ways out were the partner app, the driver
+  /// app or an admin. The cut-off is pickup, not readiness, because that is
+  /// the point where a driver is actually carrying the food.
+  ///
   /// Returns true if a row was actually updated (i.e. cancellation was applied).
   Future<bool> cancelOrderByCustomer(String orderId, String reason) async {
     try {
@@ -321,7 +345,7 @@ class OrderRepository {
           })
           .eq('id', orderId)
           .eq('user_id', userId)
-          .inFilter('status', ['pending', 'confirmed'])
+          .inFilter('status', ['pending', 'confirmed', 'preparing', 'ready'])
           .select('id');
 
       return (result as List).isNotEmpty;
@@ -367,6 +391,140 @@ class OrderRepository {
     }
   }
 
+  /// Turn the joined `order_items` rows into the JSON shape
+  /// [CartItem.fromJson] expects. The raw DB rows are snake_case and carry
+  /// no product data of their own, so feeding them straight to CartItem
+  /// threw "type 'Null' is not a subtype of type 'Map<String, dynamic>'"
+  /// and failed the whole order history.
+  ///
+  /// `order_items.price` is the CLIENT price — it was written from
+  /// [CartItem.price], which already includes the platform markup. Since
+  /// that getter re-applies the markup when the line is read back, the
+  /// stored price is divided back down to the base here; otherwise a past
+  /// order would display 10% above what the customer actually paid.
+  List<Map<String, dynamic>> _parseOrderItems(dynamic rawItems) {
+    if (rawItems is! List) return [];
+    final result = <Map<String, dynamic>>[];
+
+    for (final raw in rawItems) {
+      if (raw is! Map) continue;
+      final row = Map<String, dynamic>.from(raw);
+      final quantity = (row['quantity'] as num?)?.toInt() ?? 1;
+      final clientPrice = (row['price'] as num?)?.toDouble() ?? 0.0;
+      final basePrice = removePlatformMarkup(clientPrice);
+
+      // `options` holds the variant and option-group picks made at
+      // checkout. Their own prices are baked into `price` already, so they
+      // are deliberately NOT replayed into the line — doing so would add
+      // the add-on prices a second time. Only the names are kept, by
+      // rebuilding the item name below.
+      final options = row['options'];
+      final optionsMap = options is Map
+          ? Map<String, dynamic>.from(options)
+          : const <String, dynamic>{};
+      final variantName = (optionsMap['variant'] is Map)
+          ? (optionsMap['variant'] as Map)['name']?.toString()
+          : null;
+
+      String nameWithVariant(String base) =>
+          variantName == null || variantName.isEmpty
+              ? base
+              : '$base — $variantName';
+
+      final foodData = row['food_items'];
+      if (foodData is Map) {
+        result.add({
+          'type': 'restaurant',
+          'quantity': quantity,
+          'foodItem': {
+            'id': foodData['id'] ?? row['food_item_id'] ?? '',
+            'restaurantId': foodData['restaurant_id'] ?? '',
+            'name': nameWithVariant(foodData['name']?.toString() ?? 'Item'),
+            'description': foodData['description'] ?? '',
+            'imageUrl': foodData['image_url'] ?? '',
+            'price': basePrice, // order-time price, not today's menu price
+            'category': foodData['category'] ?? '',
+            'isAvailable': foodData['is_available'] ?? true,
+            'tags': [],
+            'preparationTime': foodData['preparation_time'] ?? 15,
+            'isVegetarian': foodData['is_vegetarian'] ?? false,
+            'isSpicy': foodData['is_spicy'] ?? false,
+          },
+        });
+        continue;
+      }
+
+      final groceryData = row['grocery_items'];
+      if (groceryData is Map) {
+        result.add({
+          'type': 'grocery',
+          'quantity': quantity,
+          'groceryItem': {
+            'id': groceryData['id'] ?? row['grocery_item_id'] ?? '',
+            'supermarketId': groceryData['supermarket_id'] ?? '',
+            'name': nameWithVariant(groceryData['name']?.toString() ?? 'Item'),
+            'description': groceryData['description'] ?? '',
+            'imageUrl': groceryData['image_url'] ?? '',
+            'price': basePrice,
+            'category': groceryData['category'] ?? 'vegetables',
+            'unit': groceryData['unit'] ?? 'piece',
+            'isOrganic': groceryData['is_organic'] ?? false,
+            'isAvailable': groceryData['is_available'] ?? true,
+          },
+        });
+        continue;
+      }
+
+      // Generic vendor line (flowers, pets, gifts, bakery, electronics).
+      // VendorItem is built by `VendorItem.fromDb`, so this one stays
+      // snake_case unlike the two branches above.
+      final vendorData = row['vendor_items'];
+      if (vendorData is Map) {
+        result.add({
+          'type': 'vendor',
+          'quantity': quantity,
+          'vendorItem': {
+            'id': vendorData['id'] ?? row['vendor_item_id'] ?? '',
+            'vendor_id': vendorData['vendor_id'] ?? '',
+            'name': nameWithVariant(vendorData['name']?.toString() ?? 'Item'),
+            'description': vendorData['description'] ?? '',
+            'image_url': vendorData['image_url'] ?? '',
+            'price': basePrice,
+            'category': vendorData['category'],
+            'unit': vendorData['unit'],
+            'is_organic': vendorData['is_organic'] ?? false,
+            'is_available': vendorData['is_available'] ?? true,
+          },
+        });
+        continue;
+      }
+
+      // The product row is gone (deleted item) or this is a courier/facture
+      // line with no product at all. Still render something priced
+      // correctly rather than dropping the line from the order.
+      result.add({
+        'type': 'restaurant',
+        'quantity': quantity,
+        'foodItem': {
+          'id': row['food_item_id'] ?? '',
+          'restaurantId': '',
+          'name': nameWithVariant(row['name']?.toString() ?? 'Item'),
+          'description': '',
+          'imageUrl': '',
+          'price': basePrice,
+          'category': '',
+          'isAvailable': true,
+          'tags': [],
+          'preparationTime': 15,
+          'isVegetarian': false,
+          'isSpicy': false,
+        },
+      });
+    }
+
+    return result;
+  }
+
   Map<String, dynamic> _mapOrderFromDb(Map<String, dynamic> dbJson) {
     return {
       'id': dbJson['id'],
@@ -375,7 +533,7 @@ class OrderRepository {
       'restaurantName': (dbJson['restaurants'] is Map) 
           ? (dbJson['restaurants']['name'] ?? '') 
           : '',
-      'items': dbJson['order_items'] ?? [],
+      'items': _parseOrderItems(dbJson['order_items']),
       'deliveryAddress': dbJson['delivery_address'] ?? {},
       'subtotal': dbJson['subtotal'],
       'deliveryFee': dbJson['delivery_fee'],

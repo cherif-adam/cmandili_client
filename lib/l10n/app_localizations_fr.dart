@@ -81,6 +81,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get search => 'Rechercher de la nourriture...';
 
   @override
+  String get chooseOnMap => 'Choisir sur la carte';
+
+  @override
+  String get chooseOnMapSubtitle =>
+      'Placez le repère à l’endroit exact de la livraison';
+
+  @override
   String get categories => 'Catégories';
 
   @override
