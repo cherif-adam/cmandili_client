@@ -1,61 +1,72 @@
 -- ============================================================================
--- CMANDILI -- Deux corrections : le blocage fantome, et les livreurs
---             "en ligne" depuis des heures sans bouger
+-- CMANDILI -- Blocage fantome des livreurs, et "en ligne" perime
 --
 -- NON EXECUTE. A relire, puis a lancer vous-meme.
 --
+-- Version 2. La v1 corrigeait la cause du mauvais cote et ajoutait un "filet"
+-- dans enforce_prepaid_block. Ce filet etait dangereux : sur un
+-- INSERT ... ON CONFLICT, le passage BEFORE INSERT voit la ligne PROPOSEE,
+-- dont status vaut le defaut 'active' et blocked_reason NULL, quelle que soit
+-- la ligne existante. Le filet aurait donc debloque un compte bloque a la
+-- main, et la notification "Solde epuise" partait deux fois, une par passage.
+-- enforce_prepaid_block n'est plus touchee du tout ici.
 --
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║ PROBLEME 1 -- ce qui remet drivers.is_blocked a TRUE                     ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
 --
--- Une seule fonction en base ecrit drivers.is_blocked : enforce_prepaid_block,
--- declenchee BEFORE INSERT OR UPDATE ON wallets. Rien d'autre -- ni cron, ni
--- Edge Function, ni l'app livreur, ni l'admin (aucune trace dans audit_logs).
+-- ── PROBLEME 1 : ce qui remet drivers.is_blocked a TRUE ────────────────────
 --
--- LE MECANISME. update_wallet_balance, AFTER INSERT sur settlements, fait :
+-- Une seule fonction ecrit ce drapeau : enforce_prepaid_block, BEFORE INSERT
+-- OR UPDATE ON wallets. Ni cron, ni Edge Function, ni les apps, ni l'admin
+-- (aucune trace dans audit_logs).
+--
+-- update_wallet_balance, AFTER INSERT sur settlements, fait :
 --
 --     INSERT INTO public.wallets (user_id, balance)
---     VALUES (NEW.user_id, NEW.amount)            <-- le MONTANT, pas le solde
---     ON CONFLICT (user_id)
---     DO UPDATE SET balance = public.wallets.balance + NEW.amount, ...;
+--     VALUES (NEW.user_id, NEW.amount)          <-- le MONTANT, pas le solde
+--     ON CONFLICT (user_id) DO UPDATE SET balance = wallets.balance + NEW.amount;
 --
--- Quand le portefeuille existe deja, Postgres declenche le BEFORE INSERT
--- AVANT de detecter le conflit. enforce_prepaid_block voit donc
--- NEW.balance = NEW.amount, c'est-a-dire -1.734 pour une commission, juge le
--- solde epuise et bloque le livreur. Le ON CONFLICT resout ensuite en UPDATE
--- avec le vrai solde, mais la branche de deblocage ne s'execute que
--- `IF NEW.status = 'blocked'` -- or NEW vient de la ligne existante, dont le
--- statut est 'active'. Le drapeau reste donc a TRUE.
+-- Sur un portefeuille existant, Postgres declenche le BEFORE INSERT AVANT de
+-- detecter le conflit : enforce_prepaid_block voit balance = -1.734 pour une
+-- commission, juge le compte a sec et bloque le livreur. Le conflit resout
+-- ensuite en UPDATE avec le vrai solde, mais la branche de deblocage ne
+-- s'execute que si le portefeuille est lui-meme 'blocked' -- or il est
+-- 'active'. Le drapeau reste a TRUE.
 --
--- D'ou l'etat impossible observe : livreur bloque, portefeuille 'active',
--- blocked_reason NULL, solde largement positif, et aucune trace d'audit.
+-- D'ou l'etat impossible : livreur bloque, portefeuille 'active',
+-- blocked_reason NULL, solde positif, aucune trace d'audit. Et cela recommence
+-- a CHAQUE commande livree, ce qui explique pourquoi le nettoyage ne tenait
+-- pas.
 --
--- PREUVE, en transaction annulee sur adem@gmail.com :
---
---     AVANT  is_blocked=f  solde=52.668
---     APRES  is_blocked=t  solde=50.934  wallet=active  raison=-
---
--- Une commission de 1.734 TND a rebloque le compte alors qu'il lui reste
--- 50.934 TND. C'est pour cela que le blocage revient apres CHAQUE commande
--- livree, et que le script de nettoyage ne tient pas.
+-- LA CORRECTION : faire l'UPDATE d'abord, et n'INSERER que si aucune ligne
+-- n'a ete touchee. Le passage BEFORE INSERT ne se produit plus que pour un
+-- portefeuille reellement neuf -- cas ou balance = amount est la bonne valeur.
+-- Le ON CONFLICT reste sur l'INSERT comme garde-fou de concurrence.
 --
 --
--- ╔══════════════════════════════════════════════════════════════════════════╗
--- ║ PROBLEME 2 -- "en ligne" sans l'etre                                     ║
--- ╚══════════════════════════════════════════════════════════════════════════╝
+-- ── PROBLEME 2 : "en ligne" sans l'etre ────────────────────────────────────
 --
--- next_eligible_driver ne filtre que sur is_online = TRUE et une position non
--- nulle. Aucun controle de fraicheur, et aucun controle de is_blocked. Etat
--- au moment d'ecrire :
+-- next_eligible_driver ne verifie ni la fraicheur de la position, ni
+-- is_blocked. Releve avant ecriture :
 --
 --     driver@test.com   position vieille de 3250 min (54 h)  -> eligible
---     drive@gmail.com   position vieille de  324 min          -> eligible
---     adem@gmail.com    position vieille de  279 min          -> eligible
+--     drive@gmail.com   position vieille de  324 min         -> eligible
+--     adem@gmail.com    position vieille de  279 min         -> eligible, et bloque
 --
--- Les trois peuvent recevoir une offre a l'instant meme. Une offre envoyee a
--- un livreur absent expire, et rotate_expired_offers fait tourner la
--- cascade : chaque fantome coute une minute de retard au client.
+-- Les trois pouvaient recevoir une offre. Chaque fantome coute une minute de
+-- retard au client, le temps que rotate_expired_offers passe au suivant.
+--
+--
+-- ── PREUVE (transaction annulee, correctif applique dedans) ────────────────
+--
+--   (a) sain + commission           is_blocked=f  solde=50.934   wallet=active
+--   (b) bloque manuel + commission  is_blocked=t  solde=247.657  wallet=blocked  raison=manual
+--   (c) sous le plancher            is_blocked=t  solde=-101.150 wallet=blocked  raison=balance
+--       notifications "solde epuise" envoyees : 1
+--
+-- (a) valait is_blocked=t avant le correctif. (b) et (c) confirment que rien
+-- d'autre n'a bouge : blocage manuel preserve, blocage legitime toujours pose,
+-- une seule notification. Verifie apres coup : aucun settlement de preuve
+-- subsistant, et la fonction revenue a sa version d'origine (le DDL est
+-- transactionnel).
 --
 -- Idempotent -- rejouable sans effet de bord.
 -- ============================================================================
@@ -64,7 +75,7 @@
 -- ── A. Etat avant ──────────────────────────────────────────────────────────
 SELECT u.email, COALESCE(p.full_name,'—') AS nom, d.is_online, d.is_blocked,
        ROUND(EXTRACT(EPOCH FROM (now() - d.last_location_update))/60) AS position_min,
-       w.balance, w.status AS wallet
+       w.balance, w.status AS wallet, COALESCE(w.blocked_reason,'—') AS raison
 FROM public.drivers d
 JOIN auth.users u           ON u.id = d.user_id
 LEFT JOIN public.profiles p ON p.id = d.user_id
@@ -74,141 +85,46 @@ ORDER BY d.is_online DESC, d.last_location_update NULLS FIRST;
 
 BEGIN;
 
--- ── 1. La cause : ne plus presenter le montant comme un solde ──────────────
--- Le INSERT porte desormais le solde REEL qui resultera de l'operation, donc
--- le BEFORE INSERT juge la meme valeur que le BEFORE UPDATE. Le ON CONFLICT
--- est conserve tel quel : il reste la protection contre deux commissions
--- simultanees sur le meme portefeuille.
+-- ── 1. La cause : UPDATE d'abord, INSERT seulement si rien n'a bouge ───────
 CREATE OR REPLACE FUNCTION public.update_wallet_balance()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
-BEGIN
-  INSERT INTO public.wallets (user_id, balance)
-  VALUES (
-    NEW.user_id,
-    COALESCE((SELECT w.balance FROM public.wallets w WHERE w.user_id = NEW.user_id), 0)
-      + NEW.amount
-  )
-  ON CONFLICT (user_id)
-  DO UPDATE SET balance = public.wallets.balance + NEW.amount, updated_at = now();
-  RETURN NEW;
-END;
-$$;
-
-
--- ── 2. Un filet : rattraper une derive au lieu de la figer ─────────────────
--- Meme corrigee, la branche de deblocage ne s'executait que si le
--- portefeuille etait lui-meme 'blocked'. Un drapeau devenu faux par un autre
--- chemin (comme celui du point 1, ou une edition manuelle) ne se corrigeait
--- jamais tout seul. On remet le drapeau en accord avec le portefeuille des
--- qu'un mouvement le laisse au-dessus du plancher.
---
--- Les blocages ADMINISTRATIFS sont preserves : /api/block pose
--- blocked_reason = 'manual' sur le portefeuille, et ce filet ne touche que
--- les portefeuilles 'active'.
-CREATE OR REPLACE FUNCTION public.enforce_prepaid_block()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
 DECLARE
-  v_floor      NUMERIC(12,3);
-  v_is_driver  BOOLEAN;
-  v_is_partner BOOLEAN;
-  v_url        TEXT;
-  v_secret     TEXT;
+  v_touched integer;
 BEGIN
-  IF TG_OP = 'INSERT' OR NEW.balance IS DISTINCT FROM OLD.balance THEN
+  -- Le chemin normal : le portefeuille existe, on l'ajuste. Seul le passage
+  -- BEFORE UPDATE se declenche, avec le solde reel.
+  UPDATE public.wallets
+     SET balance = balance + NEW.amount,
+         updated_at = now()
+   WHERE user_id = NEW.user_id;
 
-    SELECT COALESCE(
-      (SELECT setting_value::NUMERIC FROM public.global_settings WHERE setting_key = 'prepaid_min_balance'),
-      0
-    ) INTO v_floor;
+  GET DIAGNOSTICS v_touched = ROW_COUNT;
 
-    SELECT EXISTS(SELECT 1 FROM public.drivers  WHERE user_id = NEW.user_id) INTO v_is_driver;
-    SELECT EXISTS(SELECT 1 FROM public.partners WHERE user_id = NEW.user_id) INTO v_is_partner;
-
-    IF v_is_driver OR v_is_partner THEN
-
-      IF NEW.balance <= v_floor THEN
-        NEW.status         := 'blocked';
-        NEW.blocked_reason := 'balance';
-
-        IF v_is_driver THEN
-          UPDATE public.drivers SET is_blocked = TRUE WHERE user_id = NEW.user_id;
-        END IF;
-        IF v_is_partner THEN
-          UPDATE public.partners SET is_blocked = TRUE WHERE user_id = NEW.user_id;
-        END IF;
-
-        IF TG_OP = 'INSERT' OR OLD.balance > v_floor THEN
-          INSERT INTO public.notifications (user_id, title, message, type, data)
-          VALUES (
-            NEW.user_id,
-            'Solde épuisé — compte bloqué',
-            'Votre solde prépayé est de ' || NEW.balance || ' TND. Rechargez votre solde pour continuer à recevoir des commandes.',
-            'wallet_blocked',
-            jsonb_build_object('balance', NEW.balance)
-          );
-        END IF;
-
-      ELSE
-        IF NEW.status = 'blocked' AND COALESCE(NEW.blocked_reason, 'balance') = 'balance' THEN
-          NEW.status         := 'active';
-          NEW.blocked_reason := NULL;
-
-          IF v_is_driver THEN
-            UPDATE public.drivers SET is_blocked = FALSE WHERE user_id = NEW.user_id;
-          END IF;
-          IF v_is_partner THEN
-            UPDATE public.partners SET is_blocked = FALSE WHERE user_id = NEW.user_id;
-          END IF;
-
-        ELSIF NEW.status = 'active' THEN
-          -- Le filet. Ne s'applique qu'a un portefeuille sain et non bloque
-          -- administrativement, et ne touche que les lignes reellement en
-          -- desaccord.
-          IF v_is_driver THEN
-            UPDATE public.drivers  SET is_blocked = FALSE
-             WHERE user_id = NEW.user_id AND is_blocked = TRUE;
-          END IF;
-          IF v_is_partner THEN
-            UPDATE public.partners SET is_blocked = FALSE
-             WHERE user_id = NEW.user_id AND is_blocked = TRUE;
-          END IF;
-        END IF;
-      END IF;
-
-      IF TG_OP = 'UPDATE' AND OLD.balance > 4 AND NEW.balance BETWEEN 2 AND 4 THEN
-        v_url := COALESCE(
-          current_setting('app.edge_function_url', true),
-          'https://hoqlxxtphskgxktqjpfu.supabase.co/functions/v1/push-on-order-status'
-        );
-        v_secret := COALESCE(
-          current_setting('app.edge_function_secret', true),
-          'sb_publishable_wKhzJeVlKGWFe85PyGhyXg_gBJr97hK'
-        );
-        PERFORM net.http_post(
-          url     := v_url,
-          headers := jsonb_build_object('Content-Type', 'application/json',
-                                        'Authorization', 'Bearer ' || v_secret),
-          body    := jsonb_build_object('event', 'low_balance_warning',
-                                        'user_id', NEW.user_id,
-                                        'balance', NEW.balance)
-        );
-      END IF;
-
-    END IF;
+  -- Portefeuille reellement neuf. Ici balance = amount est la bonne valeur,
+  -- donc le passage BEFORE INSERT juge la bonne chose. Le ON CONFLICT couvre
+  -- la course entre deux commissions simultanees sur un meme compte neuf.
+  IF v_touched = 0 THEN
+    INSERT INTO public.wallets (user_id, balance)
+    VALUES (NEW.user_id, NEW.amount)
+    ON CONFLICT (user_id)
+    DO UPDATE SET balance = public.wallets.balance + NEW.amount,
+                  updated_at = now();
   END IF;
 
   RETURN NEW;
 END;
 $$;
 
+-- enforce_prepaid_block n'est PAS modifiee : une fois la cause corrigee, sa
+-- logique d'origine est juste. Toute "amelioration" a cet endroit risque de
+-- marcher sur les blocages manuels, comme la v1 de ce script le faisait.
 
--- ── 3. Remettre d'aplomb les drapeaux deja fausses ─────────────────────────
--- Meme condition que le script du 26/09 : solde strictement positif ET
--- portefeuille 'active'. Un livreur reellement a sec reste bloque.
+
+-- ── 2. Remettre d'aplomb les drapeaux deja fausses ─────────────────────────
+-- Solde strictement positif ET portefeuille 'active' : un livreur reellement
+-- a sec, ou bloque a la main, n'est pas touche.
 UPDATE public.drivers d
 SET    is_blocked = false
 FROM   public.wallets w
@@ -218,40 +134,106 @@ WHERE  w.user_id = d.user_id
   AND  w.status = 'active';
 
 
--- ── 4. Un livreur dont la position est trop vieille n'est plus en ligne ────
--- Deux niveaux, volontairement :
+-- ── 3. Le dispatch refuse un livreur bloque ou a la position perimee ───────
+-- Corps repris a l'identique de la version en base, avec DEUX lignes
+-- ajoutees, signalees en commentaire. Le reste -- rayon, deja-passes,
+-- livraison en cours, offre en attente, tri par distance -- est inchange.
 --
---   (a) le dispatch refuse une position perimee AU MOMENT de choisir. C'est
---       la garantie : elle ne depend d'aucune tache planifiee.
---   (b) une tache remet is_online a false, pour que la carte, les compteurs
---       et l'app disent la meme chose que le dispatch.
---
--- Seuil a 15 minutes : le battement de coeur de l'app livreur est a 4 min et
--- la carte admin considere une position perimee a 10 min, donc 15 laisse
--- passer trois battements manques avant de declarer le livreur absent.
+-- Cette condition est la vraie garantie : elle s'applique au moment du choix
+-- et ne depend d'aucune tache planifiee.
+CREATE OR REPLACE FUNCTION public.next_eligible_driver(
+  p_order_id uuid,
+  p_radius_km double precision DEFAULT 7
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_lat       DOUBLE PRECISION;
+  v_lng       DOUBLE PRECISION;
+  v_passed    UUID[];
+  v_driver_id UUID;
+BEGIN
+  SELECT
+    COALESCE(r.latitude,  s.latitude,  (o.pickup_address->>'lat')::DOUBLE PRECISION),
+    COALESCE(r.longitude, s.longitude, (o.pickup_address->>'lng')::DOUBLE PRECISION),
+    o.passed_driver_ids
+  INTO v_lat, v_lng, v_passed
+  FROM public.orders o
+  LEFT JOIN public.restaurants  r ON r.id = o.restaurant_id
+  LEFT JOIN public.supermarkets s ON s.id = o.supermarket_id
+  WHERE o.id = p_order_id;
 
--- (a) -- le filtre de fraicheur dans le choix du livreur
---     On ne reecrit pas toute la fonction : on ajoute la condition au
---     WHERE existant. A relire avec le code actuel sous les yeux avant de
---     lancer, la fonction est longue.
--- NOTE : cette partie est laissee EN COMMENTAIRE volontairement. Modifier
--- next_eligible_driver demande de reproduire son corps entier, et je
--- prefere vous le proposer separement plutot que de le retranscrire de
--- memoire ici. Le point (b) ci-dessous suffit deja a regler le symptome.
---
---   AND d.last_location_update IS NOT NULL
---   AND d.last_location_update > now() - interval '15 minutes'
+  IF v_lat IS NULL OR v_lng IS NULL OR (v_lat = 0 AND v_lng = 0) THEN
+    RETURN NULL;
+  END IF;
 
--- (b) -- la tache planifiee
+  SELECT d.id INTO v_driver_id
+  FROM public.drivers d
+  WHERE d.is_online      = TRUE
+    -- ── AJOUT 1 : un compte bloque ne recoit pas d'offre ──────────────────
+    AND COALESCE(d.is_blocked, FALSE) = FALSE
+    -- ── AJOUT 2 : position fraiche. 15 min = trois battements de coeur
+    --    manques (l'app en envoie un toutes les 4 min). Sans cela, un
+    --    livreur dont l'application a ete tuee reste eligible indefiniment.
+    AND d.last_location_update IS NOT NULL
+    AND d.last_location_update > now() - interval '15 minutes'
+    AND d.current_lat   IS NOT NULL
+    AND d.current_lng   IS NOT NULL
+    AND public.haversine_km(v_lat, v_lng, d.current_lat, d.current_lng) <= p_radius_km
+    AND NOT (d.id = ANY(COALESCE(v_passed, '{}'::UUID[])))
+    AND NOT EXISTS (
+      SELECT 1
+      FROM   public.orders active
+      WHERE  active.driver_id = d.id
+        AND  active.status IN ('confirmed', 'preparing', 'ready', 'pickedUp', 'onTheWay')
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM   public.orders offered
+      WHERE  offered.assigned_driver_id = d.id
+        AND  offered.driver_id          IS NULL
+        AND  offered.assignment_expires_at > now()
+    )
+  ORDER BY public.haversine_km(v_lat, v_lng, d.current_lat, d.current_lng) ASC
+  LIMIT 1;
+
+  RETURN v_driver_id;
+END;
+$$;
+
+
+-- ── 4. La tache : repasser hors ligne, SAUF en pleine livraison ────────────
+-- Le point 3 protege deja le dispatch. Cette tache sert a ce que la carte,
+-- les compteurs et l'application disent la meme chose que lui.
+--
+-- LA GARDE EST ESSENTIELLE. Si l'application d'un livreur est tuee par MIUI
+-- au milieu d'une course, sa position cesse d'arriver : sans la garde, la
+-- tache le passerait hors ligne, il disparaitrait de la carte admin en pleine
+-- livraison, et au redemarrage l'application relirait is_online = false
+-- (driver_online_provider le lit au demarrage) -- le livreur se retrouverait
+-- hors ligne sans l'avoir demande, avec une commande sur les bras.
+--
+-- Tant qu'une commande est en cours, il reste donc en ligne. Cela ne lui
+-- amene aucune offre parasite : next_eligible_driver ecarte deja les livreurs
+-- ayant une livraison active. La meme liste de statuts est utilisee des deux
+-- cotes, pour qu'ils ne puissent pas diverger.
 SELECT cron.schedule(
   'offline_stale_drivers',
   '* * * * *',
   $job$
-    UPDATE public.drivers
+    UPDATE public.drivers d
     SET    is_online = false
-    WHERE  is_online = true
-      AND  (last_location_update IS NULL
-            OR last_location_update < now() - interval '15 minutes');
+    WHERE  d.is_online = true
+      AND  (d.last_location_update IS NULL
+            OR d.last_location_update < now() - interval '15 minutes')
+      AND  NOT EXISTS (
+             SELECT 1
+             FROM   public.orders o
+             WHERE  o.driver_id = d.id
+               AND  o.status IN ('confirmed', 'preparing', 'ready', 'pickedUp', 'onTheWay')
+           );
   $job$
 );
 
@@ -271,6 +253,20 @@ BEGIN
   IF n <> 1 THEN
     RAISE EXCEPTION 'Abandon : la tache offline_stale_drivers n''est pas planifiee';
   END IF;
+
+  SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
+   WHERE ns.nspname = 'public' AND p.proname = 'update_wallet_balance'
+     AND p.prosrc ~ 'GET DIAGNOSTICS';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'Abandon : update_wallet_balance n''a pas ete remplacee';
+  END IF;
+
+  SELECT count(*) INTO n FROM pg_proc p JOIN pg_namespace ns ON ns.oid = p.pronamespace
+   WHERE ns.nspname = 'public' AND p.proname = 'next_eligible_driver'
+     AND p.prosrc ~ 'last_location_update' AND p.prosrc ~ 'is_blocked';
+  IF n <> 1 THEN
+    RAISE EXCEPTION 'Abandon : next_eligible_driver n''a pas les deux conditions';
+  END IF;
 END
 $$;
 
@@ -278,11 +274,13 @@ COMMIT;
 
 
 -- ── B. Verification ────────────────────────────────────────────────────────
--- 1. Plus aucun livreur en ligne avec une position de plus de 15 min
---    (laisser passer une minute pour que la tache tourne) :
+-- 1. Apres une minute, plus aucun livreur en ligne avec une position de plus
+--    de 15 min -- sauf s'il a une commande en cours :
 -- SELECT u.email, d.is_online,
---        ROUND(EXTRACT(EPOCH FROM (now()-d.last_location_update))/60) AS position_min
--- FROM public.drivers d JOIN auth.users u ON u.id=d.user_id
+--        ROUND(EXTRACT(EPOCH FROM (now()-d.last_location_update))/60) AS position_min,
+--        EXISTS (SELECT 1 FROM public.orders o WHERE o.driver_id = d.id
+--                AND o.status IN ('confirmed','preparing','ready','pickedUp','onTheWay')) AS en_course
+-- FROM public.drivers d JOIN auth.users u ON u.id = d.user_id
 -- WHERE d.is_online = true ORDER BY 3 DESC;
 --
 -- 2. La tache tourne sans erreur :
@@ -290,5 +288,5 @@ COMMIT;
 -- WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname='offline_stale_drivers')
 --   AND start_time > now() - interval '5 minutes' GROUP BY status;
 --
--- 3. Le blocage fantome ne revient plus. Rejouez la preuve : une commission
---    sur un livreur sain ne doit plus mettre is_blocked a true.
+-- 3. Le blocage fantome ne revient plus : livrez une commande et verifiez que
+--    drivers.is_blocked reste false pour un livreur au solde positif.
