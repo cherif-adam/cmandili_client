@@ -326,6 +326,37 @@ class AppLocalizationsFr extends AppLocalizations {
   String get happyHour => 'HAPPY HOUR';
 
   @override
+  String get happyHourLive => 'EN DIRECT';
+
+  @override
+  String happyHourDealsSummary(int count, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count offres · jusqu\'à -$percent%',
+      one: '1 offre · jusqu\'à -$percent%',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String happyHourEndsIn(String time) {
+    return 'Se termine dans $time';
+  }
+
+  @override
+  String get happyHourNoDealsNow =>
+      'Pas d\'offre en ce moment, revenez bientôt';
+
+  @override
+  String happyHourUnitsLeft(int count) {
+    return 'Plus que $count !';
+  }
+
+  @override
+  String get happyHourShopsTab => 'Boutiques';
+
+  @override
   String get restaurants => 'Restaurants';
 
   @override

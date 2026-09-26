@@ -108,6 +108,10 @@ class VendorItem {
   final double? discountPrice;
   final DateTime? discountEndTime;
 
+  /// Units left at the happy-hour price; null = unlimited. Counted down by
+  /// the consume_happy_hour_quantity trigger as orders come in.
+  final int? discountQuantity;
+
   const VendorItem({
     required this.id,
     required this.vendorId,
@@ -121,6 +125,7 @@ class VendorItem {
     this.isAvailable = true,
     this.discountPrice,
     this.discountEndTime,
+    this.discountQuantity,
   });
 
   /// Price the customer actually pays right now: the discounted price while a
@@ -152,6 +157,7 @@ class VendorItem {
       discountEndTime: row['discount_end_time'] == null
           ? null
           : DateTime.tryParse(row['discount_end_time'].toString()),
+      discountQuantity: (row['discount_quantity'] as num?)?.toInt(),
     );
   }
 }

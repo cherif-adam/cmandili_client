@@ -8,7 +8,11 @@ import '../../cart/data/models/cart_item.dart';
 import 'widgets/happy_hour_card.dart';
 
 class HappyHourScreen extends ConsumerStatefulWidget {
-  const HappyHourScreen({super.key});
+  const HappyHourScreen({super.key, this.initialTab = 0});
+
+  /// 0 = Restaurants, 1 = Supermarchés, 2 = Boutiques (every other shop
+  /// category). Lets a tapped deal on the home screen land on its tab.
+  final int initialTab;
 
   @override
   ConsumerState<HappyHourScreen> createState() => _HappyHourScreenState();
@@ -20,7 +24,11 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 2),
+    );
   }
 
   @override
@@ -113,6 +121,7 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
                     tabs: [
                       Tab(text: AppLocalizations.of(context)!.restaurants),
                       Tab(text: AppLocalizations.of(context)!.supermarkets),
+                      Tab(text: AppLocalizations.of(context)!.happyHourShopsTab),
                     ],
                   ),
                 ),
@@ -125,6 +134,7 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
           children: [
             _buildRestaurantList(),
             _buildSupermarketList(),
+            _buildShopsList(),
           ],
         ),
       ),
@@ -149,7 +159,7 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
               description: item.description,
               originalPrice: applyPlatformMarkup(item.price),
               discountPrice: item.clientPrice,
-              discountEndTime: item.discountEndTime!,
+              discountEndTime: item.discountEndTime,
               discountQuantity: item.discountQuantity,
               onTap: () {
                 // Navigate to details or add to cart
@@ -198,7 +208,7 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
               description: "${item.description} (${item.unit})",
               originalPrice: applyPlatformMarkup(item.price),
               discountPrice: item.clientPrice,
-              discountEndTime: item.discountEndTime!,
+              discountEndTime: item.discountEndTime,
               discountQuantity: item.discountQuantity,
               onTap: () {
                  // Navigate to details or add to cart
@@ -212,6 +222,50 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
                   quantity: 1,
                 );
                 ref.read(cartProvider.notifier).addItem(cartItem);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("${item.name} added to cart!"),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(milliseconds: 1500),
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, st) => Center(child: Text("Error: $e")),
+    );
+  }
+
+  /// Gift shops, florists, pet shops, bakeries, electronics — items that only
+  /// exist in vendor_items. Same card, cart line typed as a vendor item.
+  Widget _buildShopsList() {
+    final asyncValue = ref.watch(happyHourShopsProvider);
+    return asyncValue.when(
+      data: (items) {
+        if (items.isEmpty) {
+          return Center(child: Text(AppLocalizations.of(context)!.noDealsRightNow));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.only(top: 16, bottom: 24),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return HappyHourCard(
+              imageUrl: item.imageUrl,
+              name: item.name,
+              description: item.description,
+              originalPrice: applyPlatformMarkup(item.price),
+              discountPrice: applyPlatformMarkup(item.effectivePrice),
+              discountEndTime: item.discountEndTime,
+              discountQuantity: item.discountQuantity,
+              onTap: () {},
+              onGrab: () {
+                ref
+                    .read(cartProvider.notifier)
+                    .addItem(CartItem.vendor(vendorItem: item, quantity: 1));
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text("${item.name} added to cart!"),
