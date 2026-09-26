@@ -138,19 +138,30 @@ class OrderRepository {
 
     final response = await _supabase
         .from('orders')
-        // `restaurants!orders_restaurant_id_fkey` rather than plain
-        // `restaurants`. Since restaurants became a view over the generic
-        // `vendors` table, PostgREST sees TWO paths from orders to it —
-        // orders.restaurant_id and orders.supermarket_id both land there —
-        // and refuses to guess, failing the whole order history with
-        // PGRST201. Naming the constraint picks the restaurant leg.
+        // The venue embed has to answer two separate problems.
+        //
+        // Naming the constraint: since `restaurants` became a view over the
+        // generic `vendors` table, PostgREST sees TWO paths from orders to it
+        // — orders.restaurant_id and orders.supermarket_id both land there —
+        // and refuses to guess, failing the whole history with PGRST201.
+        //
+        // Embedding `vendors` rather than the `restaurants` view: that view
+        // is filtered to category = 'food', so going through it returns NULL
+        // for an order placed at a florist, pet shop, bakery, gift or
+        // electronics store — the history would show the order with no shop
+        // name. Verified live: the same three orders come back
+        // "Digital House | Boutique Nour | Boutique Nour" through vendors and
+        // "NULL | NULL | NULL" through the view. The alias keeps the JSON key
+        // the mappers below expect. Same form as the driver app's
+        // driver_orders_provider.dart.
+        //
         // Join each line's product row so the history/tracking screens can
         // show "2x Pizza Margherita" instead of a blank name. `food_items`
         // and `grocery_items` are now views over `vendors`, so PostgREST
         // can't resolve an embed through them — point the embed at the
         // underlying tables (same aliases the partner app uses) and keep
         // the view's name as the alias so the mapping below is unchanged.
-        .select('*, restaurants!orders_restaurant_id_fkey(name), '
+        .select('*, restaurants:vendors!orders_restaurant_id_fkey(name), '
             'order_items(*, food_items:food_items_legacy(*), '
             'grocery_items:grocery_items_legacy(*), vendor_items(*))')
         .eq('user_id', userId)
