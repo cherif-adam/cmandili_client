@@ -161,6 +161,26 @@ class OrderRepository {
         .toList();
   }
 
+  /// The customer's newest order that is not yet delivered or cancelled, or
+  /// null. Deliberately a bare `select('*')` with no embeds: the history
+  /// query's joins can fail on schema drift, and this call is the only way
+  /// back into tracking, so it must not share that failure mode.
+  Future<Order?> getActiveOrder() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    final row = await _supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', userId)
+        .not('status', 'in', '(delivered,cancelled)')
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+    if (row == null) return null;
+    return Order.fromJson(_mapOrderFromDb(row));
+  }
+
   /// Fresh, current-price/current-availability items for a past order — used
   /// by "Reorder" on order history. Deliberately does NOT replay the
   /// original order's variant/option-group picks (order_items.options) or
@@ -356,6 +376,30 @@ class OrderRepository {
   }
 
   // Stream order updates
+  /// Live version of [getActiveOrder]: emits the newest undelivered,
+  /// uncancelled order (or null) every time any of the customer's orders
+  /// changes, so a restaurant/driver status update shows up immediately.
+  Stream<Order?> streamActiveOrder() {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return Stream.value(null);
+    return _supabase
+        .from('orders')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .map((rows) {
+          Map<String, dynamic>? newest;
+          for (final row in rows) {
+            final status = row['status'];
+            if (status == 'delivered' || status == 'cancelled') continue;
+            if (newest == null ||
+                '${row['created_at']}'.compareTo('${newest['created_at']}') > 0) {
+              newest = row;
+            }
+          }
+          return newest == null ? null : Order.fromJson(_mapOrderFromDb(newest));
+        });
+  }
+
   Stream<Order> streamOrder(String orderId) {
     return _supabase
         .from('orders')

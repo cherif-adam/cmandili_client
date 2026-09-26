@@ -492,9 +492,6 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               contentPadding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).size.height * 0.45,
               ),
-              // A delivery is actively under way on this screen, so traffic
-              // shading is signal rather than noise here.
-              showTraffic: true,
               markers: {
                 AppMapMarker(
                   id: 'delivery',
