@@ -4,7 +4,14 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ── Channel IDs ──────────────────────────────────────────────────────────────
-const String _kChannelId   = 'cmandili_orders';
+//
+// _v3: the previous 'cmandili_orders' channel was created WITHOUT playSound.
+// On Android O+ that produces a permanently SILENT channel — it does not fall
+// back to the default tone, and a channel's settings are immutable once the
+// system has created it. Every status notification on this app has therefore
+// been arriving with no sound. Bumping the id forces each device to create a
+// fresh channel with audio enabled.
+const String _kChannelId   = 'cmandili_orders_v3';
 const String _kChannelName = 'Order updates';
 const String _kChannelDesc = 'Notifications about your orders';
 
@@ -18,10 +25,20 @@ const String _kChannelDesc = 'Notifications about your orders';
 // are immutable once created, so devices that already created the old
 // channel would keep the broken config even after this fix; bumping the id
 // makes every device create a fresh, correctly-configured channel instead.
-const String _kUrgentChannelId   = 'cmandili_orders_urgent_v2';
+// Urgent channel for driver on-the-way / arrival alerts. _v3 for the same
+// immutability reason, and because it now carries a real bundled sound:
+// android/app/src/main/res/raw/delivery_alert.mp3. The earlier version
+// referenced 'new_order', a raw resource that only existed in the driver
+// app — every push on that channel threw PlatformException(invalid_sound)
+// and displayed nothing at all.
+const String _kUrgentChannelId   = 'cmandili_orders_urgent_v3';
 const String _kUrgentChannelName = 'Delivery alerts';
 const String _kUrgentChannelDesc =
     'High-priority alerts when your driver is on the way';
+
+// Vibration strong enough to be felt in a pocket, matching the driver and
+// partner apps.
+final Int64List _kVibration = Int64List.fromList([0, 500, 300, 700, 300, 700]);
 
 // ── Background handler ───────────────────────────────────────────────────────
 @pragma('vm:entry-point')
@@ -63,23 +80,31 @@ class PushService {
         AndroidFlutterLocalNotificationsPlugin>();
 
     // Standard channel for order-lifecycle status updates.
-    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+    //
+    // playSound and enableVibration MUST be explicit: a channel created
+    // without them is created silent and stays that way forever.
+    await androidPlugin?.createNotificationChannel(AndroidNotificationChannel(
       _kChannelId,
       _kChannelName,
       description: _kChannelDesc,
       importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+      vibrationPattern: _kVibration,
     ));
 
-    // Urgent channel for on-the-way / arrival alerts. Default sound (no
-    // `sound:` override) -- same as every other client status update; see
-    // the _kUrgentChannelId comment for why this can't reference a custom
-    // resource.
-    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+    // Urgent channel for on-the-way / arrival alerts, with the bundled
+    // delivery_alert sound so it is clearly louder and more distinctive than
+    // an ordinary status ping.
+    await androidPlugin?.createNotificationChannel(AndroidNotificationChannel(
       _kUrgentChannelId,
       _kUrgentChannelName,
       description: _kUrgentChannelDesc,
       importance: Importance.max,
       playSound: true,
+      sound: const RawResourceAndroidNotificationSound('delivery_alert'),
+      enableVibration: true,
+      vibrationPattern: _kVibration,
     ));
 
     await _fcm.setForegroundNotificationPresentationOptions(
@@ -139,9 +164,31 @@ class PushService {
           importance: isDriverAlert ? Importance.max : Importance.high,
           priority:   isDriverAlert ? Priority.max  : Priority.high,
           playSound: true,
+          sound: isDriverAlert
+              ? const RawResourceAndroidNotificationSound('delivery_alert')
+              : null,
+          // Alarm usage makes Android honour the sound even when the phone is
+          // in Do Not Disturb, which is where a silent arrival alert hurts
+          // most — the customer misses the driver at the door.
+          audioAttributesUsage: isDriverAlert
+              ? AudioAttributesUsage.alarm
+              : AudioAttributesUsage.notification,
+          enableVibration: true,
+          vibrationPattern: _kVibration,
+          // Wake the screen for a driver alert so it is seen from a pocket.
+          fullScreenIntent: isDriverAlert,
+          visibility: NotificationVisibility.public,
+          category: isDriverAlert ? AndroidNotificationCategory.alarm : null,
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentSound: true,
+          sound: isDriverAlert ? 'delivery_alert.mp3' : null,
+          // Critical alerts pierce silent mode. Requires the entitlement from
+          // Apple; without it iOS falls back to a normal alert rather than
+          // failing, so this is safe to request either way.
+          interruptionLevel: isDriverAlert
+              ? InterruptionLevel.critical
+              : InterruptionLevel.active,
         ),
       ),
     );

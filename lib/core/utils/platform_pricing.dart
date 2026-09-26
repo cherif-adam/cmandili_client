@@ -6,3 +6,9 @@ const double kPlatformMarkupRate = 0.10;
 
 double applyPlatformMarkup(double basePrice) =>
     basePrice * (1 + kPlatformMarkupRate);
+
+/// Inverse of [applyPlatformMarkup]. Needed when reading back a price that
+/// was already stored with the markup baked in (e.g. `order_items.price`)
+/// into a model whose price getter applies the markup itself.
+double removePlatformMarkup(double clientPrice) =>
+    clientPrice / (1 + kPlatformMarkupRate);

@@ -55,7 +55,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   bool _routeFetchInFlight = false;
   /// When the last Directions call went out, used to rate-limit re-routing.
   DateTime? _lastRouteFetchAt;
-  bool _boundsFitted = false;
+  /// Destination the camera is currently framed on; null until the first
+  /// fit. Compared against the live destination so the map reframes when the
+  /// driver collects the order and turns towards the customer.
+  ({double lat, double lng})? _fittedForLeg;
   bool _loyaltySheetScheduled = false;
   bool _ratingPromptScheduled = false;
   final _supabase = Supabase.instance.client;
@@ -375,9 +378,36 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         order.status != OrderStatus.cancelled &&
         order.status != OrderStatus.delivered;
 
-    final destination = isFacture && order.status == OrderStatus.onTheWay && order.pickupAddress != null
-        ? (lat: order.pickupAddress!.latitude, lng: order.pickupAddress!.longitude)
-        : (lat: order.deliveryAddress.latitude, lng: order.deliveryAddress.longitude);
+    // Which leg is the driver actually on?
+    //
+    // Until the order is collected the driver is travelling to the PICKUP
+    // point, not to the customer. Drawing the line straight to the customer
+    // during that phase showed a route the driver was never going to take,
+    // and an ETA that ignored the restaurant stop entirely — so the customer
+    // watched the marker move away from the line they had been shown.
+    //
+    // Facture orders invert the roles: the "pickup" is the customer's own
+    // address (cash is collected there) and the drop-off is the payment
+    // office, so the same leg logic applies with the two ends swapped.
+    final beforePickup = order.status != OrderStatus.pickedUp &&
+        order.status != OrderStatus.onTheWay;
+
+    final pickupPoint = order.pickupAddress == null
+        ? null
+        : (
+            lat: order.pickupAddress!.latitude,
+            lng: order.pickupAddress!.longitude
+          );
+    final deliveryPoint = (
+      lat: order.deliveryAddress.latitude,
+      lng: order.deliveryAddress.longitude
+    );
+
+    final destination = isFacture
+        ? (order.status == OrderStatus.onTheWay && pickupPoint != null
+            ? pickupPoint
+            : deliveryPoint)
+        : (beforePickup && pickupPoint != null ? pickupPoint : deliveryPoint);
 
     // Fetch the route when driver location first becomes available, then
     // re-fetch whenever the drawn line would be stale: the destination
@@ -414,10 +444,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       );
     }
 
-    // Frame driver + destination once the map first becomes visible, then
-    // leave the camera under the user's control — see _updateDriverPosition.
-    if (showMap && !_boundsFitted) {
-      _boundsFitted = true;
+    // Frame driver + the CURRENT destination, and reframe when the leg flips.
+    //
+    // Fitting once meant that the moment the driver collected the order and
+    // turned towards the customer, the camera stayed framed on the restaurant
+    // — the customer watched their driver head off the edge of the map.
+    // Keying the guard on the destination re-fits exactly on that transition
+    // and not on every GPS tick, so panning is still left to the user.
+    if (showMap && _fittedForLeg != destination) {
+      _fittedForLeg = destination;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mapController.fitBounds([
           (lat: _driverLat!, lng: _driverLng!),
@@ -867,8 +902,15 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     ),
 
                     // ── Cancellation section ──────────────────────────────
+                    // Mirrors the status list in
+                    // OrderRepository.cancelOrderByCustomer: cancellable right
+                    // up to pickup. Stopping at 'confirmed' left a customer
+                    // trapped whenever a shop marked an order ready and no
+                    // driver ever collected it.
                     if (order.status == OrderStatus.pending ||
-                        order.status == OrderStatus.confirmed) ...[
+                        order.status == OrderStatus.confirmed ||
+                        order.status == OrderStatus.preparing ||
+                        order.status == OrderStatus.ready) ...[
                       const SizedBox(height: 24),
                       const Divider(),
                       const SizedBox(height: 8),
