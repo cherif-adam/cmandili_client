@@ -98,6 +98,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
 
+          // Active-order pill: floats above the nav bar on every tab so the
+          // customer can always get back into tracking after leaving it.
+          _buildActiveOrderPill(screenWidth, screenHeight),
+
           // Floating Bottom Navigation Bar
           Positioned(
             bottom: screenHeight * 0.03,
@@ -372,9 +376,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         ),
-
-        // Active Order Banner
-        _buildActiveOrderBanner(screenWidth, screenHeight),
 
         // Happy Hour Banner
         SliverToBoxAdapter(
@@ -854,73 +855,72 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildActiveOrderBanner(double sw, double sh) {
-    // activeOrderProvider re-polls, unlike the one-shot userOrdersProvider the
-    // banner used to read: an order placed during this session now appears
-    // here, and a delivered one disappears, without a restart.
-    final activeOrdersAsync = ref.watch(activeOrderProvider);
-    return activeOrdersAsync.maybeWhen(
-      data: (activeOrder) {
-        if (activeOrder == null) return const SliverToBoxAdapter(child: SizedBox.shrink());
+  Widget _buildActiveOrderPill(double sw, double sh) {
+    // activeOrderProvider re-polls, so an order placed during this session
+    // appears here and a delivered/cancelled one disappears without a restart.
+    final activeOrder = ref.watch(activeOrderProvider).valueOrNull;
+    if (activeOrder == null) return const SizedBox.shrink();
 
-        return SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: sw * 0.05, vertical: sh * 0.01),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => OrderTrackingScreen(orderId: activeOrder.id),
-                  ),
-                );
-              },
-              child: Container(
-                padding: EdgeInsets.all(sw * 0.04),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(sw * 0.04),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.5)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(sw * 0.02),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.delivery_dining, color: Colors.white),
-                    ),
-                    SizedBox(width: sw * 0.03),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.activeOrder,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: sw * 0.04,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          Text(
-                            activeOrder.getStatusText(),
-                            style: TextStyle(fontSize: sw * 0.035),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios, color: AppColors.primary, size: 16),
-                  ],
-                ),
+    return Positioned(
+      left: sw * 0.06,
+      // Leaves room for the AI chat FAB, which sits at the same height on the
+      // right edge (16 margin + 56 FAB + 8 gap).
+      right: 80,
+      bottom: sh * 0.03 + sh * 0.085 + sh * 0.015,
+      child: Material(
+        color: AppColors.primary,
+        elevation: 6,
+        shadowColor: AppColors.primary.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(sw * 0.05),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(sw * 0.05),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OrderTrackingScreen(orderId: activeOrder.id),
               ),
+            );
+          },
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: sw * 0.035, vertical: sh * 0.012),
+            child: Row(
+              children: [
+                const Icon(Icons.delivery_dining, color: Colors.white),
+                SizedBox(width: sw * 0.025),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.activeOrder,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: sw * 0.037,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        activeOrder.getStatusText(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: sw * 0.032,
+                          color: Colors.white.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+              ],
             ),
           ),
-        );
-      },
-      orElse: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+        ),
+      ),
     );
   }
 
