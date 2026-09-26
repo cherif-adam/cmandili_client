@@ -349,6 +349,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get happyHourShopsTab => 'Shops';
 
   @override
+  String get newItemBadge => 'NEW';
+
+  @override
   String get restaurants => 'Restaurants';
 
   @override

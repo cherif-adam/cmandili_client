@@ -30,6 +30,12 @@ verify_jwt = true
 [functions.notify-partner-order]
 verify_jwt = true
 
+# push-happy-hour: same trigger-with-anon-key pattern as push-on-order-status.
+# Public key means anyone could call it, so the function re-reads the deal
+# from the DB and rate-limits to one push per item per hour.
+[functions.push-happy-hour]
+verify_jwt = true
+
 # ── Auth email templates ─────────────────────────────────────────────────────
 # Declared here for version control / review, but NOT applied via
 # `supabase config push` yet -- that command pushes the whole config.toml to

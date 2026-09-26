@@ -59,7 +59,15 @@ class MyApp extends ConsumerWidget {
     final locale = ref.watch(localizationProvider);
     final themeMode = ref.watch(themeProvider);
 
+    // Keep the Happy Hour notification topic in the app's language.
+    ref.listen<Locale>(localizationProvider, (prev, next) {
+      if (prev?.languageCode != next.languageCode) {
+        PushService.instance.setPromoLanguage(next.languageCode);
+      }
+    });
+
     return MaterialApp(
+      navigatorKey: appNavigatorKey,
       title: 'Amana',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

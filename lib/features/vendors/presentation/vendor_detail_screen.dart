@@ -10,6 +10,7 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../cart/data/models/cart_item.dart';
 import '../../cart/presentation/cart_screen.dart';
 import '../../cart/providers/cart_provider.dart';
+import '../../../core/widgets/new_item_badge.dart';
 
 /// Catalogue for one shop of any generic category.
 ///
@@ -335,12 +336,22 @@ class _ItemRow extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 14.5),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 14.5),
+                          ),
+                        ),
+                        if (item.isNew) ...[
+                          const SizedBox(width: 6),
+                          const NewItemBadge(),
+                        ],
+                      ],
                     ),
                     if (item.description.isNotEmpty) ...[
                       const SizedBox(height: 2),

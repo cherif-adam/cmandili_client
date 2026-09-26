@@ -14,6 +14,7 @@ import '../../favorites/providers/favorites_provider.dart';
 import '../data/models/food_item.dart';
 import '../providers/restaurant_provider.dart';
 import 'widgets/food_item_customization_sheet.dart';
+import '../../../core/widgets/new_item_badge.dart';
 
 // Real food items loaded from Supabase via foodItemsProvider
 
@@ -533,6 +534,11 @@ class _FoodItemCard extends ConsumerWidget {
                               ),
                             ),
                           ),
+                          if (foodItem.isNew) ...[
+                            const SizedBox(width: 6),
+                            const NewItemBadge(),
+                            const SizedBox(width: 4),
+                          ],
                           if (foodItem.isVegetarian)
                             Container(
                               padding: const EdgeInsets.all(4),
@@ -561,9 +567,11 @@ class _FoodItemCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       Builder(builder: (context) {
+                        // No end date = runs until the shop stops it; the cart charges the
+                        // discount either way, so the menu must show it either way too.
                         final hhActive = foodItem.discountPrice != null &&
-                            foodItem.discountEndTime != null &&
-                            foodItem.discountEndTime!.isAfter(DateTime.now());
+                            (foodItem.discountEndTime == null ||
+                                foodItem.discountEndTime!.isAfter(DateTime.now()));
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [

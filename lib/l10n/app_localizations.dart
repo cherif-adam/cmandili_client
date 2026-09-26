@@ -742,6 +742,12 @@ abstract class AppLocalizations {
   /// **'Shops'**
   String get happyHourShopsTab;
 
+  /// No description provided for @newItemBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW'**
+  String get newItemBadge;
+
   /// No description provided for @restaurants.
   ///
   /// In en, this message translates to:

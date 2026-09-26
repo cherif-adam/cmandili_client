@@ -118,6 +118,7 @@
     "happyHourUnitsLeft": "Only {count} left!",
     "@happyHourUnitsLeft": { "placeholders": { "count": { "type": "int" } } },
     "happyHourShopsTab": "Shops",
+    "newItemBadge": "NEW",
     "restaurants": "Restaurants",
     "supermarkets": "Supermarkets",
     "noDealsRightNow": "No deals right now. Check back later!",

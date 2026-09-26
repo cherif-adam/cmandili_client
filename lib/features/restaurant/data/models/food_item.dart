@@ -17,6 +17,15 @@ class FoodItem {
   final DateTime? discountEndTime;
   final int? discountQuantity;
 
+  /// When the shop added this item. Null for rows read from somewhere that
+  /// does not carry it (cart lines rebuilt from an order, etc.).
+  final DateTime? createdAt;
+
+  /// "Nouveau" for the first 24 hours after the shop adds it.
+  bool get isNew =>
+      createdAt != null &&
+      DateTime.now().difference(createdAt!) < const Duration(hours: 24);
+
   FoodItem({
     required this.id,
     required this.restaurantId,
@@ -33,6 +42,7 @@ class FoodItem {
     this.discountPrice,
     this.discountEndTime,
     this.discountQuantity,
+    this.createdAt,
   });
 
   /// Price shown to customers — base (or discounted) price + platform fee.
@@ -55,6 +65,9 @@ class FoodItem {
       discountPrice: json['discountPrice'] != null ? (json['discountPrice'] as num).toDouble() : null,
       discountEndTime: json['discountEndTime'] != null ? DateTime.parse(json['discountEndTime']) : null,
       discountQuantity: json['discountQuantity'],
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : null,
     );
   }
 
@@ -75,6 +88,7 @@ class FoodItem {
       'discountPrice': discountPrice,
       'discountEndTime': discountEndTime?.toIso8601String(),
       'discountQuantity': discountQuantity,
+      'createdAt': createdAt?.toIso8601String(),
     };
   }
 }

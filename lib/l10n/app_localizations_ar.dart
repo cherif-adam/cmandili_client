@@ -346,6 +346,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get happyHourShopsTab => 'متاجر';
 
   @override
+  String get newItemBadge => 'جديد';
+
+  @override
   String get restaurants => 'المطاعم';
 
   @override

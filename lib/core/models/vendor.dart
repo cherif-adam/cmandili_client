@@ -112,6 +112,15 @@ class VendorItem {
   /// the consume_happy_hour_quantity trigger as orders come in.
   final int? discountQuantity;
 
+  /// When the shop added this item. Null for rows read from somewhere that
+  /// does not carry it (cart lines rebuilt from an order, etc.).
+  final DateTime? createdAt;
+
+  /// "Nouveau" for the first 24 hours after the shop adds it.
+  bool get isNew =>
+      createdAt != null &&
+      DateTime.now().difference(createdAt!) < const Duration(hours: 24);
+
   const VendorItem({
     required this.id,
     required this.vendorId,
@@ -126,6 +135,7 @@ class VendorItem {
     this.discountPrice,
     this.discountEndTime,
     this.discountQuantity,
+    this.createdAt,
   });
 
   /// Price the customer actually pays right now: the discounted price while a
@@ -158,6 +168,9 @@ class VendorItem {
           ? null
           : DateTime.tryParse(row['discount_end_time'].toString()),
       discountQuantity: (row['discount_quantity'] as num?)?.toInt(),
+      createdAt: row['created_at'] == null
+          ? null
+          : DateTime.tryParse(row['created_at'].toString()),
     );
   }
 }
