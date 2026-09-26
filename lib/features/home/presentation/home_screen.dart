@@ -16,7 +16,8 @@ import '../../notifications/providers/notification_provider.dart';
 import '../../supermarket/presentation/supermarket_list_screen.dart';
 import 'widgets/service_selector.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../happy_hour/presentation/happy_hour_screen.dart';
+import '../../happy_hour/presentation/widgets/happy_hour_home_banner.dart';
+import '../../happy_hour/providers/happy_hour_provider.dart';
 import '../../orders/presentation/order_history_screen.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
 import '../../orders/providers/order_provider.dart';
@@ -144,6 +145,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(restaurantsProvider);
+        ref.invalidate(happyHourRestaurantsProvider);
+        ref.invalidate(happyHourSupermarketsProvider);
       },
       color: AppColors.primary,
       child: CustomScrollView(
@@ -377,132 +380,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
 
-        // Happy Hour Banner
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: screenWidth * 0.05,
-              vertical: screenHeight * 0.015,
-            ),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HappyHourScreen()),
-                );
-              },
-              child: Container(
-                height: screenHeight * 0.16,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFF9500).withValues(alpha: 0.4),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Image.asset(
-                          'assets/images/happy_hour_banner.jpg',
-                          fit: BoxFit.cover,
-                          alignment: const Alignment(0, -0.2),
-                          errorBuilder: (context, error, stackTrace) =>
-                              const DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Color(0xFFFFCC00), Color(0xFFFF9500)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: AppColors.happyHourOverlayGradient,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        right: -20,
-                        top: -20,
-                        child: Icon(
-                          Icons.local_offer,
-                          size: 150,
-                          color: Colors.white.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      AppLocalizations.of(context)!.happyHour,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: screenWidth * 0.052,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Flexible(
-                                    child: Text(
-                                      AppLocalizations.of(context)!.saveUpTo60,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: screenWidth * 0.033,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                AppLocalizations.of(context)!.viewDeals,
-                                style: const TextStyle(
-                                  color: Color(0xFFFF9500),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+        // Happy Hour: live badge, real deal count/best discount, countdown
+        // and a row of the running deals, so customers can see a happy hour
+        // is actually on without tapping through.
+        const SliverToBoxAdapter(child: HappyHourHomeBanner()),
 
         // Category grid. The selector now lays itself out from the width it
         // is given (it wraps onto as many rows as the category count needs),

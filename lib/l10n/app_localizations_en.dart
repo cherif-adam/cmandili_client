@@ -319,6 +319,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get happyHour => 'HAPPY HOUR';
 
   @override
+  String get happyHourLive => 'LIVE';
+
+  @override
+  String happyHourDealsSummary(int count, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count deals · up to -$percent%',
+      one: '1 deal · up to -$percent%',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String happyHourEndsIn(String time) {
+    return 'Ends in $time';
+  }
+
+  @override
+  String get happyHourNoDealsNow => 'No deals right now, check back soon';
+
+  @override
+  String happyHourUnitsLeft(int count) {
+    return 'Only $count left!';
+  }
+
+  @override
+  String get happyHourShopsTab => 'Shops';
+
+  @override
+  String get newItemBadge => 'NEW';
+
+  @override
   String get restaurants => 'Restaurants';
 
   @override

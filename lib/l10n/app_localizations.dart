@@ -706,6 +706,48 @@ abstract class AppLocalizations {
   /// **'HAPPY HOUR'**
   String get happyHour;
 
+  /// No description provided for @happyHourLive.
+  ///
+  /// In en, this message translates to:
+  /// **'LIVE'**
+  String get happyHourLive;
+
+  /// No description provided for @happyHourDealsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 deal · up to -{percent}%} other{{count} deals · up to -{percent}%}}'**
+  String happyHourDealsSummary(int count, int percent);
+
+  /// No description provided for @happyHourEndsIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends in {time}'**
+  String happyHourEndsIn(String time);
+
+  /// No description provided for @happyHourNoDealsNow.
+  ///
+  /// In en, this message translates to:
+  /// **'No deals right now, check back soon'**
+  String get happyHourNoDealsNow;
+
+  /// No description provided for @happyHourUnitsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {count} left!'**
+  String happyHourUnitsLeft(int count);
+
+  /// No description provided for @happyHourShopsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Shops'**
+  String get happyHourShopsTab;
+
+  /// No description provided for @newItemBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW'**
+  String get newItemBadge;
+
   /// No description provided for @restaurants.
   ///
   /// In en, this message translates to:

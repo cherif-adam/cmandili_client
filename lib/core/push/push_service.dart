@@ -1,7 +1,15 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../features/happy_hour/presentation/happy_hour_screen.dart';
+
+/// Root navigator, so a tapped notification can open a screen from outside
+/// the widget tree (MaterialApp.navigatorKey is set to this in main.dart).
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 // ── Channel IDs ──────────────────────────────────────────────────────────────
 //
@@ -35,6 +43,20 @@ const String _kUrgentChannelId   = 'cmandili_orders_urgent_v3';
 const String _kUrgentChannelName = 'Delivery alerts';
 const String _kUrgentChannelDesc =
     'High-priority alerts when your driver is on the way';
+
+// Promotions (Happy Hour started, ...). Its own channel so a customer can
+// silence offers in Android settings without losing order updates. Default
+// importance: it shows and sounds, but does not pop over what they are doing
+// the way a driver-arrival alert does.
+const String _kPromoChannelId   = 'cmandili_promos_v1';
+const String _kPromoChannelName = 'Offres & Happy Hour';
+const String _kPromoChannelDesc = 'Happy hours and deals from shops';
+
+/// FCM topics for Happy Hour broadcasts, one per app language so the text
+/// arrives in the language the customer reads the app in. The
+/// push-happy-hour Edge Function sends one message to each.
+const List<String> _kPromoLanguages = ['fr', 'ar', 'en'];
+String _promoTopic(String lang) => 'happy_hour_$lang';
 
 // Vibration strong enough to be felt in a pocket, matching the driver and
 // partner apps.
@@ -74,6 +96,8 @@ class PushService {
     );
     await _local.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
+      // Tap on a notification we displayed ourselves (app in foreground).
+      onDidReceiveNotificationResponse: (r) => _openFromPayload(r.payload),
     );
 
     final androidPlugin = _local.resolvePlatformSpecificImplementation<
@@ -107,6 +131,15 @@ class PushService {
       vibrationPattern: _kVibration,
     ));
 
+    await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
+      _kPromoChannelId,
+      _kPromoChannelName,
+      description: _kPromoChannelDesc,
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    ));
+
     await _fcm.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
@@ -116,12 +149,77 @@ class PushService {
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
+    // Tap on a system notification while the app was in the background...
+    FirebaseMessaging.onMessageOpenedApp.listen((m) => _openFromData(m.data));
+    // ...or one that launched the app from closed. The first screen is still
+    // being built at this point, so wait a moment before navigating.
+    final initial = await _fcm.getInitialMessage();
+    if (initial != null) {
+      Future.delayed(
+        const Duration(milliseconds: 1200),
+        () => _openFromData(initial.data),
+      );
+    }
+
+    // Happy Hour broadcasts, in the language the app is set to. Works for
+    // signed-out users too: topics do not need an account.
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('languageCode');
+    final system = PlatformDispatcher.instance.locale.languageCode;
+    await setPromoLanguage(
+      saved ?? (_kPromoLanguages.contains(system) ? system : 'en'),
+    );
+
     await _registerToken();
     _fcm.onTokenRefresh.listen((_) => _registerToken());
 
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (data.event == AuthChangeEvent.signedIn) _registerToken();
     });
+  }
+
+  // ── Promotions topic ────────────────────────────────────────────────────
+
+  String? _promoLanguage;
+
+  /// Keeps this device subscribed to exactly one Happy Hour topic — the one
+  /// for [languageCode] — so it never gets the same offer twice in two
+  /// languages. Called at start-up and whenever the app language changes.
+  Future<void> setPromoLanguage(String languageCode) async {
+    final lang =
+        _kPromoLanguages.contains(languageCode) ? languageCode : 'en';
+    if (lang == _promoLanguage) return;
+    _promoLanguage = lang;
+    try {
+      for (final other in _kPromoLanguages.where((l) => l != lang)) {
+        await _fcm.unsubscribeFromTopic(_promoTopic(other));
+      }
+      await _fcm.subscribeToTopic(_promoTopic(lang));
+    } catch (e) {
+      // No Play Services / offline: retried on the next start or change.
+      _promoLanguage = null;
+      debugPrint('PushService: promo topic subscribe failed $e');
+    }
+  }
+
+  // ── Notification taps ───────────────────────────────────────────────────
+
+  void _openFromData(Map<String, dynamic> data) {
+    if (data['type'] == 'happy_hour') {
+      _openHappyHour(int.tryParse('${data['tab'] ?? 0}') ?? 0);
+    }
+  }
+
+  void _openFromPayload(String? payload) {
+    // Foreground notifications carry 'happy_hour:<tab>' as their payload.
+    if (payload == null || !payload.startsWith('happy_hour')) return;
+    _openHappyHour(int.tryParse(payload.split(':').last) ?? 0);
+  }
+
+  void _openHappyHour(int tab) {
+    appNavigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => HappyHourScreen(initialTab: tab)),
+    );
   }
 
   // ── Token registration ──────────────────────────────────────────────────
@@ -147,6 +245,29 @@ class PushService {
     final title  = message.notification?.title ?? message.data['title'] as String?;
     final body   = message.notification?.body  ?? message.data['body']  as String?;
     if (title == null && body == null) return;
+
+    // Happy Hour broadcast: normal promo notification, tappable into the deals.
+    if (message.data['type'] == 'happy_hour') {
+      _local.show(
+        message.hashCode,
+        title,
+        body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            _kPromoChannelId,
+            _kPromoChannelName,
+            channelDescription: _kPromoChannelDesc,
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+          ),
+          iOS: DarwinNotificationDetails(presentSound: true),
+        ),
+        payload: 'happy_hour:${message.data['tab'] ?? 0}',
+      );
+      return;
+    }
 
     // onTheWay / pickedUp get a heads-up banner with max importance so the
     // customer is aware that their driver is en route even if the app is open.

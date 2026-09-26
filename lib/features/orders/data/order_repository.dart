@@ -306,6 +306,9 @@ class OrderRepository {
       });
       return true;
     } catch (e) {
+      // Still reported to the user as a generic retry, but logged: a
+      // swallowed error here hid an FK failure for every non-restaurant shop.
+      debugPrint('submitRating failed: $e');
       return false;
     }
   }

@@ -2,13 +2,17 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
+
 class HappyHourCard extends StatefulWidget {
   final String imageUrl;
   final String name;
   final String description;
   final double originalPrice;
   final double discountPrice;
-  final DateTime discountEndTime;
+  /// Null for a deal with no end date (it runs until the shop stops it or
+  /// its quantity sells out); the countdown badge is hidden then.
+  final DateTime? discountEndTime;
   final int? discountQuantity;
   final VoidCallback onTap;
   final VoidCallback onGrab;
@@ -20,7 +24,7 @@ class HappyHourCard extends StatefulWidget {
     required this.description,
     required this.originalPrice,
     required this.discountPrice,
-    required this.discountEndTime,
+    this.discountEndTime,
     this.discountQuantity,
     required this.onTap,
     required this.onGrab,
@@ -31,35 +35,29 @@ class HappyHourCard extends StatefulWidget {
 }
 
 class _HappyHourCardState extends State<HappyHourCard> {
-  late Timer _timer;
-  late Duration _timeLeft;
+  Timer? _timer;
+  Duration _timeLeft = Duration.zero;
 
   @override
   void initState() {
     super.initState();
-    _calculateTimeLeft();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _calculateTimeLeft();
+    if (widget.discountEndTime == null) return; // no end: nothing to count
+    _timeLeft = _remaining();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final left = _remaining();
+      setState(() => _timeLeft = left);
+      if (left == Duration.zero) _timer?.cancel();
     });
   }
 
-  void _calculateTimeLeft() {
-    final now = DateTime.now();
-    if (widget.discountEndTime.isAfter(now)) {
-      setState(() {
-        _timeLeft = widget.discountEndTime.difference(now);
-      });
-    } else {
-      setState(() {
-        _timeLeft = Duration.zero;
-      });
-      _timer.cancel();
-    }
+  Duration _remaining() {
+    final left = widget.discountEndTime!.difference(DateTime.now());
+    return left.isNegative ? Duration.zero : left;
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -138,7 +136,8 @@ class _HappyHourCardState extends State<HappyHourCard> {
                     ),
                   ),
                 ),
-                // Timer Badge
+                // Timer Badge (only for deals that have an end)
+                if (widget.discountEndTime != null)
                 Positioned(
                   top: 12,
                   right: 12,
@@ -211,7 +210,8 @@ class _HappyHourCardState extends State<HappyHourCard> {
                           const Icon(Icons.inventory_2_outlined, size: 14, color: Colors.red),
                           const SizedBox(width: 4),
                           Text(
-                            'Only ${widget.discountQuantity} left!',
+                            AppLocalizations.of(context)!
+                                .happyHourUnitsLeft(widget.discountQuantity!),
                             style: const TextStyle(
                               color: Colors.red,
                               fontSize: 12,

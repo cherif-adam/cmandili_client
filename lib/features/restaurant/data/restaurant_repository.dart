@@ -137,6 +137,7 @@ class RestaurantRepository {
       'discountPrice': dbJson['discount_price'],
       'discountEndTime': dbJson['discount_end_time'],
       'discountQuantity': null,
+      'createdAt': dbJson['created_at'],
     };
   }
 }

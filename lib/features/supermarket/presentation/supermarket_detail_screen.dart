@@ -14,6 +14,7 @@ import '../../cart/data/models/cart_item.dart';
 import '../../cart/providers/cart_provider.dart';
 import '../../cart/presentation/cart_screen.dart';
 import '../../menu/data/models/item_variant.dart';
+import '../../../core/widgets/new_item_badge.dart';
 
 class SupermarketDetailScreen extends ConsumerStatefulWidget {
   final Supermarket supermarket;
@@ -316,6 +317,10 @@ class _ProductCard extends ConsumerWidget {
                         child: const Icon(Icons.shopping_basket, size: 40, color: Colors.grey),
                       ),
               ),
+              // On the photo rather than above the name: the card has a fixed
+              // height and the text column has no room to spare.
+              if (item.isNew)
+                const Positioned(top: 8, left: 8, child: NewItemBadge()),
               if (item.isOrganic)
                 Positioned(
                   top: 8,
@@ -365,9 +370,11 @@ class _ProductCard extends ConsumerWidget {
                   ),
                   const Spacer(),
                   Builder(builder: (context) {
+                    // No end date = runs until the shop stops it; the cart charges the
+                    // discount either way, so the menu must show it either way too.
                     final hhActive = item.discountPrice != null &&
-                        item.discountEndTime != null &&
-                        item.discountEndTime!.isAfter(DateTime.now());
+                        (item.discountEndTime == null ||
+                            item.discountEndTime!.isAfter(DateTime.now()));
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

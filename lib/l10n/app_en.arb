@@ -100,6 +100,25 @@
     "viewDeals": "View Deals",
     "saveUpTo60": "Save up to 60% on food & groceries!",
     "happyHour": "HAPPY HOUR",
+    "happyHourLive": "LIVE",
+    "happyHourDealsSummary": "{count, plural, =1{1 deal · up to -{percent}%} other{{count} deals · up to -{percent}%}}",
+    "@happyHourDealsSummary": {
+        "placeholders": {
+            "count": { "type": "int" },
+            "percent": { "type": "int" }
+        }
+    },
+    "happyHourEndsIn": "Ends in {time}",
+    "@happyHourEndsIn": {
+        "placeholders": {
+            "time": { "type": "String" }
+        }
+    },
+    "happyHourNoDealsNow": "No deals right now, check back soon",
+    "happyHourUnitsLeft": "Only {count} left!",
+    "@happyHourUnitsLeft": { "placeholders": { "count": { "type": "int" } } },
+    "happyHourShopsTab": "Shops",
+    "newItemBadge": "NEW",
     "restaurants": "Restaurants",
     "supermarkets": "Supermarkets",
     "noDealsRightNow": "No deals right now. Check back later!",
