@@ -346,6 +346,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get happyHourShopsTab => 'متاجر';
 
   @override
+  String get happyHourSubtitle => 'أفضل الأسعار على أطباقك المفضّلة';
+
+  @override
+  String get promos => 'عروض';
+
+  @override
+  String get promosSubtitle => 'خصومات في متاجرك المفضّلة';
+
+  @override
+  String get promosBannerCta => 'عرض العروض';
+
+  @override
   String get happyHourGrab => 'احصل عليه';
 
   @override

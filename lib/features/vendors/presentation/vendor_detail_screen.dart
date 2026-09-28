@@ -10,6 +10,7 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../cart/data/models/cart_item.dart';
 import '../../cart/presentation/cart_screen.dart';
 import '../../cart/providers/cart_provider.dart';
+import '../../cart/presentation/add_to_cart_guard.dart';
 import '../../../core/widgets/new_item_badge.dart';
 
 /// Catalogue for one shop of any generic category.
@@ -401,11 +402,15 @@ class _ItemRow extends ConsumerWidget {
               const SizedBox(width: 6),
               IconButton(
                 onPressed: enabled
-                    ? () {
-                        ref
-                            .read(cartProvider.notifier)
-                            .addItem(CartItem.vendor(vendorItem: item));
-                        ScaffoldMessenger.of(context)
+                    ? () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        // Même règle que partout ailleurs : un panier
+                        // appartient à une seule boutique, sinon la commande
+                        // part au mauvais commerçant.
+                        final added = await addToCartGuarded(
+                            context, ref, CartItem.vendor(vendorItem: item));
+                        if (!added) return;
+                        messenger
                           ..hideCurrentSnackBar()
                           ..showSnackBar(
                             SnackBar(

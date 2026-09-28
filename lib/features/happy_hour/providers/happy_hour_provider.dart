@@ -226,9 +226,13 @@ class HappyHourDeal {
   /// carry no date (see happyHourRestaurantsProvider).
   final DateTime? endsAt;
 
-  /// Happy Hour screen tab that lists this deal: 0 restaurants,
-  /// 1 supermarkets, 2 other shops.
-  final int tab;
+  /// La catégorie de la boutique : 'food', 'grocery', 'flowers'...
+  ///
+  /// Remplaçait un numéro d'onglet, qui ne voulait plus rien dire une fois les
+  /// offres réparties entre deux écrans selon `discount_mode`. La catégorie,
+  /// elle, suffit à retrouver l'écran ET l'onglet, quelle que soit la
+  /// répartition du moment.
+  final String categoryId;
 
   const HappyHourDeal({
     required this.id,
@@ -237,7 +241,7 @@ class HappyHourDeal {
     required this.price,
     required this.dealPrice,
     required this.endsAt,
-    required this.tab,
+    required this.categoryId,
   });
 
   int get percentOff =>
@@ -284,7 +288,7 @@ final happyHourLiveDealsProvider = Provider<List<HappyHourDeal>>((ref) {
           price: applyPlatformMarkup(f.price),
           dealPrice: f.clientPrice,
           endsAt: f.discountEndTime,
-          tab: 0,
+          categoryId: 'food',
         ),
     for (final g in grocery)
       if (live(g.discountPrice, g.price, g.discountEndTime))
@@ -295,7 +299,7 @@ final happyHourLiveDealsProvider = Provider<List<HappyHourDeal>>((ref) {
           price: applyPlatformMarkup(g.price),
           dealPrice: g.clientPrice,
           endsAt: g.discountEndTime,
-          tab: 1,
+          categoryId: 'grocery',
         ),
     for (final v in shops)
       if (live(v.discountPrice, v.price, v.discountEndTime))
@@ -306,7 +310,7 @@ final happyHourLiveDealsProvider = Provider<List<HappyHourDeal>>((ref) {
           price: applyPlatformMarkup(v.price),
           dealPrice: applyPlatformMarkup(v.effectivePrice),
           endsAt: v.discountEndTime,
-          tab: 2,
+          categoryId: v.shopCategory ?? '',
         ),
   ];
 });

@@ -17,6 +17,7 @@ import '../../supermarket/presentation/supermarket_list_screen.dart';
 import 'widgets/service_selector.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../happy_hour/presentation/widgets/happy_hour_home_banner.dart';
+import '../../promos/presentation/widgets/promos_home_banner.dart';
 import '../../happy_hour/providers/happy_hour_provider.dart';
 import '../../orders/presentation/order_history_screen.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
@@ -384,6 +385,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         // and a row of the running deals, so customers can see a happy hour
         // is actually on without tapping through.
         const SliverToBoxAdapter(child: HappyHourHomeBanner()),
+
+        // Promotions en pourcentage : supermarche, fleurs, animalerie,
+        // cadeaux, electronique. Bannière distincte plutôt qu'un onglet de
+        // plus sur la précédente -- un prix de soirée et un taux appliqué
+        // entre deux dates ne sont pas le même geste de commerce, et les
+        // mélanger obligeait à écrire "nourriture et épicerie" sous un titre
+        // qui listait des fleuristes.
+        const SliverToBoxAdapter(child: PromosHomeBanner()),
 
         // Category grid. The selector now lays itself out from the width it
         // is given (it wraps onto as many rows as the category count needs),

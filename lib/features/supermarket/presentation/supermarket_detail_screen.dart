@@ -12,6 +12,7 @@ import '../data/models/grocery_item.dart';
 import '../providers/supermarket_provider.dart';
 import '../../cart/data/models/cart_item.dart';
 import '../../cart/providers/cart_provider.dart';
+import '../../cart/presentation/add_to_cart_guard.dart';
 import '../../cart/presentation/cart_screen.dart';
 import '../../menu/data/models/item_variant.dart';
 import '../../../core/widgets/new_item_badge.dart';
@@ -460,12 +461,12 @@ class _ProductCard extends ConsumerWidget {
     }
 
     final variants = await ref.read(groceryItemVariantsProvider(item.id).future);
+    if (!context.mounted) return;
 
     if (variants.isEmpty) {
-      ref.read(cartProvider.notifier).addItem(
-            CartItem.grocery(groceryItem: item, quantity: 1),
-          );
-      if (!context.mounted) return;
+      final added = await addToCartGuarded(
+          context, ref, CartItem.grocery(groceryItem: item, quantity: 1));
+      if (!added || !context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${item.name} added to cart'),
@@ -523,11 +524,10 @@ class _ProductCard extends ConsumerWidget {
       ),
     );
 
-    if (picked == null) return;
-    ref.read(cartProvider.notifier).addItem(
-          CartItem.grocery(groceryItem: item, quantity: 1, variant: picked),
-        );
-    if (!context.mounted) return;
+    if (picked == null || !context.mounted) return;
+    final added = await addToCartGuarded(context, ref,
+        CartItem.grocery(groceryItem: item, quantity: 1, variant: picked));
+    if (!added || !context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${item.name} — ${picked.name} added to cart'),

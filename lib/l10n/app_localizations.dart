@@ -742,6 +742,30 @@ abstract class AppLocalizations {
   /// **'Shops'**
   String get happyHourShopsTab;
 
+  /// No description provided for @happyHourSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The best prices on your favourite dishes'**
+  String get happyHourSubtitle;
+
+  /// No description provided for @promos.
+  ///
+  /// In en, this message translates to:
+  /// **'DEALS'**
+  String get promos;
+
+  /// No description provided for @promosSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage off at your favourite shops'**
+  String get promosSubtitle;
+
+  /// No description provided for @promosBannerCta.
+  ///
+  /// In en, this message translates to:
+  /// **'See the deals'**
+  String get promosBannerCta;
+
   /// No description provided for @happyHourGrab.
   ///
   /// In en, this message translates to:

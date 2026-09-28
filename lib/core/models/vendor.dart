@@ -100,6 +100,14 @@ class VendorItem {
   /// Section heading within one vendor's catalogue ("Pizzas", "Roses").
   final String? category;
 
+  /// The SHOP's category -- 'bakery', 'flowers', 'pets'... -- not to be
+  /// confused with [category] above, which is a heading inside that shop.
+  ///
+  /// Only set when the row was read with the `vendors!inner(category)` join.
+  /// It is what routes an item to the Happy Hour screen or the Promos one,
+  /// via that category's `discount_mode`.
+  final String? shopCategory;
+
   /// Grocery-style unit ("kg", "L"); null for items sold by the piece.
   final String? unit;
 
@@ -136,6 +144,7 @@ class VendorItem {
     this.discountEndTime,
     this.discountQuantity,
     this.createdAt,
+    this.shopCategory,
   });
 
   /// Price the customer actually pays right now: the discounted price while a
@@ -171,6 +180,10 @@ class VendorItem {
       createdAt: row['created_at'] == null
           ? null
           : DateTime.tryParse(row['created_at'].toString()),
+      // Present only on the queries that join it; the embedded object is what
+      // PostgREST returns for `vendors!inner(category)`.
+      shopCategory: (row['vendors'] as Map<String, dynamic>?)?['category']
+          ?.toString(),
     );
   }
 }
@@ -186,6 +199,13 @@ class VendorCategory {
   final String colorHex;
   final int sortOrder;
 
+  /// How this category discounts: `'happy_hour'` (a reduced price, live now)
+  /// or `'percent'` (a rate between two dates). Set by the admin in
+  /// `vendor_categories.discount_mode`; it decides which of the two deal
+  /// screens an item shows up on, so moving a category from one to the other
+  /// is a database edit, never an app release.
+  final String discountMode;
+
   const VendorCategory({
     required this.id,
     required this.nameEn,
@@ -194,7 +214,11 @@ class VendorCategory {
     required this.icon,
     required this.colorHex,
     required this.sortOrder,
+    this.discountMode = 'percent',
   });
+
+  bool get usesHappyHour => discountMode == 'happy_hour';
+  bool get usesPercent => discountMode == 'percent';
 
   factory VendorCategory.fromDb(Map<String, dynamic> row) {
     return VendorCategory(
@@ -205,6 +229,11 @@ class VendorCategory {
       icon: row['icon']?.toString() ?? '🏪',
       colorHex: row['color_hex']?.toString() ?? '#059669',
       sortOrder: (row['sort_order'] as num?)?.toInt() ?? 100,
+      // 'percent' by default, like the column: a category added later starts
+      // with a rate, and one UPDATE moves it to Happy Hour.
+      discountMode: row['discount_mode']?.toString() == 'happy_hour'
+          ? 'happy_hour'
+          : 'percent',
     );
   }
 
@@ -227,13 +256,15 @@ class VendorCategory {
   static const List<VendorCategory> fallback = [
     VendorCategory(
         id: 'food', nameEn: 'Food', nameFr: 'Restaurants', nameAr: 'مطاعم',
-        icon: '🍕', colorHex: '#FF6B35', sortOrder: 10),
+        icon: '🍕', colorHex: '#FF6B35', sortOrder: 10,
+        discountMode: 'happy_hour'),
     VendorCategory(
         id: 'grocery', nameEn: 'Market', nameFr: 'Supermarché',
         nameAr: 'سوبر ماركت', icon: '🛒', colorHex: '#1D9E75', sortOrder: 20),
     VendorCategory(
         id: 'bakery', nameEn: 'Bakery', nameFr: 'Pâtisserie', nameAr: 'مخبزة',
-        icon: '🥐', colorHex: '#D97706', sortOrder: 30),
+        icon: '🥐', colorHex: '#D97706', sortOrder: 30,
+        discountMode: 'happy_hour'),
     VendorCategory(
         id: 'flowers', nameEn: 'Flowers', nameFr: 'Fleurs', nameAr: 'زهور',
         icon: '💐', colorHex: '#EC4899', sortOrder: 40),

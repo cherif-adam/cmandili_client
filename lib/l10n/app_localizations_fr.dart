@@ -357,6 +357,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get happyHourShopsTab => 'Boutiques';
 
   @override
+  String get happyHourSubtitle =>
+      'Profitez des meilleurs prix sur vos plats préférés';
+
+  @override
+  String get promos => 'PROMOS';
+
+  @override
+  String get promosSubtitle => 'Des remises sur vos boutiques préférées';
+
+  @override
+  String get promosBannerCta => 'Voir les promos';
+
+  @override
   String get happyHourGrab => 'J\'en profite';
 
   @override

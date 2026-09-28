@@ -17,6 +17,11 @@ class HappyHourCard extends StatefulWidget {
   final VoidCallback onTap;
   final VoidCallback onGrab;
 
+  /// Couleur d'accent de la carte : orange pour le Happy Hour, bleu pour les
+  /// promotions en pourcentage. Une seule carte pour les deux écrans, donc
+  /// une correction d'affichage profite aux deux.
+  final Color accentColor;
+
   const HappyHourCard({
     super.key,
     required this.imageUrl,
@@ -28,6 +33,7 @@ class HappyHourCard extends StatefulWidget {
     this.discountQuantity,
     required this.onTap,
     required this.onGrab,
+    this.accentColor = Colors.deepOrange,
   });
 
   @override
@@ -116,11 +122,11 @@ class _HappyHourCardState extends State<HappyHourCard> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      color: widget.accentColor,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.red.withValues(alpha: 0.4),
+                          color: widget.accentColor.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -200,20 +206,22 @@ class _HappyHourCardState extends State<HappyHourCard> {
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
+                        color: widget.accentColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                        border: Border.all(
+                            color: widget.accentColor.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.inventory_2_outlined, size: 14, color: Colors.red),
+                          Icon(Icons.inventory_2_outlined,
+                              size: 14, color: widget.accentColor),
                           const SizedBox(width: 4),
                           Text(
                             AppLocalizations.of(context)!
                                 .happyHourUnitsLeft(widget.discountQuantity!),
-                            style: const TextStyle(
-                              color: Colors.red,
+                            style: TextStyle(
+                              color: widget.accentColor,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                             ),
@@ -237,10 +245,10 @@ class _HappyHourCardState extends State<HappyHourCard> {
                           ),
                           Text(
                             '${widget.discountPrice.toStringAsFixed(2)} DT',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Colors.red,
+                              color: widget.accentColor,
                             ),
                           ),
                         ],
@@ -251,13 +259,17 @@ class _HappyHourCardState extends State<HappyHourCard> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Colors.orange, Colors.deepOrange],
+                            gradient: LinearGradient(
+                              colors: [
+                                widget.accentColor.withValues(alpha: 0.85),
+                                widget.accentColor,
+                              ],
                             ),
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.deepOrange.withValues(alpha: 0.4),
+                                color:
+                                    widget.accentColor.withValues(alpha: 0.4),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),

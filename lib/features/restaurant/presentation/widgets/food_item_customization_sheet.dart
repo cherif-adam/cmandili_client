@@ -9,7 +9,7 @@ import '../../../../core/utils/platform_pricing.dart';
 import '../../../cart/data/models/cart_item.dart';
 import '../../../cart/data/models/order_customization.dart';
 import '../../../cart/data/models/selected_option_group.dart';
-import '../../../cart/providers/cart_provider.dart';
+import '../../../cart/presentation/add_to_cart_guard.dart';
 import '../../../menu/data/models/item_variant.dart';
 import '../../../menu/data/models/food_item_option_group.dart';
 import '../../data/models/food_item.dart';
@@ -222,14 +222,19 @@ class _FoodItemCustomizationSheetState
     });
   }
 
-  void _handleAddToCartTap(AppLocalizations l10n) {
+  Future<void> _handleAddToCartTap(AppLocalizations l10n) async {
     final invalidIndex = _firstInvalidIndex();
     if (invalidIndex != null) {
       _scrollToAndHighlight(invalidIndex, l10n);
       return;
     }
     final cartItem = _buildCartItem();
-    ref.read(cartProvider.notifier).addItem(cartItem);
+    // Un panier appartient à UNE boutique : le checkout lit la boutique dans
+    // cartItems.first et lui attribue la commande entière. Sans ce garde-fou,
+    // un plat ajouté par-dessus un panier d'une autre boutique serait facturé
+    // au mauvais commerçant.
+    final added = await addToCartGuarded(context, ref, cartItem);
+    if (!added || !mounted) return;
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
