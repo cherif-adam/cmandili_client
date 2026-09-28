@@ -263,9 +263,9 @@ class _HappyHourCardState extends State<HappyHourCard> {
                               ),
                             ],
                           ),
-                          child: const Text(
-                            'Grab it!',
-                            style: TextStyle(
+                          child: Text(
+                            AppLocalizations.of(context)!.happyHourGrab,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),

@@ -357,6 +357,30 @@ class AppLocalizationsFr extends AppLocalizations {
   String get happyHourShopsTab => 'Boutiques';
 
   @override
+  String get happyHourGrab => 'J\'en profite';
+
+  @override
+  String happyHourAddedToCart(String item) {
+    return '$item ajouté au panier';
+  }
+
+  @override
+  String get happyHourLoadError => 'Impossible de charger les offres';
+
+  @override
+  String get viewCart => 'Voir le panier';
+
+  @override
+  String get cartFromAnotherShopTitle => 'Panier d\'une autre boutique';
+
+  @override
+  String get cartFromAnotherShopMessage =>
+      'Votre panier contient déjà des articles d\'une autre boutique. Voulez-vous le vider pour ajouter cet article ?';
+
+  @override
+  String get emptyAndAdd => 'Vider et ajouter';
+
+  @override
   String get newItemBadge => 'NOUVEAU';
 
   @override

@@ -742,6 +742,48 @@ abstract class AppLocalizations {
   /// **'Shops'**
   String get happyHourShopsTab;
 
+  /// No description provided for @happyHourGrab.
+  ///
+  /// In en, this message translates to:
+  /// **'Grab it!'**
+  String get happyHourGrab;
+
+  /// No description provided for @happyHourAddedToCart.
+  ///
+  /// In en, this message translates to:
+  /// **'{item} added to cart'**
+  String happyHourAddedToCart(String item);
+
+  /// No description provided for @happyHourLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the deals'**
+  String get happyHourLoadError;
+
+  /// No description provided for @viewCart.
+  ///
+  /// In en, this message translates to:
+  /// **'View cart'**
+  String get viewCart;
+
+  /// No description provided for @cartFromAnotherShopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart from another shop'**
+  String get cartFromAnotherShopTitle;
+
+  /// No description provided for @cartFromAnotherShopMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cart already contains items from another shop. Empty it to add this item?'**
+  String get cartFromAnotherShopMessage;
+
+  /// No description provided for @emptyAndAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Empty and add'**
+  String get emptyAndAdd;
+
   /// No description provided for @newItemBadge.
   ///
   /// In en, this message translates to:

@@ -349,6 +349,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get happyHourShopsTab => 'Shops';
 
   @override
+  String get happyHourGrab => 'Grab it!';
+
+  @override
+  String happyHourAddedToCart(String item) {
+    return '$item added to cart';
+  }
+
+  @override
+  String get happyHourLoadError => 'Could not load the deals';
+
+  @override
+  String get viewCart => 'View cart';
+
+  @override
+  String get cartFromAnotherShopTitle => 'Cart from another shop';
+
+  @override
+  String get cartFromAnotherShopMessage =>
+      'Your cart already contains items from another shop. Empty it to add this item?';
+
+  @override
+  String get emptyAndAdd => 'Empty and add';
+
+  @override
   String get newItemBadge => 'NEW';
 
   @override

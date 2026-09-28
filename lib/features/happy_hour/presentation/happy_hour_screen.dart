@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/utils/platform_pricing.dart';
 import '../providers/happy_hour_provider.dart';
-import '../../cart/providers/cart_provider.dart';
+import '../../../core/utils/currency_formatter.dart';
 import '../../cart/data/models/cart_item.dart';
+import '../../cart/presentation/add_to_cart_guard.dart';
+import '../../cart/presentation/cart_screen.dart';
+import '../../cart/providers/cart_provider.dart';
 import 'widgets/happy_hour_card.dart';
 
 class HappyHourScreen extends ConsumerStatefulWidget {
@@ -138,6 +141,67 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
           ],
         ),
       ),
+      floatingActionButton: _cartButton(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  /// Ajoute l'offre au panier et ouvre la voie vers la suite.
+  ///
+  /// Sans l'action « Voir le panier », le client voyait passer un message et
+  /// restait sur l'écran des offres : rien ne menait à la commande. Le
+  /// message dure assez longtemps pour être touché -- 1,5 s ne suffisait pas.
+  Future<void> _grab(CartItem cartItem, String itemName) async {
+    final l = AppLocalizations.of(context)!;
+    final added = await addToCartGuarded(context, ref, cartItem);
+    if (!added || !mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l.happyHourAddedToCart(itemName)),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: l.viewCart,
+            textColor: Colors.white,
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CartScreen()),
+            ),
+          ),
+        ),
+      );
+  }
+
+  /// Bouton panier, visible dès qu'il y a quelque chose dedans.
+  ///
+  /// Le message disparaît, ce bouton reste : c'est lui qui garantit qu'un
+  /// client ayant pris trois offres d'affilée retrouve le chemin de la
+  /// commande. Il ouvre le panier normal, donc la suite est celle de
+  /// n'importe quelle commande -- adresse, frais, confirmation, suivi.
+  Widget? _cartButton() {
+    final count = ref.watch(cartItemCountProvider);
+    if (count == 0) return null;
+    final l = AppLocalizations.of(context)!;
+    final total = ref.watch(cartTotalProvider);
+
+    return FloatingActionButton.extended(
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CartScreen()),
+      ),
+      backgroundColor: Colors.deepOrange,
+      foregroundColor: Colors.white,
+      icon: Badge(
+        label: Text('$count'),
+        child: const Icon(Icons.shopping_cart_rounded),
+      ),
+      label: Text(
+        '${l.viewCart}  ·  ${CurrencyFormatter.formatPrice(total)}',
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
     );
   }
 
@@ -161,32 +225,18 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
               discountPrice: item.clientPrice,
               discountEndTime: item.discountEndTime,
               discountQuantity: item.discountQuantity,
-              onTap: () {
-                // Navigate to details or add to cart
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Selected ${item.name}")),
-                );
-              },
-              onGrab: () {
-                final cartItem = CartItem.restaurant(
-                  foodItem: item,
-                  quantity: 1,
-                );
-                ref.read(cartProvider.notifier).addItem(cartItem);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("${item.name} added to cart!"),
-                    backgroundColor: Colors.green,
-                    duration: const Duration(milliseconds: 1500),
-                  ),
-                );
-              },
+              onTap: () {},
+              onGrab: () => _grab(
+                CartItem.restaurant(foodItem: item, quantity: 1),
+                item.name,
+              ),
             );
           },
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text("Error: $e")),
+      error: (e, st) =>
+          Center(child: Text(AppLocalizations.of(context)!.happyHourLoadError)),
     );
   }
 
@@ -210,32 +260,18 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
               discountPrice: item.clientPrice,
               discountEndTime: item.discountEndTime,
               discountQuantity: item.discountQuantity,
-              onTap: () {
-                 // Navigate to details or add to cart
-                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Selected ${item.name}")),
-                );
-              },
-              onGrab: () {
-                final cartItem = CartItem.grocery(
-                  groceryItem: item,
-                  quantity: 1,
-                );
-                ref.read(cartProvider.notifier).addItem(cartItem);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("${item.name} added to cart!"),
-                    backgroundColor: Colors.green,
-                    duration: const Duration(milliseconds: 1500),
-                  ),
-                );
-              },
+              onTap: () {},
+              onGrab: () => _grab(
+                CartItem.grocery(groceryItem: item, quantity: 1),
+                item.name,
+              ),
             );
           },
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text("Error: $e")),
+      error: (e, st) =>
+          Center(child: Text(AppLocalizations.of(context)!.happyHourLoadError)),
     );
   }
 
@@ -262,24 +298,17 @@ class _HappyHourScreenState extends ConsumerState<HappyHourScreen> with SingleTi
               discountEndTime: item.discountEndTime,
               discountQuantity: item.discountQuantity,
               onTap: () {},
-              onGrab: () {
-                ref
-                    .read(cartProvider.notifier)
-                    .addItem(CartItem.vendor(vendorItem: item, quantity: 1));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("${item.name} added to cart!"),
-                    backgroundColor: Colors.green,
-                    duration: const Duration(milliseconds: 1500),
-                  ),
-                );
-              },
+              onGrab: () => _grab(
+                CartItem.vendor(vendorItem: item, quantity: 1),
+                item.name,
+              ),
             );
           },
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text("Error: $e")),
+      error: (e, st) =>
+          Center(child: Text(AppLocalizations.of(context)!.happyHourLoadError)),
     );
   }
 }

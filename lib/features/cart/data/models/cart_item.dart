@@ -66,6 +66,20 @@ class CartItem {
         CartItemType.vendor => vendorItem!.id,
       };
 
+  /// The shop this line comes from.
+  ///
+  /// A cart belongs to ONE shop: checkout reads the shop from `cartItems.first`
+  /// and attributes the whole order to it (see checkout_screen.dart), and
+  /// cartDeliveryFeeProvider classifies the fee the same way. Two shops in one
+  /// cart would therefore bill the second shop's items to the first, with a
+  /// delivery fee computed from the wrong pickup point -- so this getter is
+  /// what lets a screen check before adding, rather than after.
+  String get shopId => switch (type) {
+        CartItemType.restaurant => foodItem!.restaurantId,
+        CartItemType.grocery => groceryItem!.supermarketId,
+        CartItemType.vendor => vendorItem!.vendorId,
+      };
+
   /// Composite cart-line identity. The base [id] alone isn't enough once an
   /// item can be added with a variant and/or option-group selections — two
   /// lines for the same item with different picks must stay separate, while

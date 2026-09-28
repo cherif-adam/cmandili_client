@@ -346,6 +346,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get happyHourShopsTab => 'متاجر';
 
   @override
+  String get happyHourGrab => 'احصل عليه';
+
+  @override
+  String happyHourAddedToCart(String item) {
+    return 'تمت إضافة $item إلى السلة';
+  }
+
+  @override
+  String get happyHourLoadError => 'تعذّر تحميل العروض';
+
+  @override
+  String get viewCart => 'عرض السلة';
+
+  @override
+  String get cartFromAnotherShopTitle => 'سلة من متجر آخر';
+
+  @override
+  String get cartFromAnotherShopMessage =>
+      'تحتوي سلتك على منتجات من متجر آخر. هل تريد إفراغها لإضافة هذا المنتج؟';
+
+  @override
+  String get emptyAndAdd => 'إفراغ وإضافة';
+
+  @override
   String get newItemBadge => 'جديد';
 
   @override
