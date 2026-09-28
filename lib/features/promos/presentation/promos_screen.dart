@@ -25,9 +25,16 @@ const Color kPromosAccent = Color(0xFF2563EB);
 /// liste de catégories écrite ici : basculer les fleurs en Happy Hour est un
 /// UPDATE, et leur onglet change d'écran tout seul.
 class PromosScreen extends ConsumerWidget {
-  const PromosScreen({super.key, this.initialTab = 0});
+  const PromosScreen({
+    super.key,
+    this.initialTab = 0,
+    this.initialCategoryId,
+  });
 
   final int initialTab;
+
+  /// Catégorie à ouvrir, quand elle est connue (notification, bannière).
+  final String? initialCategoryId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,10 +44,9 @@ class PromosScreen extends ConsumerWidget {
       title: l.promos,
       subtitle: l.promosSubtitle,
       accentColor: kPromosAccent,
-      // Le visuel du supermarche, premiere categorie en pourcentage. Une
-      // image dediee peut le remplacer ici sans rien changer d'autre.
-      backgroundImage: 'assets/images/amana_supermarket_hero.jpg',
+      backgroundImage: 'assets/images/promos_banner.jpg',
       initialTab: initialTab,
+      initialCategoryId: initialCategoryId,
       tabBuilder: (category) => DealsTab(
         category: category,
         accentColor: kPromosAccent,

@@ -23,6 +23,7 @@ class DealsScaffold extends StatefulWidget {
     required this.backgroundImage,
     required this.tabBuilder,
     this.initialTab = 0,
+    this.initialCategoryId,
     this.floatingActionButton,
   });
 
@@ -33,6 +34,16 @@ class DealsScaffold extends StatefulWidget {
   final String backgroundImage;
   final Widget Function(VendorCategory category) tabBuilder;
   final int initialTab;
+
+  /// Catégorie à ouvrir, quand l'appelant la connaît mieux qu'un numéro
+  /// d'onglet : une notification, ou une offre tapée sur la bannière.
+  ///
+  /// Un index d'onglet ne veut rien dire hors de cet écran, et change dès
+  /// qu'une catégorie est masquée ou bascule de mode. La catégorie, elle,
+  /// reste juste. Résolue ici, là où la liste est connue, pour qu'aucun
+  /// appelant n'ait à la traduire.
+  final String? initialCategoryId;
+
   final Widget? floatingActionButton;
 
   @override
@@ -69,13 +80,22 @@ class _DealsScaffoldState extends State<DealsScaffold>
       return;
     }
     if (_controller != null && _controller!.length == length) return;
-    final previousIndex = _controller?.index ?? widget.initialTab;
+    final previousIndex = _controller?.index ?? _startIndex();
     _controller?.dispose();
     _controller = TabController(
       length: length,
       vsync: this,
       initialIndex: previousIndex.clamp(0, length - 1),
     );
+  }
+
+  int _startIndex() {
+    final id = widget.initialCategoryId;
+    if (id != null && id.isNotEmpty) {
+      final i = widget.categories.indexWhere((c) => c.id == id);
+      if (i >= 0) return i;
+    }
+    return widget.initialTab;
   }
 
   @override

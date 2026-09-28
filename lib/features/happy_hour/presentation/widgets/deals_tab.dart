@@ -144,7 +144,7 @@ class DealsTab extends ConsumerWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(l.happyHourAddedToCart(deal.name)),
+          content: Text(l.addedToCart(deal.name)),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 4),
           action: SnackBarAction(

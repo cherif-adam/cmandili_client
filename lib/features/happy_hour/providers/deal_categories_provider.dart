@@ -77,8 +77,3 @@ List<HappyHourDeal> _dealsWithMode(Ref ref, {required bool happyHour}) {
       .toList(growable: false);
 }
 
-/// L'index de l'onglet qui liste [categoryId] sur son écran, ou 0.
-int tabIndexFor(List<VendorCategory> categories, String categoryId) {
-  final i = categories.indexWhere((c) => c.id == categoryId);
-  return i < 0 ? 0 : i;
-}

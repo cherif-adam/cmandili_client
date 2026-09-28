@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/delivery_fee.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -185,7 +186,7 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(
-          child: Text('Error loading items: $error'),
+          child: Text(AppLocalizations.of(context)!.errorLoadingItems),
         ),
       ),
       floatingActionButton: cartItemCount > 0
@@ -204,9 +205,9 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
                 ),
                 child: const Icon(Icons.shopping_cart, color: Colors.white),
               ),
-              label: const Text(
-                'View Cart',
-                style: TextStyle(
+              label: Text(
+                AppLocalizations.of(context)!.viewCart,
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
@@ -332,9 +333,9 @@ class _ProductCard extends ConsumerWidget {
                       color: const Color(0xFF4CAF50),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text(
-                      'Organic',
-                      style: TextStyle(
+                    child: Text(
+                      AppLocalizations.of(context)!.organic,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -451,8 +452,8 @@ class _ProductCard extends ConsumerWidget {
     // check covers BOTH the fast-add (no variants) and variant-picker paths.
     if (!isOpen) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ce supermarché est fermé pour le moment.'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.supermarketClosedNow),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.error,
         ),
@@ -469,7 +470,7 @@ class _ProductCard extends ConsumerWidget {
       if (!added || !context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${item.name} added to cart'),
+          content: Text(AppLocalizations.of(context)!.addedToCart(item.name)),
           duration: const Duration(seconds: 1),
           behavior: SnackBarBehavior.floating,
           backgroundColor: const Color(0xFF4CAF50),
@@ -497,9 +498,10 @@ class _ProductCard extends ConsumerWidget {
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Choose an option',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              Text(
+                AppLocalizations.of(context)!.chooseAnOption,
+                style: const TextStyle(
+                    fontSize: 14, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
               ...variants.map((v) => ListTile(
@@ -530,7 +532,8 @@ class _ProductCard extends ConsumerWidget {
     if (!added || !context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${item.name} — ${picked.name} added to cart'),
+        content: Text(AppLocalizations.of(context)!
+            .addedToCart('${item.name} — ${picked.name}')),
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF4CAF50),

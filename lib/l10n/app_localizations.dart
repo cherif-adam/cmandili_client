@@ -742,6 +742,42 @@ abstract class AppLocalizations {
   /// **'Shops'**
   String get happyHourShopsTab;
 
+  /// No description provided for @addedToCartWithQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'{quantity} x {item} added to cart'**
+  String addedToCartWithQuantity(int quantity, String item);
+
+  /// No description provided for @chooseAnOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an option'**
+  String get chooseAnOption;
+
+  /// No description provided for @errorLoadingItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the products'**
+  String get errorLoadingItems;
+
+  /// No description provided for @supermarketClosedNow.
+  ///
+  /// In en, this message translates to:
+  /// **'This supermarket is closed right now.'**
+  String get supermarketClosedNow;
+
+  /// No description provided for @restaurantClosedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Restaurant closed'**
+  String get restaurantClosedLabel;
+
+  /// No description provided for @organic.
+  ///
+  /// In en, this message translates to:
+  /// **'Organic'**
+  String get organic;
+
   /// No description provided for @happyHourSubtitle.
   ///
   /// In en, this message translates to:
@@ -772,11 +808,11 @@ abstract class AppLocalizations {
   /// **'Grab it!'**
   String get happyHourGrab;
 
-  /// No description provided for @happyHourAddedToCart.
+  /// No description provided for @addedToCart.
   ///
   /// In en, this message translates to:
   /// **'{item} added to cart'**
-  String happyHourAddedToCart(String item);
+  String addedToCart(String item);
 
   /// No description provided for @happyHourLoadError.
   ///

@@ -19,7 +19,6 @@ class PromosHomeBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
-    final categories = ref.watch(percentCategoriesProvider);
 
     return DealsHomeBanner(
       deals: ref.watch(promosBannerDealsProvider),
@@ -32,7 +31,7 @@ class PromosHomeBanner extends ConsumerWidget {
       liveLabel: l.happyHourLive,
       ctaLabel: l.promosBannerCta,
       accentColor: kPromosAccent,
-      backgroundImage: 'assets/images/amana_supermarket_hero.jpg',
+      backgroundImage: 'assets/images/promos_banner.jpg',
       fallbackGradient: const LinearGradient(
         colors: [Color(0xFF60A5FA), kPromosAccent],
         begin: Alignment.topLeft,
@@ -49,9 +48,7 @@ class PromosHomeBanner extends ConsumerWidget {
       onOpen: (categoryId) => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => PromosScreen(
-            initialTab: tabIndexFor(categories, categoryId),
-          ),
+          builder: (_) => PromosScreen(initialCategoryId: categoryId),
         ),
       ),
     );

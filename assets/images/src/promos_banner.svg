@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Bannière PROMOS — source vectorielle.
+
+  Rendue en assets/images/promos_banner.jpg par tools/render_promos_banner.js.
+  Éditer CE fichier, jamais le JPG.
+
+  Deux contraintes ont dessiné la composition :
+
+  1. AUCUN MOT. Le client peut être en français, en anglais ou en arabe, et une
+     bannière qui porterait "Promotions" devrait exister en trois versions.
+     Seuls des symboles « % » apparaissent : ils se lisent pareil dans les
+     trois langues, y compris de droite à gauche.
+
+  2. Les 40 % de gauche restent vides. C'est là que l'application pose le titre
+     et le résumé, par-dessus l'image ; un dégradé sombre y est intégré pour
+     que le texte blanc tienne même si la photo est claire.
+
+  Tout est maintenu entre y=100 et y=700 : la bannière d'accueil est rognée en
+  hauteur, et ce qui déborde disparaît sur les petits écrans.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800" viewBox="0 0 1600 800">
+  <defs>
+    <!-- Fond : marine profond à gauche, bleu vif à droite. -->
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A1A4F"/>
+      <stop offset="52%" stop-color="#1D3FA8"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+
+    <!-- Halo derrière les illustrations : de la lumière, pas un cercle. -->
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.55"/>
+      <stop offset="55%" stop-color="#60A5FA" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Voile sombre sur le tiers gauche, pour la lisibilité du titre. -->
+    <linearGradient id="leftFade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#050E2E" stop-opacity="0.82"/>
+      <stop offset="45%" stop-color="#050E2E" stop-opacity="0.38"/>
+      <stop offset="100%" stop-color="#050E2E" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Ombre portée du groupe : une ellipse dégradée, pas un flou (le moteur
+         de rendu ne garantit pas les filtres). -->
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#020817" stop-opacity="0.38"/>
+      <stop offset="70%" stop-color="#020817" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#020817" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="basket" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+
+    <linearGradient id="giftBox" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F43F5E"/>
+      <stop offset="100%" stop-color="#BE123C"/>
+    </linearGradient>
+
+    <linearGradient id="phoneScreen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+
+    <linearGradient id="cone" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FBCFE8"/>
+      <stop offset="100%" stop-color="#F9A8D4"/>
+    </linearGradient>
+
+    <!-- Grille de points, très discrète, côté gauche seulement. -->
+    <pattern id="dots" width="34" height="34" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="2.1" fill="#BFDBFE" fill-opacity="0.10"/>
+    </pattern>
+  </defs>
+
+  <!-- ── Fond ─────────────────────────────────────────────────────────── -->
+  <rect width="1600" height="800" fill="url(#bg)"/>
+  <rect x="0" y="0" width="660" height="800" fill="url(#dots)"/>
+  <ellipse cx="1150" cy="400" rx="560" ry="420" fill="url(#glow)"/>
+  <rect x="0" y="0" width="900" height="800" fill="url(#leftFade)"/>
+
+  <!-- ── Le groupe d'illustrations ────────────────────────────────────── -->
+  <!-- Disque blanc très pâle : il rassemble les objets sans les enfermer. -->
+  <circle cx="1145" cy="405" r="272" fill="#FFFFFF" fill-opacity="0.07"/>
+  <circle cx="1145" cy="405" r="272" fill="none" stroke="#FFFFFF" stroke-opacity="0.10" stroke-width="2"/>
+  <ellipse cx="1145" cy="648" rx="250" ry="34" fill="url(#shadow)"/>
+
+  <!-- ── Fleurs : derrière le panier, comme un bouquet posé au fond ───── -->
+  <g transform="translate(928 404) rotate(-9)">
+    <!-- Cornet de papier -->
+    <path d="M -62 0 L 62 0 L 30 152 L -30 152 Z" fill="url(#cone)"/>
+    <path d="M -62 0 L 0 0 L 0 152 L -30 152 Z" fill="#FFFFFF" fill-opacity="0.25"/>
+    <path d="M -62 0 L 62 0 L 54 20 L -54 20 Z" fill="#FDF2F8" fill-opacity="0.75"/>
+
+    <!-- Tiges et feuilles -->
+    <g stroke="#15803D" stroke-width="5" stroke-linecap="round" fill="none">
+      <path d="M 0 6 L -34 -72"/>
+      <path d="M 0 6 L 0 -96"/>
+      <path d="M 0 6 L 36 -68"/>
+      <path d="M 0 6 L -58 -30"/>
+      <path d="M 0 6 L 58 -26"/>
+    </g>
+    <path d="M -18 -34 q -30 -16 -44 2 q 26 18 44 -2 Z" fill="#22C55E"/>
+    <path d="M 20 -44 q 32 -14 44 6 q -28 16 -44 -6 Z" fill="#16A34A"/>
+
+    <!-- Fleurs : rouge, rose, jaune, blanche -->
+    <g>
+      <!-- rouge -->
+      <g transform="translate(-34 -78)">
+        <circle cx="0" cy="-15" r="13" fill="#EF4444"/>
+        <circle cx="14" cy="-4" r="13" fill="#EF4444"/>
+        <circle cx="9" cy="13" r="13" fill="#DC2626"/>
+        <circle cx="-9" cy="13" r="13" fill="#DC2626"/>
+        <circle cx="-14" cy="-4" r="13" fill="#EF4444"/>
+        <circle cx="0" cy="0" r="8" fill="#FDE68A"/>
+      </g>
+      <!-- blanche -->
+      <g transform="translate(0 -104)">
+        <circle cx="0" cy="-14" r="12" fill="#FFFFFF"/>
+        <circle cx="13" cy="-4" r="12" fill="#FFFFFF"/>
+        <circle cx="8" cy="12" r="12" fill="#F1F5F9"/>
+        <circle cx="-8" cy="12" r="12" fill="#F1F5F9"/>
+        <circle cx="-13" cy="-4" r="12" fill="#FFFFFF"/>
+        <circle cx="0" cy="0" r="7" fill="#FBBF24"/>
+      </g>
+      <!-- jaune -->
+      <g transform="translate(36 -74)">
+        <circle cx="0" cy="-14" r="12" fill="#FDE047"/>
+        <circle cx="13" cy="-4" r="12" fill="#FDE047"/>
+        <circle cx="8" cy="12" r="12" fill="#FACC15"/>
+        <circle cx="-8" cy="12" r="12" fill="#FACC15"/>
+        <circle cx="-13" cy="-4" r="12" fill="#FDE047"/>
+        <circle cx="0" cy="0" r="7" fill="#B45309"/>
+      </g>
+      <!-- roses, plus basses -->
+      <g transform="translate(-58 -36)">
+        <circle cx="0" cy="-11" r="10" fill="#F472B6"/>
+        <circle cx="11" cy="-3" r="10" fill="#F472B6"/>
+        <circle cx="7" cy="10" r="10" fill="#EC4899"/>
+        <circle cx="-7" cy="10" r="10" fill="#EC4899"/>
+        <circle cx="-11" cy="-3" r="10" fill="#F472B6"/>
+        <circle cx="0" cy="0" r="6" fill="#FDF2F8"/>
+      </g>
+      <g transform="translate(58 -32)">
+        <circle cx="0" cy="-11" r="10" fill="#F9A8D4"/>
+        <circle cx="11" cy="-3" r="10" fill="#F9A8D4"/>
+        <circle cx="7" cy="10" r="10" fill="#F472B6"/>
+        <circle cx="-7" cy="10" r="10" fill="#F472B6"/>
+        <circle cx="-11" cy="-3" r="10" fill="#F9A8D4"/>
+        <circle cx="0" cy="0" r="6" fill="#FFFFFF"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ── Cadeau : au centre du groupe ─────────────────────────────────── -->
+  <g transform="translate(1152 468)">
+    <rect x="-86" y="-8" width="172" height="118" rx="10" fill="url(#giftBox)"/>
+    <rect x="-96" y="-42" width="192" height="42" rx="9" fill="#FB7185"/>
+    <!-- Ruban -->
+    <rect x="-16" y="-42" width="32" height="152" fill="#FEF3C7"/>
+    <rect x="-96" y="-28" width="192" height="16" fill="#FDE68A" fill-opacity="0.9"/>
+    <!-- Nœud -->
+    <path d="M -4 -42 q -46 -40 -70 -12 q -18 22 22 24 q 26 1 48 -12 Z" fill="#FACC15"/>
+    <path d="M 4 -42 q 46 -40 70 -12 q 18 22 -22 24 q -26 1 -48 -12 Z" fill="#FDE047"/>
+    <circle cx="0" cy="-44" r="13" fill="#F59E0B"/>
+  </g>
+
+  <!-- ── Panier de supermarché : devant les fleurs ────────────────────── -->
+  <g transform="translate(1010 520)">
+    <!-- Contenu, posé avant le panier pour dépasser derrière son bord -->
+    <g>
+      <!-- Baguette -->
+      <g transform="translate(34 -70) rotate(-28)">
+        <rect x="-13" y="-64" width="26" height="128" rx="13" fill="#D9A066"/>
+        <g stroke="#A9743C" stroke-width="4" stroke-linecap="round">
+          <path d="M -6 -42 L 6 -34"/>
+          <path d="M -6 -14 L 6 -6"/>
+          <path d="M -6 14 L 6 22"/>
+        </g>
+      </g>
+      <!-- Orange -->
+      <circle cx="-38" cy="-42" r="31" fill="#FB923C"/>
+      <circle cx="-48" cy="-54" r="9" fill="#FDBA74" fill-opacity="0.85"/>
+      <!-- Pomme verte -->
+      <circle cx="6" cy="-38" r="29" fill="#4ADE80"/>
+      <circle cx="-2" cy="-49" r="8" fill="#BBF7D0" fill-opacity="0.8"/>
+      <path d="M 6 -66 q 3 -14 -6 -19" stroke="#166534" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M 8 -68 q 20 -12 24 4 q -16 8 -24 -4 Z" fill="#16A34A"/>
+    </g>
+
+    <!-- Panier -->
+    <path d="M -104 0 L 104 0 L 82 96 q -2 12 -14 12 L -68 108 q -12 0 -14 -12 Z" fill="url(#basket)"/>
+    <rect x="-114" y="-16" width="228" height="24" rx="12" fill="#F59E0B"/>
+    <!-- Tressage -->
+    <g stroke="#B45309" stroke-opacity="0.55" stroke-width="5" stroke-linecap="round" fill="none">
+      <path d="M -92 28 L 92 28"/>
+      <path d="M -86 56 L 86 56"/>
+      <path d="M -79 84 L 79 84"/>
+      <path d="M -66 4 L -54 104"/>
+      <path d="M -22 4 L -18 106"/>
+      <path d="M 22 4 L 18 106"/>
+      <path d="M 66 4 L 54 104"/>
+    </g>
+    <!-- Anse -->
+    <path d="M -58 -18 q 58 -76 116 0" stroke="#D97706" stroke-width="13" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- ── Électronique : téléphone incliné + casque ────────────────────── -->
+  <g transform="translate(1322 412) rotate(13)">
+    <rect x="-66" y="-116" width="132" height="232" rx="22" fill="#111827"/>
+    <rect x="-58" y="-108" width="116" height="216" rx="16" fill="url(#phoneScreen)"/>
+    <rect x="-20" y="-104" width="40" height="9" rx="4.5" fill="#111827"/>
+    <text x="0" y="24" font-family="DejaVu Sans, Verdana, Arial, sans-serif" font-size="86"
+          font-weight="bold" fill="#FFFFFF" text-anchor="middle">%</text>
+  </g>
+
+  <!-- Casque, sous le téléphone -->
+  <g transform="translate(1330 604)">
+    <path d="M -52 8 q 0 -56 52 -56 q 52 0 52 56" stroke="#FFFFFF" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <rect x="-66" y="2" width="28" height="46" rx="13" fill="#FFFFFF"/>
+    <rect x="38" y="2" width="28" height="46" rx="13" fill="#FFFFFF"/>
+    <rect x="-62" y="8" width="20" height="34" rx="10" fill="#CBD5E1"/>
+    <rect x="42" y="8" width="20" height="34" rx="10" fill="#CBD5E1"/>
+  </g>
+
+  <!-- ── Animalerie : une empreinte, en haut à droite ─────────────────── -->
+  <g transform="translate(1452 196) rotate(16)" fill="#FFFFFF" fill-opacity="0.92">
+    <ellipse cx="0" cy="22" rx="31" ry="25"/>
+    <ellipse cx="-34" cy="-22" rx="12" ry="15"/>
+    <ellipse cx="-12" cy="-36" rx="12" ry="15"/>
+    <ellipse cx="12" cy="-36" rx="12" ry="15"/>
+    <ellipse cx="34" cy="-22" rx="12" ry="15"/>
+  </g>
+
+  <!-- ── Étiquettes de prix : le seul « texte », un symbole ───────────── -->
+  <!-- Grande, en haut à gauche du groupe -->
+  <g transform="translate(846 202) rotate(-16)">
+    <path d="M -74 -52 L 40 -52 q 16 0 27 11 L 92 -9 q 11 11 0 22 L 67 41 q -11 11 -27 11 L -74 52 q -12 0 -12 -12 L -86 -40 q 0 -12 12 -12 Z" fill="#FACC15"/>
+    <circle cx="62" cy="0" r="12" fill="#0A1A4F"/>
+    <text x="-18" y="24" font-family="DejaVu Sans, Verdana, Arial, sans-serif" font-size="74"
+          font-weight="bold" fill="#0A1A4F" text-anchor="middle">%</text>
+  </g>
+
+  <!-- Moyenne, en bas à gauche -->
+  <g transform="translate(818 592) rotate(12)">
+    <path d="M -52 -37 L 28 -37 q 12 0 19 8 L 65 -6 q 8 8 0 15 L 47 29 q -7 8 -19 8 L -52 37 q -9 0 -9 -9 L -61 -28 q 0 -9 9 -9 Z" fill="#FACC15"/>
+    <circle cx="44" cy="0" r="8.5" fill="#0A1A4F"/>
+    <text x="-13" y="17" font-family="DejaVu Sans, Verdana, Arial, sans-serif" font-size="52"
+          font-weight="bold" fill="#0A1A4F" text-anchor="middle">%</text>
+  </g>
+
+  <!-- Petite, en bas à droite -->
+  <g transform="translate(1466 486) rotate(-24)">
+    <path d="M -38 -27 L 20 -27 q 9 0 14 6 L 47 -4 q 6 6 0 11 L 34 21 q -5 6 -14 6 L -38 27 q -7 0 -7 -7 L -45 -20 q 0 -7 7 -7 Z" fill="#FACC15"/>
+    <circle cx="32" cy="0" r="6.5" fill="#0A1A4F"/>
+    <text x="-9" y="13" font-family="DejaVu Sans, Verdana, Arial, sans-serif" font-size="39"
+          font-weight="bold" fill="#0A1A4F" text-anchor="middle">%</text>
+  </g>
+
+  <!-- ── Étincelles blanches à quatre branches ────────────────────────── -->
+  <g fill="#FFFFFF">
+    <path d="M 1006 168 q 6 24 30 30 q -24 6 -30 30 q -6 -24 -30 -30 q 24 -6 30 -30 Z" fill-opacity="0.95"/>
+    <path d="M 1258 202 q 4 16 20 20 q -16 4 -20 20 q -4 -16 -20 -20 q 16 -4 20 -20 Z" fill-opacity="0.8"/>
+    <path d="M 1524 336 q 5 19 24 24 q -19 5 -24 24 q -5 -19 -24 -24 q 19 -5 24 -24 Z" fill-opacity="0.85"/>
+    <path d="M 932 424 q 3 13 16 16 q -13 3 -16 16 q -3 -13 -16 -16 q 13 -3 16 -16 Z" fill-opacity="0.7"/>
+    <path d="M 1190 660 q 4 15 19 19 q -15 4 -19 19 q -4 -15 -19 -19 q 15 -4 19 -19 Z" fill-opacity="0.75"/>
+    <path d="M 1416 664 q 3 12 15 15 q -12 3 -15 15 q -3 -12 -15 -15 q 12 -3 15 -15 Z" fill-opacity="0.6"/>
+  </g>
+
+  <!-- ── Confettis ────────────────────────────────────────────────────── -->
+  <g>
+    <rect x="1078" y="196" width="17" height="9" rx="4.5" fill="#F472B6" transform="rotate(28 1086 200)"/>
+    <rect x="1394" y="264" width="15" height="8" rx="4" fill="#4ADE80" transform="rotate(-36 1401 268)"/>
+    <rect x="898" y="330" width="16" height="8" rx="4" fill="#FDE047" transform="rotate(48 906 334)"/>
+    <rect x="1492" y="596" width="15" height="8" rx="4" fill="#F472B6" transform="rotate(-18 1499 600)"/>
+    <rect x="1042" y="676" width="16" height="9" rx="4.5" fill="#4ADE80" transform="rotate(34 1050 680)"/>
+    <rect x="1266" y="140" width="14" height="8" rx="4" fill="#FDE047" transform="rotate(-42 1273 144)"/>
+    <circle cx="960" cy="616" r="6" fill="#F9A8D4"/>
+    <circle cx="1546" cy="428" r="5" fill="#FDE047"/>
+    <circle cx="1120" cy="150" r="5.5" fill="#86EFAC"/>
+    <circle cx="1370" cy="694" r="6" fill="#F9A8D4"/>
+  </g>
+</svg>

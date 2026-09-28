@@ -19,7 +19,11 @@ const Color kHappyHourAccent = Color(0xFFFF6D00);
 /// propre écran, PromosScreen : deux gestes de commerce différents, deux
 /// écrans, et la base qui tranche lequel.
 class HappyHourScreen extends ConsumerWidget {
-  const HappyHourScreen({super.key, this.initialTab = 0});
+  const HappyHourScreen({
+    super.key,
+    this.initialTab = 0,
+    this.initialCategoryId,
+  });
 
   /// Onglet ouvert à l'arrivée. L'index porte sur les onglets DE CET ÉCRAN et
   /// il est borné : une notification émise avant la séparation des deux
@@ -27,6 +31,10 @@ class HappyHourScreen extends ConsumerWidget {
   /// désormais le dernier onglet existant au lieu de faire échouer le
   /// contrôleur.
   final int initialTab;
+
+  /// Catégorie à ouvrir, quand elle est connue : une notification de Happy
+  /// Hour sait de quelle boutique elle parle, pas quel rang son onglet occupe.
+  final String? initialCategoryId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,6 +46,7 @@ class HappyHourScreen extends ConsumerWidget {
       accentColor: kHappyHourAccent,
       backgroundImage: 'assets/images/happy_hour_banner.jpg',
       initialTab: initialTab,
+      initialCategoryId: initialCategoryId,
       tabBuilder: (category) => DealsTab(
         category: category,
         accentColor: kHappyHourAccent,

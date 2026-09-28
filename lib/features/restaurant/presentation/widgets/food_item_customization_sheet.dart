@@ -238,7 +238,8 @@ class _FoodItemCustomizationSheetState
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$_quantity x ${widget.item.name} added to cart'),
+        content: Text(
+            l10n.addedToCartWithQuantity(_quantity, widget.item.name)),
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.success,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -452,7 +453,7 @@ class _FoodItemCustomizationSheetState
                   ),
                   child: Text(
                     restaurantClosed
-                        ? 'Restaurant fermé'
+                        ? l10n.restaurantClosedLabel
                         : l10n.addToCartWithTotal(CurrencyFormatter.formatPrice(total)),
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),

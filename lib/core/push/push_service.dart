@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/happy_hour/presentation/happy_hour_screen.dart';
+import '../../features/promos/presentation/promos_screen.dart';
 
 /// Root navigator, so a tapped notification can open a screen from outside
 /// the widget tree (MaterialApp.navigatorKey is set to this in main.dart).
@@ -205,20 +206,37 @@ class PushService {
   // ── Notification taps ───────────────────────────────────────────────────
 
   void _openFromData(Map<String, dynamic> data) {
-    if (data['type'] == 'happy_hour') {
-      _openHappyHour(int.tryParse('${data['tab'] ?? 0}') ?? 0);
-    }
+    final type = '${data['type'] ?? ''}';
+    if (type != 'happy_hour' && type != 'promo') return;
+    _openDeals(promo: type == 'promo', categoryId: '${data['category'] ?? ''}');
   }
 
   void _openFromPayload(String? payload) {
-    // Foreground notifications carry 'happy_hour:<tab>' as their payload.
-    if (payload == null || !payload.startsWith('happy_hour')) return;
-    _openHappyHour(int.tryParse(payload.split(':').last) ?? 0);
+    // Les notifications reçues app ouverte portent 'happy_hour:<categorie>'
+    // ou 'promo:<categorie>'.
+    if (payload == null) return;
+    final parts = payload.split(':');
+    if (parts.first != 'happy_hour' && parts.first != 'promo') return;
+    _openDeals(
+      promo: parts.first == 'promo',
+      categoryId: parts.length > 1 ? parts[1] : '',
+    );
   }
 
-  void _openHappyHour(int tab) {
+  /// Ouvre l'écran d'offres qui correspond au mode de remise de la boutique.
+  ///
+  /// La notification transporte la CATÉGORIE, pas un numéro d'onglet : un
+  /// index ne veut rien dire hors de l'écran qui l'affiche, et il change dès
+  /// qu'une catégorie est masquée ou bascule de mode. C'est l'écran qui
+  /// traduit la catégorie en onglet, là où la liste est connue.
+  void _openDeals({required bool promo, required String categoryId}) {
+    final id = categoryId.isEmpty ? null : categoryId;
     appNavigatorKey.currentState?.push(
-      MaterialPageRoute(builder: (_) => HappyHourScreen(initialTab: tab)),
+      MaterialPageRoute(
+        builder: (_) => promo
+            ? PromosScreen(initialCategoryId: id)
+            : HappyHourScreen(initialCategoryId: id),
+      ),
     );
   }
 
@@ -246,8 +264,10 @@ class PushService {
     final body   = message.notification?.body  ?? message.data['body']  as String?;
     if (title == null && body == null) return;
 
-    // Happy Hour broadcast: normal promo notification, tappable into the deals.
-    if (message.data['type'] == 'happy_hour') {
+    // Diffusion d'une offre -- Happy Hour ou promotion en pourcentage.
+    // Notification ordinaire, qui ouvre l'écran correspondant au toucher.
+    final dealType = '${message.data['type'] ?? ''}';
+    if (dealType == 'happy_hour' || dealType == 'promo') {
       _local.show(
         message.hashCode,
         title,
@@ -264,7 +284,7 @@ class PushService {
           ),
           iOS: DarwinNotificationDetails(presentSound: true),
         ),
-        payload: 'happy_hour:${message.data['tab'] ?? 0}',
+        payload: '$dealType:${message.data['category'] ?? ''}',
       );
       return;
     }

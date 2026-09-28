@@ -27,7 +27,6 @@ class HappyHourHomeBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
-    final categories = ref.watch(happyHourCategoriesProvider);
 
     return DealsHomeBanner(
       deals: ref.watch(happyHourBannerDealsProvider),
@@ -47,9 +46,7 @@ class HappyHourHomeBanner extends ConsumerWidget {
       onOpen: (categoryId) => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => HappyHourScreen(
-            initialTab: tabIndexFor(categories, categoryId),
-          ),
+          builder: (_) => HappyHourScreen(initialCategoryId: categoryId),
         ),
       ),
     );

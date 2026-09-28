@@ -349,6 +349,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get happyHourShopsTab => 'Shops';
 
   @override
+  String addedToCartWithQuantity(int quantity, String item) {
+    return '$quantity x $item added to cart';
+  }
+
+  @override
+  String get chooseAnOption => 'Choose an option';
+
+  @override
+  String get errorLoadingItems => 'Could not load the products';
+
+  @override
+  String get supermarketClosedNow => 'This supermarket is closed right now.';
+
+  @override
+  String get restaurantClosedLabel => 'Restaurant closed';
+
+  @override
+  String get organic => 'Organic';
+
+  @override
   String get happyHourSubtitle => 'The best prices on your favourite dishes';
 
   @override
@@ -364,7 +384,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get happyHourGrab => 'Grab it!';
 
   @override
-  String happyHourAddedToCart(String item) {
+  String addedToCart(String item) {
     return '$item added to cart';
   }
 

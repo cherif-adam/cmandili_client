@@ -12,6 +12,18 @@
  * of them, matching its language (PushService.setPromoLanguage), so every
  * customer gets the offer once, in their language, with no per-user fan-out.
  *
+ * TWO KINDS OF DEAL, TWO SCREENS. The shop's category decides which:
+ * vendor_categories.discount_mode is 'happy_hour' (restaurants, bakeries) or
+ * 'percent' (supermarket, flowers, pets, gifts, electronics). The notification
+ * carries that mode and the CATEGORY ID, and the app opens HappyHourScreen or
+ * PromosScreen on the matching tab.
+ *
+ * It sends the category, never a tab index. An index only means something
+ * inside the screen that draws it, and it shifts the moment a category is
+ * hidden or switched mode — a notification sent today would open the wrong
+ * tab tomorrow. `tab` is still included for app versions older than the
+ * split, which ignore everything else.
+ *
  * The trigger calls this with the app's public key, so anyone holding that
  * key could call it too. It therefore trusts nothing in the request except
  * the item id:
@@ -92,6 +104,12 @@ function tunisTime(iso: string): string {
   });
 }
 
+/**
+ * A Happy Hour and a percentage promotion are not the same offer, so they are
+ * not announced with the same words. A Happy Hour is a price for tonight —
+ * "dès maintenant", a closing time. A promotion is a rate over a period, and
+ * the rate is what the customer wants to read first.
+ */
 function buildCopy(
   lang: 'fr' | 'ar' | 'en',
   shop: string,
@@ -100,8 +118,35 @@ function buildCopy(
   old: string,
   quantity: number | null,
   endsAt: string | null,
+  isPromo: boolean,
+  percentOff: number,
 ): Copy {
   const until = endsAt ? tunisTime(endsAt) : null;
+  if (isPromo) {
+    switch (lang) {
+      case 'fr':
+        return {
+          title: `🏷️ −${percentOff} % chez ${shop}`,
+          body: `${item} à ${deal} DT au lieu de ${old} DT.` +
+            (quantity ? ` Seulement ${quantity} disponibles.` : '') +
+            (until ? ` Jusqu'à ${until}.` : ''),
+        };
+      case 'ar':
+        return {
+          title: `🏷️ خصم ${percentOff}% في ${shop}`,
+          body: `${item} بـ ${deal} د.ت بدلاً من ${old} د.ت.` +
+            (quantity ? ` ${quantity} فقط متوفرة.` : '') +
+            (until ? ` حتى ${until}.` : ''),
+        };
+      default:
+        return {
+          title: `🏷️ ${percentOff}% off at ${shop}`,
+          body: `${item} for ${deal} DT instead of ${old} DT.` +
+            (quantity ? ` Only ${quantity} available.` : '') +
+            (until ? ` Until ${until}.` : ''),
+        };
+    }
+  }
   switch (lang) {
     case 'fr':
       return {
@@ -174,17 +219,39 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ skipped: 'already notified recently' }), { status: 200 });
   }
 
-  // 3. Shop name + which Happy Hour tab lists it (0 food, 1 grocery, 2 other).
+  // 3. Shop name, category, and how that category discounts.
   const { data: vendor } = await supabase
     .from('vendors')
     .select('name, category')
     .eq('id', item.vendor_id)
     .maybeSingle();
   const shop = vendor?.name ?? 'Cmandili';
-  const tab = vendor?.category === 'food' ? '0' : vendor?.category === 'grocery' ? '1' : '2';
+  const category = vendor?.category ?? '';
+
+  // Read from the table, not from a list written here: the same rule serves
+  // the partner app (which button to show) and the client app (which screen
+  // lists the deal). No is_active filter — a category hidden from the home
+  // screen still has a discount mode, and mixing the two would send its deals
+  // to the wrong screen.
+  const { data: categoryRow } = await supabase
+    .from('vendor_categories')
+    .select('discount_mode')
+    .eq('id', category)
+    .maybeSingle();
+  // Falls back to the seeded split when the row is unreadable, so a deal is
+  // still announced rather than dropped.
+  const mode = categoryRow?.discount_mode === 'happy_hour' ||
+      categoryRow?.discount_mode === 'percent'
+    ? categoryRow.discount_mode
+    : (category === 'food' || category === 'bakery' ? 'happy_hour' : 'percent');
+  const isPromo = mode === 'percent';
+
+  // Kept for builds older than the two-screen split: they read `tab` alone.
+  const tab = category === 'food' ? '0' : category === 'grocery' ? '1' : '2';
 
   const deal = money(discount * (1 + PLATFORM_MARKUP));
   const old = money(price * (1 + PLATFORM_MARKUP));
+  const percentOff = Math.round((1 - discount / price) * 100);
   const quantity = item.discount_quantity == null ? null : Number(item.discount_quantity);
 
   // 4. One message per language topic.
@@ -194,7 +261,10 @@ serve(async (req: Request) => {
 
   const results: Record<string, number> = {};
   for (const lang of ['fr', 'ar', 'en'] as const) {
-    const copy = buildCopy(lang, shop, item.name, deal, old, quantity, item.discount_end_time);
+    const copy = buildCopy(
+      lang, shop, item.name, deal, old, quantity, item.discount_end_time,
+      isPromo, percentOff,
+    );
     const resp = await fetch(url, {
       method: 'POST',
       headers: {
@@ -205,8 +275,15 @@ serve(async (req: Request) => {
         message: {
           topic: `happy_hour_${lang}`,
           notification: copy,
-          // Read by PushService to open the Happy Hour screen on the right tab.
-          data: { type: 'happy_hour', item_id: item.id, tab },
+          // Read by PushService: `type` picks the screen, `category` the tab.
+          // `tab` is legacy, for builds older than the two-screen split.
+          data: {
+            type: isPromo ? 'promo' : 'happy_hour',
+            item_id: item.id,
+            category,
+            mode,
+            tab,
+          },
           android: {
             priority: 'high',
             notification: { channel_id: 'cmandili_promos_v1', sound: 'default' },
