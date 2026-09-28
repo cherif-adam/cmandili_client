@@ -1,8 +1,15 @@
 -- APPLIED 2026-09-26 via the SQL editor (fixed "Mise a jour refusee" for a
 -- gift-shop partner). Overlaps with 20260925200000_partner_order_writes_all_
 -- categories.sql (not executed at the time), which fixes the same policy
--- plus the guard_orders_column_scope trigger. If that one is run later, its
--- orders_partner_update replaces this one; the two are equivalent in effect.
+-- plus the guard_orders_column_scope trigger.
+--
+-- CORRECTED 2026-09-28: the two were NOT equivalent. This file's version had
+-- lost `is_blocked`, so a partner with an empty prepaid balance kept accepting
+-- orders -- enforce_prepaid_block still set the flag, but nothing read it on
+-- this path. The condition is restored below, in both clauses. The live
+-- database was repaired separately by
+-- 20260928100000_restore_is_blocked_on_partner_update.sql; this edit is what
+-- keeps a FRESH environment from reintroducing the hole.
 --
 -- Let partners of every category accept their own orders
 -- ============================================================================
@@ -41,6 +48,9 @@ begin;
 
 drop policy if exists "orders_partner_update" on public.orders;
 
+-- coalesce() on is_blocked because the column is NULLABLE (default false).
+-- A bare `p.is_blocked = false` would fail the EXISTS for a partner whose
+-- flag is NULL and lock them out silently.
 create policy "orders_partner_update"
   on public.orders for update
   to authenticated
@@ -48,6 +58,7 @@ create policy "orders_partner_update"
     exists (
       select 1 from public.partners p
       where p.user_id = auth.uid()
+        and coalesce(p.is_blocked, false) = false
         and p.entity_id::text <> ''
         and lower(p.entity_id::text) in (orders.restaurant_id::text, orders.supermarket_id::text)
     )
@@ -56,6 +67,7 @@ create policy "orders_partner_update"
     exists (
       select 1 from public.partners p
       where p.user_id = auth.uid()
+        and coalesce(p.is_blocked, false) = false
         and p.entity_id::text <> ''
         and lower(p.entity_id::text) in (orders.restaurant_id::text, orders.supermarket_id::text)
     )
@@ -63,6 +75,10 @@ create policy "orders_partner_update"
 
 -- Same blind spot on SELECT: a gift-shop partner could not even read their
 -- own orders back, which is why the list could look stale after an action.
+--
+-- No is_blocked here, deliberately: a blocked partner must still be able to
+-- read their orders and understand why they are stopped. Blocking the read
+-- would protect nothing and leave them with a silent app.
 drop policy if exists "orders_partner_select" on public.orders;
 
 create policy "orders_partner_select"
