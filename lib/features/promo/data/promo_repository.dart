@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../cart/data/models/cart_item.dart';
 import 'models/promo_code_response.dart';
+import 'promo_cart_lines.dart';
 
 /// Thin wrapper around the `apply_promo_code` Supabase RPC.
 ///
@@ -15,8 +18,16 @@ import 'models/promo_code_response.dart';
 ///   Call this exactly once inside _placeOrder(), AFTER all other
 ///   validations have passed, using the server-returned new_subtotal.
 ///
-/// SECURITY NOTE: The discount calculation is performed entirely inside the
-/// PL/pgSQL function.  This class never computes or adjusts any price.
+/// SÉCURITÉ. Cette classe n'envoie AUCUN prix — seulement les lignes du
+/// panier : identifiants, quantités, variante et suppléments. Le serveur
+/// relit chaque prix dans `vendor_items`, calcule le sous-total lui-même et
+/// n'accorde la remise qu'aux articles sans promotion en cours.
+///
+/// La version précédente passait `p_subtotal`, un nombre que le serveur
+/// utilisait tel quel : son propre commentaire annonçait « the frontend NEVER
+/// computes the discounted price », ce qui était vrai de la REMISE mais pas
+/// du MONTANT sur lequel elle portait. Cette signature n'est plus accessible
+/// aux clients (REVOKE, migration 20260929100000).
 class PromoRepository {
   final _supabase = Supabase.instance.client;
 
@@ -24,17 +35,17 @@ class PromoRepository {
   /// to user_promo_usages or increment used_count.
   Future<PromoCodeResponse> validatePromoCode({
     required String promoCode,
-    required double subtotal,
+    required List<CartItem> items,
   }) =>
-      _call(promoCode: promoCode, subtotal: subtotal, dryRun: true);
+      _call(promoCode: promoCode, items: items, dryRun: true);
 
   /// Commit path. Validates + locks the row + records usage + increments
   /// used_count atomically. Call this once at order-placement time.
   Future<PromoCodeResponse> applyPromoCode({
     required String promoCode,
-    required double subtotal,
+    required List<CartItem> items,
   }) =>
-      _call(promoCode: promoCode, subtotal: subtotal, dryRun: false);
+      _call(promoCode: promoCode, items: items, dryRun: false);
 
   /// Undo a committed [applyPromoCode] call. Callers MUST invoke this if
   /// order creation or payment fails after a successful applyPromoCode —
@@ -59,12 +70,16 @@ class PromoRepository {
 
   Future<PromoCodeResponse> _call({
     required String promoCode,
-    required double subtotal,
+    required List<CartItem> items,
     required bool dryRun,
   }) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
-      return PromoCodeResponse.localError('Vous devez être connecté pour utiliser un code promo');
+      // Traduit à l'affichage par promoErrorText, via ce code d'erreur.
+      return PromoCodeResponse.serverCode('NOT_AUTHENTICATED');
+    }
+    if (items.isEmpty) {
+      return PromoCodeResponse.serverCode('EMPTY_CART');
     }
 
     try {
@@ -73,7 +88,10 @@ class PromoRepository {
         params: {
           'p_user_id':    userId,
           'p_promo_code': promoCode,
-          'p_subtotal':   subtotal,
+          // `p_items` et non `p_surtotal` : c'est le nom d'argument qui
+          // choisit la surcharge PostgREST, donc ce qui garantit qu'on
+          // n'appelle plus l'ancienne fonction.
+          'p_items':      promoCartLines(items),
           'p_dry_run':    dryRun,
         },
       );

@@ -697,6 +697,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get promoCodePlaceholder => 'Enter your promo code';
 
   @override
+  String promoOnEligible(String discount, String eligible) {
+    return '− $discount on $eligible eligible';
+  }
+
+  @override
+  String get promoErrorNotFound => 'This promo code does not exist';
+
+  @override
+  String get promoErrorInactive => 'This promo code is no longer active';
+
+  @override
+  String get promoErrorExpired => 'This code has expired or is not valid yet';
+
+  @override
+  String get promoErrorMaxUses => 'This code is no longer available';
+
+  @override
+  String get promoErrorAlreadyUsed => 'You have already used this promo code';
+
+  @override
+  String get promoErrorMinOrder => 'Your order is below this code\'s minimum';
+
+  @override
+  String promoErrorMinOrderAmount(String amount) {
+    return 'This code needs a minimum order of $amount';
+  }
+
+  @override
+  String get promoErrorAllOnPromo =>
+      'Your items are already discounted, so this code does not apply';
+
+  @override
+  String get promoErrorNotFirstOrder =>
+      'This code is for your first order only';
+
+  @override
+  String get promoErrorEmptyCart => 'Your cart is empty';
+
+  @override
+  String get promoErrorNotLoggedIn => 'Sign in to use a promo code';
+
+  @override
+  String get promoErrorNetwork => 'Network error. Please try again.';
+
+  @override
+  String get promoErrorGeneric => 'Invalid or expired code';
+
+  @override
   String get applyPromoCode => 'Apply';
 
   @override

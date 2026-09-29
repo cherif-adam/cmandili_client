@@ -713,6 +713,57 @@ class AppLocalizationsFr extends AppLocalizations {
   String get promoCodePlaceholder => 'Entrez votre code promo';
 
   @override
+  String promoOnEligible(String discount, String eligible) {
+    return '− $discount sur $eligible éligibles';
+  }
+
+  @override
+  String get promoErrorNotFound => 'Ce code promo n\'existe pas';
+
+  @override
+  String get promoErrorInactive => 'Ce code promo n\'est plus actif';
+
+  @override
+  String get promoErrorExpired =>
+      'Ce code a expiré ou n\'est pas encore valable';
+
+  @override
+  String get promoErrorMaxUses => 'Ce code n\'est plus disponible';
+
+  @override
+  String get promoErrorAlreadyUsed => 'Vous avez déjà utilisé ce code promo';
+
+  @override
+  String get promoErrorMinOrder =>
+      'Votre commande est en dessous du minimum de ce code';
+
+  @override
+  String promoErrorMinOrderAmount(String amount) {
+    return 'Ce code demande une commande d\'au moins $amount';
+  }
+
+  @override
+  String get promoErrorAllOnPromo =>
+      'Vos articles sont déjà en promotion : ce code ne s\'applique pas';
+
+  @override
+  String get promoErrorNotFirstOrder =>
+      'Ce code est réservé à votre première commande';
+
+  @override
+  String get promoErrorEmptyCart => 'Votre panier est vide';
+
+  @override
+  String get promoErrorNotLoggedIn =>
+      'Connectez-vous pour utiliser un code promo';
+
+  @override
+  String get promoErrorNetwork => 'Erreur réseau. Veuillez réessayer.';
+
+  @override
+  String get promoErrorGeneric => 'Code invalide ou expiré';
+
+  @override
   String get applyPromoCode => 'Appliquer';
 
   @override

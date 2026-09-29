@@ -15,6 +15,7 @@ import '../../orders/presentation/order_success_screen.dart';
 import '../../cart/providers/cart_provider.dart';
 import '../../orders/data/models/order.dart';
 import '../../orders/providers/order_provider.dart';
+import '../../promo/presentation/promo_error_text.dart';
 import '../../promo/providers/promo_provider.dart';
 import '../../loyalty/data/loyalty_eligibility.dart';
 
@@ -188,11 +189,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       double effectiveSubtotal = widget.subtotal;
 
       if (promoState.isApplied) {
+        // Les LIGNES du panier, jamais un montant : le serveur relit les prix
+        // lui-même (migration 20260929100000). Lues ici, juste avant l'appel,
+        // pour que ce soit le panier réellement commandé qui serve de base.
+        final promoItems = ref.read(cartProvider);
         final applyResult = await ref
             .read(promoRepositoryProvider)
             .applyPromoCode(
               promoCode: promoState.appliedCode,
-              subtotal: widget.subtotal,
+              items: promoItems,
             );
 
         if (!mounted) return;
@@ -203,8 +208,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           ref.read(promoProvider.notifier).reset();
           _promoCodeController.clear();
           _showSnack(
-            applyResult.errorMessage ??
-                'Code promo invalide. Veuillez réessayer.',
+            promoErrorText(AppLocalizations.of(context)!, applyResult),
           );
           setState(() => _isPlacingOrder = false);
           return; // Abort — let the user correct and re-submit.
@@ -575,7 +579,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       if (code.isNotEmpty) {
                         ref.read(promoProvider.notifier).validate(
                               code,
-                              widget.subtotal,
+                              ref.read(cartProvider),
                             );
                       }
                     },
@@ -971,14 +975,25 @@ class _PromoCodeField extends StatelessWidget {
           if (isApplied)
             _PromoBadge(
               isSuccess: true,
-              message:
-                  '− ${CurrencyFormatter.formatPrice(promoState.discountAmount)} '
-                  '${AppLocalizations.of(context)!.promoApplied}',
+              // « − 3.500 DT sur 12.000 DT éligibles » quand une partie du
+              // panier est déjà en promotion : sans cette précision, un client
+              // dont la moitié des articles sont remisés lit une réduction
+              // plus faible qu'annoncée et croit à une erreur. Quand tout est
+              // éligible, la phrase habituelle suffit.
+              message: promoState.showsEligibleBreakdown
+                  ? AppLocalizations.of(context)!.promoOnEligible(
+                      CurrencyFormatter.formatPrice(promoState.discountAmount),
+                      CurrencyFormatter.formatPrice(
+                          promoState.response!.eligibleSubtotal!),
+                    )
+                  : '− ${CurrencyFormatter.formatPrice(promoState.discountAmount)} '
+                      '${AppLocalizations.of(context)!.promoApplied}',
             )
           else if (isError)
             _PromoBadge(
               isSuccess: false,
-              message: promoState.response?.errorMessage ?? 'Code invalide',
+              message: promoErrorText(
+                  AppLocalizations.of(context)!, promoState.response!),
             ),
         ],
       ),

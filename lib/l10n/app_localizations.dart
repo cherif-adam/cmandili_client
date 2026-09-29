@@ -1408,6 +1408,90 @@ abstract class AppLocalizations {
   /// **'Enter your promo code'**
   String get promoCodePlaceholder;
 
+  /// No description provided for @promoOnEligible.
+  ///
+  /// In en, this message translates to:
+  /// **'− {discount} on {eligible} eligible'**
+  String promoOnEligible(String discount, String eligible);
+
+  /// No description provided for @promoErrorNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This promo code does not exist'**
+  String get promoErrorNotFound;
+
+  /// No description provided for @promoErrorInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'This promo code is no longer active'**
+  String get promoErrorInactive;
+
+  /// No description provided for @promoErrorExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This code has expired or is not valid yet'**
+  String get promoErrorExpired;
+
+  /// No description provided for @promoErrorMaxUses.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is no longer available'**
+  String get promoErrorMaxUses;
+
+  /// No description provided for @promoErrorAlreadyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'You have already used this promo code'**
+  String get promoErrorAlreadyUsed;
+
+  /// No description provided for @promoErrorMinOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Your order is below this code\'s minimum'**
+  String get promoErrorMinOrder;
+
+  /// No description provided for @promoErrorMinOrderAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'This code needs a minimum order of {amount}'**
+  String promoErrorMinOrderAmount(String amount);
+
+  /// No description provided for @promoErrorAllOnPromo.
+  ///
+  /// In en, this message translates to:
+  /// **'Your items are already discounted, so this code does not apply'**
+  String get promoErrorAllOnPromo;
+
+  /// No description provided for @promoErrorNotFirstOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is for your first order only'**
+  String get promoErrorNotFirstOrder;
+
+  /// No description provided for @promoErrorEmptyCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cart is empty'**
+  String get promoErrorEmptyCart;
+
+  /// No description provided for @promoErrorNotLoggedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to use a promo code'**
+  String get promoErrorNotLoggedIn;
+
+  /// No description provided for @promoErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Please try again.'**
+  String get promoErrorNetwork;
+
+  /// No description provided for @promoErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid or expired code'**
+  String get promoErrorGeneric;
+
   /// No description provided for @applyPromoCode.
   ///
   /// In en, this message translates to:

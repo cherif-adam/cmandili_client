@@ -691,6 +691,53 @@ class AppLocalizationsAr extends AppLocalizations {
   String get promoCodePlaceholder => 'أدخل رمز الخصم';
 
   @override
+  String promoOnEligible(String discount, String eligible) {
+    return '− $discount من أصل $eligible مؤهّلة';
+  }
+
+  @override
+  String get promoErrorNotFound => 'هذا الرمز غير موجود';
+
+  @override
+  String get promoErrorInactive => 'هذا الرمز لم يعد فعّالاً';
+
+  @override
+  String get promoErrorExpired => 'انتهت صلاحية هذا الرمز أو لم تبدأ بعد';
+
+  @override
+  String get promoErrorMaxUses => 'هذا الرمز لم يعد متاحاً';
+
+  @override
+  String get promoErrorAlreadyUsed => 'لقد استخدمت هذا الرمز من قبل';
+
+  @override
+  String get promoErrorMinOrder => 'طلبك أقل من الحد الأدنى لهذا الرمز';
+
+  @override
+  String promoErrorMinOrderAmount(String amount) {
+    return 'يتطلب هذا الرمز طلباً بقيمة $amount على الأقل';
+  }
+
+  @override
+  String get promoErrorAllOnPromo =>
+      'منتجاتك عليها خصم بالفعل، لذلك لا ينطبق هذا الرمز';
+
+  @override
+  String get promoErrorNotFirstOrder => 'هذا الرمز مخصّص لطلبك الأول فقط';
+
+  @override
+  String get promoErrorEmptyCart => 'سلتك فارغة';
+
+  @override
+  String get promoErrorNotLoggedIn => 'سجّل الدخول لاستخدام رمز ترويجي';
+
+  @override
+  String get promoErrorNetwork => 'خطأ في الشبكة. حاول مجدداً.';
+
+  @override
+  String get promoErrorGeneric => 'رمز غير صالح أو منتهٍ';
+
+  @override
   String get applyPromoCode => 'تطبيق';
 
   @override

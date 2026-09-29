@@ -20,11 +20,35 @@ class PromoCodeResponse {
 
   /// Machine-readable error tag. One of:
   ///   INVALID_CODE | NOT_FOUND | INACTIVE | EXPIRED |
-  ///   MAX_USES_REACHED | ALREADY_USED | MIN_ORDER | LOCAL_ERROR
+  ///   MAX_USES_REACHED | ALREADY_USED | MIN_ORDER |
+  ///   ALL_ITEMS_ON_PROMO | NOT_FIRST_ORDER | EMPTY_CART |
+  ///   NOT_AUTHENTICATED | LOCAL_ERROR
+  ///
+  /// C'est LUI qu'on traduit (promoErrorText), pas [errorMessage].
   final String? errorCode;
 
-  /// French message ready to display directly in a SnackBar / badge.
+  /// Message brut du serveur, EN FRANÇAIS. Ne pas l'afficher directement :
+  /// passer par promoErrorText(), qui traduit [errorCode] dans la langue du
+  /// client et ne retombe sur celui-ci que pour un code inconnu de cette
+  /// version de l'application.
   final String? errorMessage;
+
+  /// Sous-total recalculé PAR LE SERVEUR depuis `vendor_items`.
+  ///
+  /// L'application ne l'envoie plus, elle le reçoit. Un écart avec le total
+  /// affiché signale que le panier a bougé entre l'affichage et l'appel —
+  /// un prix changé, une promotion démarrée ou expirée.
+  final double? computedSubtotal;
+
+  /// La part du sous-total à laquelle le code s'applique : les articles SANS
+  /// promotion en cours. Une promotion d'article est déjà le prix ; lui
+  /// ajouter un code ferait −60 % là où le commerçant a accepté −50 %, et la
+  /// commission serait calculée sur un montant qu'il n'a jamais consenti.
+  final double? eligibleSubtotal;
+
+  /// Montant minimum exigé par le code, quand le serveur le renvoie.
+  /// Absent aujourd'hui : l'erreur MIN_ORDER reste alors générique.
+  final double? minOrderAmount;
 
   /// How much was (or will be) discounted from the subtotal.
   /// Always ≥ 0.  Zero when [isSuccess] is false.
@@ -40,7 +64,15 @@ class PromoCodeResponse {
     this.errorMessage,
     this.discountAmount = 0.0,
     this.newSubtotal,
+    this.computedSubtotal,
+    this.eligibleSubtotal,
+    this.minOrderAmount,
   });
+
+  /// Vrai quand le serveur a su dire sur quelle part le code a porté, donc
+  /// quand l'écran peut afficher « − 3.500 DT sur 12.000 DT éligibles ».
+  bool get hasEligibleBreakdown =>
+      eligibleSubtotal != null && computedSubtotal != null;
 
   // ── Factory constructors ─────────────────────────────────────────────────
 
@@ -49,20 +81,17 @@ class PromoCodeResponse {
     return PromoCodeResponse(
       isSuccess: success,
       errorCode: json['error_code'] as String?,
-      // Prefer the DB message (already French); fall back to our local map.
-      errorMessage: success
-          ? null
-          : _localizedError(
-              json['error_code'] as String?,
-              json['error_message'] as String?,
-            ),
+      errorMessage: success ? null : json['error_message'] as String?,
       discountAmount: (json['discount_amount'] as num?)?.toDouble() ?? 0.0,
       newSubtotal: (json['new_subtotal'] as num?)?.toDouble(),
+      computedSubtotal: (json['computed_subtotal'] as num?)?.toDouble(),
+      eligibleSubtotal: (json['eligible_subtotal'] as num?)?.toDouble(),
+      minOrderAmount: (json['min_order_amount'] as num?)?.toDouble(),
     );
   }
 
-  /// Convenience constructor for errors that never reach the server
-  /// (no auth session, network failure, etc.).
+  /// Erreur qui n'atteint jamais le serveur — panne réseau, par exemple.
+  /// Le message est déjà dans la langue du client, il passe tel quel.
   factory PromoCodeResponse.localError(String message) {
     return PromoCodeResponse(
       isSuccess: false,
@@ -71,30 +100,12 @@ class PromoCodeResponse {
     );
   }
 
+  /// Erreur que l'application détecte elle-même mais qui porte un code du
+  /// serveur, pour être traduite au même endroit que les autres.
+  factory PromoCodeResponse.serverCode(String code) {
+    return PromoCodeResponse(isSuccess: false, errorCode: code);
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────
 
-  /// Returns a French error string.  The DB already returns well-formed
-  /// French messages for most codes; this map is a safety net for any code
-  /// that doesn't carry a message (e.g. future additions).
-  static String _localizedError(String? code, String? dbMessage) {
-    if (dbMessage != null && dbMessage.isNotEmpty) return dbMessage;
-    switch (code) {
-      case 'INVALID_CODE':
-        return 'Code invalide';
-      case 'NOT_FOUND':
-        return 'Ce code promo n\'existe pas';
-      case 'INACTIVE':
-        return 'Ce code promo n\'est plus actif';
-      case 'EXPIRED':
-        return 'Ce code a expiré';
-      case 'MAX_USES_REACHED':
-        return 'Ce code n\'est plus disponible';
-      case 'ALREADY_USED':
-        return 'Vous avez déjà utilisé ce code promo';
-      case 'MIN_ORDER':
-        return 'Montant minimum non atteint';
-      default:
-        return 'Code invalide ou expiré';
-    }
-  }
 }

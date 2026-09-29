@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../cart/data/models/cart_item.dart';
 import '../data/promo_repository.dart';
 import '../data/models/promo_code_response.dart';
 
@@ -49,6 +50,18 @@ class PromoState {
   /// Discount amount as reported by the server.  Zero when not applied.
   double get discountAmount => response?.discountAmount ?? 0.0;
 
+  /// Faut-il préciser sur quelle part la remise a porté ?
+  ///
+  /// Seulement quand une partie du panier est déjà en promotion. Écrire
+  /// « sur 12.000 DT éligibles » alors que TOUT l'est ajouterait un chiffre
+  /// qui n'apprend rien et ferait douter d'une exclusion invisible.
+  bool get showsEligibleBreakdown {
+    final r = response;
+    if (r == null || !r.isSuccess || !r.hasEligibleBreakdown) return false;
+    // Un millime d'écart d'arrondi ne fait pas une part non éligible.
+    return (r.computedSubtotal! - r.eligibleSubtotal!).abs() > 0.001;
+  }
+
   // ── copyWith ─────────────────────────────────────────────────────────────
 
   PromoState copyWith({
@@ -71,9 +84,12 @@ class PromoNotifier extends StateNotifier<PromoState> {
 
   PromoNotifier(this._repo) : super(const PromoState());
 
-  /// Runs a dry-run validation. Shows discount preview without committing.
-  /// [subtotal] must be the cart subtotal BEFORE any discount.
-  Future<void> validate(String code, double subtotal) async {
+  /// Vérification à blanc : montre l'aperçu de la remise sans consommer le
+  /// code.
+  ///
+  /// Reçoit les LIGNES du panier, plus un sous-total. C'est le serveur qui
+  /// calcule le montant, à partir des prix qu'il relit lui-même.
+  Future<void> validate(String code, List<CartItem> items) async {
     final trimmed = code.trim();
     if (trimmed.isEmpty) {
       state = const PromoState();
@@ -87,7 +103,7 @@ class PromoNotifier extends StateNotifier<PromoState> {
 
     final response = await _repo.validatePromoCode(
       promoCode: trimmed,
-      subtotal: subtotal,
+      items: items,
     );
 
     state = PromoState(
