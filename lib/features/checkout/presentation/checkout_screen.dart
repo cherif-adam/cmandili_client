@@ -19,13 +19,6 @@ import '../../promo/presentation/promo_error_text.dart';
 import '../../promo/providers/promo_provider.dart';
 import '../../loyalty/data/loyalty_eligibility.dart';
 
-/// Shown when the cart's restaurant/supermarket is closed at placement time —
-/// either caught by the fresh `_venueStillOpen()` re-check or mapped from the
-/// server's `enforce_venue_open` trigger ('VENUE_CLOSED'). French fallback;
-/// full localization is tracked as a separate task.
-const String _kVenueClosedMessage =
-    'Ce commerce est actuellement fermé et ne peut pas accepter de commande.';
-
 class CheckoutScreen extends ConsumerStatefulWidget {
   final double subtotal;
   final double deliveryFee;
@@ -175,7 +168,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // trigger is the authoritative backstop if the venue closes in the race.
       if (!await _venueStillOpen()) {
         if (!mounted) return;
-        _showSnack(_kVenueClosedMessage);
+        _showSnack(AppLocalizations.of(context)!.venueClosedNow);
         return; // `finally` resets _isPlacingOrder; cart is left untouched.
       }
 
@@ -358,7 +351,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               .read(promoRepositoryProvider)
               .releaseUsage(promoCode: promoState.appliedCode);
         }
-        _showSnack(paymentResult.errorMessage ?? 'Payment failed. Order cancelled.');
+        _showSnack(paymentResult.errorMessage ??
+            AppLocalizations.of(context)!.paymentFailedOrderCancelled);
         return;
       }
 
@@ -406,7 +400,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // closed in the race between our re-check and the insert. Map it to the
       // friendly message instead of surfacing a raw error string.
       _showSnack(
-        e.toString().contains('VENUE_CLOSED') ? _kVenueClosedMessage : 'Error: $e',
+        e.toString().contains('VENUE_CLOSED')
+            ? AppLocalizations.of(context)!.venueClosedNow
+            : AppLocalizations.of(context)!.genericErrorWith(e.toString()),
       );
     } finally {
       if (mounted) setState(() => _isPlacingOrder = false);
@@ -654,7 +650,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           ),
                         )
                       : Text(
-                          'Place Order — ${CurrencyFormatter.formatPrice(estimatedTotal)}',
+                          AppLocalizations.of(context)!.placeOrderWithTotal(
+                              CurrencyFormatter.formatPrice(estimatedTotal)),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -1107,8 +1104,8 @@ class _OrderSummaryCard extends StatelessWidget {
             const SizedBox(height: 8),
             _SummaryRow(
               label: loyaltyPreview!.type == 'free'
-                  ? 'Fidélité — livraison gratuite'
-                  : 'Fidélité — -50% livraison',
+                  ? AppLocalizations.of(context)!.loyaltyFreeDelivery
+                  : AppLocalizations.of(context)!.loyaltyHalfDelivery,
               value: '− ${CurrencyFormatter.formatPrice(loyaltyDiscountAmount)}',
               valueColor: AppColors.success,
               labelColor: AppColors.success,

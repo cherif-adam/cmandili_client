@@ -9,7 +9,9 @@ import '../../../core/utils/currency_formatter.dart';
 import '../../../core/services/route_service.dart';
 import '../../../core/widgets/app_map.dart';
 import '../data/models/order.dart';
+import '../../../core/providers/vendor_provider.dart';
 import '../providers/order_provider.dart';
+import 'order_labels.dart';
 import '../../loyalty/presentation/loyalty_card_sheet.dart';
 import '../../loyalty/presentation/loyalty_cancel_dialog.dart';
 import '../../rating/presentation/rating_prompt_sheet.dart';
@@ -206,12 +208,28 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     super.dispose();
   }
 
-  static const _cancelReasons = [
-    'Erreur de commande',
-    'Délai trop long',
-    "J'ai changé d'avis",
-    'Autre',
+  /// Les raisons proposées à l'annulation. La valeur ENVOYÉE au serveur
+  /// reste une clé stable ; seul le libellé suit la langue du client, sinon
+  /// une annulation en arabe arriverait illisible dans le tableau de bord.
+  static const _cancelReasonKeys = [
+    'wrong_order',
+    'too_long',
+    'changed_mind',
+    'other',
   ];
+
+  String _cancelReasonLabel(AppLocalizations l, String key) {
+    switch (key) {
+      case 'wrong_order':
+        return l.cancelReasonWrongOrder;
+      case 'too_long':
+        return l.cancelReasonTooLong;
+      case 'changed_mind':
+        return l.cancelReasonChangedMind;
+      default:
+        return l.cancelReasonOther;
+    }
+  }
 
   Future<void> _showCancelDialog(Order order) async {
     String? selectedReason;
@@ -223,9 +241,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         builder: (ctx, setDlgState) {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text(
-              'Annuler la commande',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            title: Text(
+              AppLocalizations.of(context)!.cancelOrderTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             content: SingleChildScrollView(
               child: Column(
@@ -247,24 +265,26 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                           Icon(Icons.warning_amber_rounded,
                               color: Colors.orange.shade700, size: 20),
                           const SizedBox(width: 8),
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Un livreur est déjà assigné à votre commande. '
-                              'Voulez-vous vraiment annuler ?',
-                              style: TextStyle(fontSize: 13, height: 1.4),
+                              AppLocalizations.of(context)!.cancelDriverAssigned,
+                              style: const TextStyle(fontSize: 13, height: 1.4),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  const Text(
-                    "Raison de l'annulation :",
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  Text(
+                    AppLocalizations.of(context)!.cancelReasonLabel,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
-                  ..._cancelReasons.map(
+                  ..._cancelReasonKeys.map(
                     (r) => RadioListTile<String>(
-                      title: Text(r, style: const TextStyle(fontSize: 14)),
+                      title: Text(
+                          _cancelReasonLabel(AppLocalizations.of(context)!, r),
+                          style: const TextStyle(fontSize: 14)),
                       value: r,
                       groupValue: selectedReason,
                       dense: true,
@@ -279,7 +299,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Retour'),
+                child: Text(AppLocalizations.of(context)!.backAction),
               ),
               ElevatedButton(
                 onPressed: selectedReason == null
@@ -291,7 +311,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('Confirmer'),
+                child: Text(AppLocalizations.of(context)!.confirmAction),
               ),
             ],
           );
@@ -309,8 +329,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Commande annulée avec succès.'),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.orderCancelledOk),
           backgroundColor: Colors.red,
         ),
       );
@@ -323,10 +343,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Impossible d\'annuler — la commande est déjà en cours de préparation.',
-          ),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.cancelTooLatePreparing),
           backgroundColor: Colors.orange,
         ),
       );
@@ -356,7 +374,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        body: Center(child: Text('Error loading order: $e')),
+        body: Center(child: Text(AppLocalizations.of(context)!.errorLoadingOrder)),
       ),
       data: (order) {
         _maybeScheduleLoyaltySheet(order);
@@ -369,6 +387,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   Widget _buildTracking(Order order) {
     final isCourier = order.type == OrderType.courier;
     final isFacture = order.type == OrderType.facture;
+
+    // Le flux temps réel porte ce qui bouge — statut, livreur, position — mais
+    // PAS les lignes de la commande : `.stream()` renvoie les lignes brutes de
+    // `orders` et ne sait pas faire de jointure PostgREST. Le « Récapitulatif »
+    // était donc vide pour TOUTES les catégories, restaurants compris. Cette
+    // lecture séparée apporte ce qui ne bouge plus une fois la commande créée.
+    final details = ref.watch(orderDetailsProvider(widget.orderId)).valueOrNull;
+    final shopCategory = order.shopCategory ?? details?.shopCategory;
+    final shopName = order.restaurantName.isNotEmpty
+        ? order.restaurantName
+        : (details?.restaurantName ?? '');
+    final items = order.items.isNotEmpty ? order.items : (details?.items ?? const []);
     // Show the live map as soon as we have a real driver location, for any
     // status where a driver could be en route. This no longer requires the
     // order status to be exactly onTheWay/pickedUp — the moment a driver is
@@ -498,7 +528,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                   latitude: order.deliveryAddress.latitude,
                   longitude: order.deliveryAddress.longitude,
                   kind: AppMapMarkerKind.delivery,
-                  title: isFacture ? 'Bureau de paiement' : 'Delivery Location',
+                  title: isFacture
+                      ? AppLocalizations.of(context)!.paymentOffice
+                      : AppLocalizations.of(context)!.deliveryLocation,
                 ),
                 if ((isCourier || isFacture) && order.pickupAddress != null)
                   AppMapMarker(
@@ -506,14 +538,14 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     latitude: order.pickupAddress!.latitude,
                     longitude: order.pickupAddress!.longitude,
                     kind: AppMapMarkerKind.pickup,
-                    title: isFacture ? 'Votre adresse' : 'Pickup Location',
+                    title: isFacture ? AppLocalizations.of(context)!.yourAddress : AppLocalizations.of(context)!.pickupLocation,
                   ),
                 AppMapMarker(
                   id: 'driver',
                   latitude: _driverLat!,
                   longitude: _driverLng!,
                   kind: AppMapMarkerKind.driver,
-                  title: order.driverName ?? 'Driver',
+                  title: order.driverName ?? AppLocalizations.of(context)!.driverLabel,
                   bearing: _driverBearing,
                 ),
               },
@@ -612,7 +644,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     const SizedBox(height: 20),
 
                     Text(
-                      order.getStatusText(),
+                      orderStatusLabel(AppLocalizations.of(context)!, order.status),
                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
@@ -633,12 +665,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     // exists yet.
                     if (showMap && _route != null)
                       Text(
-                        'Estimated delivery: ${_route!.etaLabel}',
+                        AppLocalizations.of(context)!.estimatedDeliveryAt(_route!.etaLabel),
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       )
                     else if (order.estimatedDeliveryTime != null)
                       Text(
-                        'Estimated delivery: ${_formatTime(order.estimatedDeliveryTime!)}',
+                        AppLocalizations.of(context)!.estimatedDeliveryAt(
+                            _formatTime(order.estimatedDeliveryTime!)),
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       ),
 
@@ -733,7 +766,20 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         ),
                       ),
 
-                    _OrderTimeline(status: order.status, isCourier: isCourier, isFacture: isFacture),
+                    _OrderTimeline(
+                      status: order.status,
+                      isCourier: isCourier,
+                      isFacture: isFacture,
+                      // La catégorie de la boutique décide, pas le type de la
+                      // commande : le checkout étiquette « food » tout ce qui
+                      // n'est pas de l'épicerie, fleurs et électronique
+                      // comprises. Tant que le détail n'est pas chargé, on
+                      // garde l'ancien comportement — vrai pour la majorité
+                      // des commandes, et corrigé dès que la catégorie arrive.
+                      hasPreparationStep: ref.watch(
+                              hasPreparationStepProvider(shopCategory)) ??
+                          (order.type == OrderType.food),
+                    ),
 
                     const SizedBox(height: 24),
 
@@ -790,24 +836,34 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     // Order Details
                     Text(
                       isFacture
-                          ? 'Détails de la facture'
+                          ? AppLocalizations.of(context)!.billDetailsTitle
                           : isCourier
                               ? AppLocalizations.of(context)!.packageDetails
-                              : 'Order Details',
+                              : AppLocalizations.of(context)!.orderDetailsTitle,
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
 
                     if (isFacture) ...[
-                      _DetailRow(label: 'Type', value: _billTypeLabel(order.billType)),
-                      _DetailRow(label: 'Référence', value: order.billReference ?? 'N/A'),
-                      _DetailRow(label: 'Montant', value: order.billAmount != null ? '${order.billAmount!.toStringAsFixed(3)} TND' : 'N/A'),
+                      _DetailRow(
+                          label: AppLocalizations.of(context)!.billTypeField,
+                          value: _billTypeLabel(AppLocalizations.of(context)!, order.billType)),
+                      _DetailRow(
+                          label: AppLocalizations.of(context)!.billReferenceField,
+                          value: order.billReference ?? 'N/A'),
+                      _DetailRow(
+                          label: AppLocalizations.of(context)!.billAmountField,
+                          value: order.billAmount != null
+                              ? '${order.billAmount!.toStringAsFixed(3)} TND'
+                              : 'N/A'),
                       if (order.senderPhone != null)
-                        _DetailRow(label: 'Téléphone', value: order.senderPhone!),
+                        _DetailRow(label: AppLocalizations.of(context)!.phone, value: order.senderPhone!),
                       const SizedBox(height: 16),
                       // Show bill photo if customer uploaded one
                       if (order.billPhotoUrl != null) ...[
-                        const Text('Photo de la facture', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        Text(AppLocalizations.of(context)!.billPhotoLabel,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14)),
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () => _showFullScreenImage(context, order.billPhotoUrl!),
@@ -825,7 +881,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                       ],
                       // Show receipt photo if driver uploaded one
                       if (order.billReceiptUrl != null) ...[
-                        const Text('Reçu de paiement', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.success)),
+                        Text(AppLocalizations.of(context)!.paymentReceiptLabel,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: AppColors.success)),
                         const SizedBox(height: 8),
                         GestureDetector(
                           onTap: () => _showFullScreenImage(context, order.billReceiptUrl!),
@@ -844,15 +904,18 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                     ] else if (isCourier) ...[
                       _DetailRow(label: AppLocalizations.of(context)!.recipient, value: order.recipientName ?? 'N/A'),
                       _DetailRow(label: AppLocalizations.of(context)!.phone, value: order.recipientPhone ?? 'N/A'),
-                      _DetailRow(label: AppLocalizations.of(context)!.item, value: order.packageDescription ?? 'Package'),
+                      _DetailRow(label: AppLocalizations.of(context)!.item, value: order.packageDescription ?? AppLocalizations.of(context)!.packageFallback),
                       const SizedBox(height: 16),
                     ] else ...[
-                      Text(
-                        order.restaurantName,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                      ),
-                      const SizedBox(height: 8),
-                      ...order.items.map((item) => Padding(
+                      if (shopName.isNotEmpty) ...[
+                        Text(
+                          shopName,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      ...items.map((item) => Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -893,7 +956,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                         const Icon(Icons.payments_outlined,
                             size: 20, color: AppColors.textSecondary),
                         const SizedBox(width: 8),
-                        Text(order.paymentMethod,
+                        Text(paymentMethodLabel(AppLocalizations.of(context)!, order.paymentMethod),
                             style: const TextStyle(color: AppColors.textSecondary)),
                       ],
                     ),
@@ -917,9 +980,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                           onPressed: () => _showCancelDialog(order),
                           icon: const Icon(Icons.cancel_outlined,
                               color: Colors.red, size: 18),
-                          label: const Text(
-                            'Annuler la commande',
-                            style: TextStyle(color: Colors.red),
+                          label: Text(
+                            AppLocalizations.of(context)!.cancelOrderTitle,
+                            style: const TextStyle(color: Colors.red),
                           ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.red),
@@ -942,16 +1005,16 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                           color: AppColors.background,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.info_outline,
+                            const Icon(Icons.info_outline,
                                 size: 18, color: AppColors.textSecondary),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'La commande est déjà en route. '
-                                'Pour annuler, contactez le support.',
-                                style: TextStyle(
+                                AppLocalizations.of(context)!
+                                    .cancelTooLateOnTheWay,
+                                style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textSecondary),
                               ),
@@ -971,13 +1034,20 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     );
   }
 
-  String _billTypeLabel(String? billType) {
+  String _billTypeLabel(AppLocalizations l, String? billType) {
     switch (billType) {
-      case 'steg': return 'STEG (Électricité)';
-      case 'sonede': return 'SONEDE (Eau)';
-      case 'topnet': return 'Topnet (Internet)';
-      case 'autre': return 'Autre';
-      default: return billType ?? 'N/A';
+      case 'steg':
+        return l.billTypeElectricity;
+      case 'sonede':
+        return l.billTypeWater;
+      case 'topnet':
+        return l.billTypeInternet;
+      case 'autre':
+        return l.cancelReasonOther;
+      default:
+        // Un type ajouté en base mais pas encore ici : sa clé vaut mieux que
+        // rien.
+        return billType ?? 'N/A';
     }
   }
 
@@ -1111,7 +1181,7 @@ class _RouteCard extends StatelessWidget {
           if (streets.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              'Itinéraire',
+              AppLocalizations.of(context)!.routeLabel,
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
@@ -1165,29 +1235,43 @@ class _OrderTimeline extends StatelessWidget {
   final bool isCourier;
   final bool isFacture;
 
-  const _OrderTimeline({required this.status, this.isCourier = false, this.isFacture = false});
+  /// Le commerçant prépare-t-il la commande avant qu'elle soit prête ?
+  ///
+  /// Vrai pour les restaurants seulement. Partout ailleurs le commerçant met
+  /// de côté ce qu'il a en rayon : la commande passe d'« acceptée » à
+  /// « prête », et annoncer une préparation au client décrivait un travail
+  /// qui n'a pas lieu. La valeur vient de `vendor_categories`, la même ligne
+  /// que lisent l'application partenaire et celle du livreur.
+  final bool hasPreparationStep;
+
+  const _OrderTimeline({
+    required this.status,
+    this.isCourier = false,
+    this.isFacture = false,
+    this.hasPreparationStep = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     final steps = isFacture
         ? [
             _TimelineStep(
-              title: 'Commande confirmée',
+              title: AppLocalizations.of(context)!.timelineOrderConfirmed,
               isCompleted: status.index >= OrderStatus.confirmed.index,
               icon: Icons.check_circle,
             ),
             _TimelineStep(
-              title: 'Livreur en route chez vous',
+              title: AppLocalizations.of(context)!.timelineDriverComing,
               isCompleted: status.index >= OrderStatus.onTheWay.index,
               icon: Icons.directions_bike,
             ),
             _TimelineStep(
-              title: 'Espèces collectées',
+              title: AppLocalizations.of(context)!.timelineCashCollected,
               isCompleted: status.index >= OrderStatus.pickedUp.index,
               icon: Icons.payments_rounded,
             ),
             _TimelineStep(
-              title: 'Facture payée',
+              title: AppLocalizations.of(context)!.timelineBillPaid,
               isCompleted: status.index >= OrderStatus.delivered.index,
               icon: Icons.receipt_long_rounded,
             ),
@@ -1195,46 +1279,56 @@ class _OrderTimeline extends StatelessWidget {
         : isCourier
         ? [
             _TimelineStep(
-              title: 'Request Confirmed',
+              title: AppLocalizations.of(context)!.timelineRequestConfirmed,
               isCompleted: status.index >= OrderStatus.confirmed.index,
               icon: Icons.check_circle,
             ),
             _TimelineStep(
-              title: 'Picked Up',
+              title: AppLocalizations.of(context)!.timelinePickedUp,
               isCompleted: status.index >= OrderStatus.pickedUp.index ||
                   status == OrderStatus.onTheWay ||
                   status == OrderStatus.delivered,
               icon: Icons.inventory_2,
             ),
             _TimelineStep(
-              title: 'On the Way',
+              title: AppLocalizations.of(context)!.timelineOnTheWay,
               isCompleted: status.index >= OrderStatus.onTheWay.index,
               icon: Icons.local_shipping,
             ),
             _TimelineStep(
-              title: 'Delivered',
+              title: AppLocalizations.of(context)!.timelineDelivered,
               isCompleted: status.index >= OrderStatus.delivered.index,
               icon: Icons.done_all,
             ),
           ]
         : [
             _TimelineStep(
-              title: 'Order Confirmed',
+              title: AppLocalizations.of(context)!.timelineOrderConfirmed,
               isCompleted: status.index >= OrderStatus.confirmed.index,
               icon: Icons.check_circle,
             ),
+            // Le restaurant prépare ; le fleuriste, l'épicier ou le magasin
+            // d'électronique met de côté et annonce « prête ». Deux étapes
+            // différentes, pas un habillage de la même.
+            if (hasPreparationStep)
+              _TimelineStep(
+                title: AppLocalizations.of(context)!.timelinePreparing,
+                isCompleted: status.index >= OrderStatus.preparing.index,
+                icon: Icons.restaurant,
+              )
+            else
+              _TimelineStep(
+                title: AppLocalizations.of(context)!.timelineReady,
+                isCompleted: status.index >= OrderStatus.ready.index,
+                icon: Icons.inventory_2_rounded,
+              ),
             _TimelineStep(
-              title: 'Preparing',
-              isCompleted: status.index >= OrderStatus.preparing.index,
-              icon: Icons.restaurant,
-            ),
-            _TimelineStep(
-              title: 'On the Way',
+              title: AppLocalizations.of(context)!.timelineOnTheWay,
               isCompleted: status.index >= OrderStatus.onTheWay.index,
               icon: Icons.delivery_dining,
             ),
             _TimelineStep(
-              title: 'Delivered',
+              title: AppLocalizations.of(context)!.timelineDelivered,
               isCompleted: status.index >= OrderStatus.delivered.index,
               icon: Icons.done_all,
             ),

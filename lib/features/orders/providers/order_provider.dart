@@ -85,3 +85,14 @@ final loyaltyProgressProvider = FutureProvider<int>((ref) async {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.getLoyaltyDeliveredCount();
 });
+
+/// Une commande AVEC ses lignes et le commerce qui la prépare, lue une fois.
+///
+/// Le flux temps réel de l'écran de suivi ne peut pas les porter : `.stream()`
+/// renvoie les lignes brutes de `orders` et ne sait pas faire de jointure
+/// PostgREST. D'où cette lecture séparée — le flux garde ce qui bouge, celle-ci
+/// apporte ce qui ne bouge plus.
+final orderDetailsProvider =
+    FutureProvider.family<Order?, String>((ref, orderId) {
+  return ref.watch(orderRepositoryProvider).getOrderWithDetails(orderId);
+});

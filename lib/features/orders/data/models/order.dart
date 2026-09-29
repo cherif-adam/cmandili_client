@@ -61,6 +61,15 @@ class Order {
   final String? loyaltyMilestoneType; // 'half' | 'free' | null
   final double loyaltyDiscountAmount; // amount subtracted from deliveryFee
 
+  /// La catégorie de la boutique — 'food', 'electronics'… — quand la requête
+  /// l'a jointe ; null sinon (le flux temps réel ne porte pas de jointure).
+  ///
+  /// [type] ne suffit pas : le checkout ne classe en `supermarket` que les
+  /// lignes d'épicerie, donc une commande de fleurs ou d'électronique arrive
+  /// étiquetée `food`. C'est cette catégorie-ci qui dit si la commande passe
+  /// par une étape de préparation.
+  final String? shopCategory;
+
   Order({
     required this.id,
     required this.userId,
@@ -95,6 +104,7 @@ class Order {
     this.senderPhone,
     this.loyaltyMilestoneType,
     this.loyaltyDiscountAmount = 0,
+    this.shopCategory,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -143,7 +153,8 @@ class Order {
       billPhotoUrl: json['billPhotoUrl'],
       billReceiptUrl: json['billReceiptUrl'],
       senderPhone: json['senderPhone'],
-      loyaltyMilestoneType: json['loyaltyMilestoneType'],
+      shopCategory: json['shopCategory'] as String?,
+      loyaltyMilestoneType: json['loyaltyMilestoneType'] as String?,
       loyaltyDiscountAmount: (json['loyaltyDiscountAmount'] as num?)?.toDouble() ?? 0,
     );
   }
@@ -181,6 +192,7 @@ class Order {
       'billPhotoUrl': billPhotoUrl,
       'billReceiptUrl': billReceiptUrl,
       'senderPhone': senderPhone,
+      'shopCategory': shopCategory,
       'loyaltyMilestoneType': loyaltyMilestoneType,
       'loyaltyDiscountAmount': loyaltyDiscountAmount,
     };

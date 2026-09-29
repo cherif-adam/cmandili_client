@@ -561,7 +561,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get locations => 'Lieux';
 
   @override
-  String get pickupLocation => 'Lieu de ramassage';
+  String get pickupLocation => 'Lieu de retrait';
 
   @override
   String get dropoffLocation => 'Lieu de livraison';
@@ -711,6 +711,179 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get promoCodePlaceholder => 'Entrez votre code promo';
+
+  @override
+  String get billTypeElectricity => 'STEG (Électricité)';
+
+  @override
+  String get billTypeWater => 'SONEDE (Eau)';
+
+  @override
+  String get billTypeInternet => 'Topnet (Internet)';
+
+  @override
+  String get packageFallback => 'Colis';
+
+  @override
+  String get orderStatusPending => 'En attente';
+
+  @override
+  String get orderStatusConfirmed => 'Confirmée';
+
+  @override
+  String get orderStatusPreparing => 'En préparation';
+
+  @override
+  String get orderStatusReady => 'Prête';
+
+  @override
+  String get orderStatusPickedUp => 'Récupérée';
+
+  @override
+  String get orderStatusOnTheWay => 'En route';
+
+  @override
+  String get orderStatusDelivered => 'Livrée';
+
+  @override
+  String get orderStatusCancelled => 'Annulée';
+
+  @override
+  String get timelineOrderConfirmed => 'Commande confirmée';
+
+  @override
+  String get timelinePreparing => 'En préparation';
+
+  @override
+  String get timelineReady => 'Prête';
+
+  @override
+  String get timelineOnTheWay => 'En route';
+
+  @override
+  String get timelineDelivered => 'Livrée';
+
+  @override
+  String get timelineRequestConfirmed => 'Demande confirmée';
+
+  @override
+  String get timelinePickedUp => 'Colis récupéré';
+
+  @override
+  String get timelineDriverComing => 'Livreur en route chez vous';
+
+  @override
+  String get timelineCashCollected => 'Espèces collectées';
+
+  @override
+  String get timelineBillPaid => 'Facture payée';
+
+  @override
+  String estimatedDeliveryAt(String time) {
+    return 'Livraison estimée : $time';
+  }
+
+  @override
+  String get orderDetailsTitle => 'Récapitulatif de commande';
+
+  @override
+  String get billDetailsTitle => 'Détails de la facture';
+
+  @override
+  String get deliveryLocation => 'Lieu de livraison';
+
+  @override
+  String get paymentOffice => 'Bureau de paiement';
+
+  @override
+  String get yourAddress => 'Votre adresse';
+
+  @override
+  String get driverLabel => 'Livreur';
+
+  @override
+  String get routeLabel => 'Itinéraire';
+
+  @override
+  String get billTypeField => 'Type';
+
+  @override
+  String get billReferenceField => 'Référence';
+
+  @override
+  String get billAmountField => 'Montant';
+
+  @override
+  String get billPhotoLabel => 'Photo de la facture';
+
+  @override
+  String get paymentReceiptLabel => 'Reçu de paiement';
+
+  @override
+  String get paymentMethodCash => 'Espèces';
+
+  @override
+  String get cancelOrderTitle => 'Annuler la commande';
+
+  @override
+  String get cancelDriverAssigned =>
+      'Un livreur est déjà assigné à votre commande. Voulez-vous vraiment annuler ?';
+
+  @override
+  String get cancelReasonLabel => 'Raison de l\'annulation :';
+
+  @override
+  String get cancelReasonWrongOrder => 'Erreur de commande';
+
+  @override
+  String get cancelReasonTooLong => 'Délai trop long';
+
+  @override
+  String get cancelReasonChangedMind => 'J\'ai changé d\'avis';
+
+  @override
+  String get cancelReasonOther => 'Autre';
+
+  @override
+  String get backAction => 'Retour';
+
+  @override
+  String get confirmAction => 'Confirmer';
+
+  @override
+  String get orderCancelledOk => 'Commande annulée avec succès.';
+
+  @override
+  String get cancelTooLatePreparing =>
+      'Impossible d\'annuler — la commande est déjà en cours de préparation.';
+
+  @override
+  String get cancelTooLateOnTheWay =>
+      'La commande est déjà en route. Pour annuler, contactez le support.';
+
+  @override
+  String placeOrderWithTotal(String total) {
+    return 'Commander — $total';
+  }
+
+  @override
+  String get venueClosedNow =>
+      'Ce commerce est actuellement fermé et ne peut pas accepter de commande.';
+
+  @override
+  String get paymentFailedOrderCancelled =>
+      'Paiement refusé. Commande annulée.';
+
+  @override
+  String get loyaltyFreeDelivery => 'Fidélité — livraison gratuite';
+
+  @override
+  String get loyaltyHalfDelivery => 'Fidélité — −50 % livraison';
+
+  @override
+  String genericErrorWith(String message) {
+    return 'Erreur : $message';
+  }
 
   @override
   String promoOnEligible(String discount, String eligible) {

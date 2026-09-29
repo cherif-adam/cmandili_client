@@ -215,7 +215,17 @@ class VendorCategory {
     required this.colorHex,
     required this.sortOrder,
     this.discountMode = 'percent',
+    this.hasPreparationStep = false,
   });
+
+  /// Le commerçant prépare la commande avant qu'elle soit prête.
+  ///
+  /// Vrai pour les restaurants seulement : partout ailleurs le commerçant met
+  /// de côté ce qu'il a déjà en rayon, et la commande passe d'« acceptée » à
+  /// « prête » sans étape intermédiaire. Lu en base pour que l'application
+  /// partenaire, celle du client et celle du livreur ne puissent pas se
+  /// contredire.
+  final bool hasPreparationStep;
 
   bool get usesHappyHour => discountMode == 'happy_hour';
   bool get usesPercent => discountMode == 'percent';
@@ -234,6 +244,11 @@ class VendorCategory {
       discountMode: row['discount_mode']?.toString() == 'happy_hour'
           ? 'happy_hour'
           : 'percent',
+      // Absente tant que la migration 20260929140000 n'est pas passée : on se
+      // replie alors sur la seule catégorie qui prépare aujourd'hui, plutôt
+      // que d'annoncer une préparation à tout le monde ou à personne.
+      hasPreparationStep:
+          row['has_preparation_step'] as bool? ?? (row['id'] == 'food'),
     );
   }
 
@@ -257,7 +272,7 @@ class VendorCategory {
     VendorCategory(
         id: 'food', nameEn: 'Food', nameFr: 'Restaurants', nameAr: 'مطاعم',
         icon: '🍕', colorHex: '#FF6B35', sortOrder: 10,
-        discountMode: 'happy_hour'),
+        discountMode: 'happy_hour', hasPreparationStep: true),
     VendorCategory(
         id: 'grocery', nameEn: 'Market', nameFr: 'Supermarché',
         nameAr: 'سوبر ماركت', icon: '🛒', colorHex: '#1D9E75', sortOrder: 20),

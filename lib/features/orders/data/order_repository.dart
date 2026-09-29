@@ -161,15 +161,41 @@ class OrderRepository {
         // can't resolve an embed through them — point the embed at the
         // underlying tables (same aliases the partner app uses) and keep
         // the view's name as the alias so the mapping below is unchanged.
-        .select('*, restaurants:vendors!orders_restaurant_id_fkey(name), '
-            'order_items(*, food_items:food_items_legacy(*), '
-            'grocery_items:grocery_items_legacy(*), vendor_items(*))')
+        .select(_kOrderWithDetails)
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
     return (response as List)
         .map((json) => Order.fromJson(_mapOrderFromDb(json)))
         .toList();
+  }
+
+  /// Une commande AVEC ses lignes, son commerce et la catégorie de celui-ci.
+  ///
+  /// L'écran de suivi ne peut pas obtenir ça de son flux temps réel :
+  /// `.stream()` renvoie les lignes BRUTES de la table `orders` et ne sait pas
+  /// porter de jointure PostgREST. `order_items` et `restaurants` n'y
+  /// figuraient donc jamais, et le « Récapitulatif » était vide pour TOUTES
+  /// les catégories, restaurants compris — ce n'était pas un problème d'embed
+  /// propre aux boutiques génériques.
+  ///
+  /// Lu une seule fois : les lignes d'une commande ne changent plus après sa
+  /// création. Le flux continue de porter ce qui bouge — statut, livreur,
+  /// position.
+  Future<Order?> getOrderWithDetails(String orderId) async {
+    try {
+      final row = await _supabase
+          .from('orders')
+          .select(_kOrderWithDetails)
+          .eq('id', orderId)
+          .maybeSingle();
+      return row == null ? null : Order.fromJson(_mapOrderFromDb(row));
+    } catch (e) {
+      // Une jointure peut échouer sur une dérive de schéma. Le suivi doit
+      // rester lisible sans elle : le flux porte déjà l'essentiel.
+      debugPrint('getOrderWithDetails error: $e');
+      return null;
+    }
   }
 
   /// The customer's newest order that is not yet delivered or cancelled, or
@@ -583,14 +609,29 @@ class OrderRepository {
     return result;
   }
 
+  /// La sélection commune à l'historique et au détail d'une commande.
+  ///
+  /// `food_items` et `grocery_items` sont des vues sur `vendors`, et PostgREST
+  /// ne sait pas résoudre une jointure au travers : on vise les tables
+  /// sous-jacentes en gardant le nom de la vue comme alias, pour que le
+  /// mapping reste inchangé. `category` accompagne le nom du commerce parce
+  /// que c'est elle qui décide de la frise de suivi.
+  static const String _kOrderWithDetails =
+      '*, restaurants:vendors!orders_restaurant_id_fkey(name, category), '
+      'order_items(*, food_items:food_items_legacy(*), '
+      'grocery_items:grocery_items_legacy(*), vendor_items(*))';
+
   Map<String, dynamic> _mapOrderFromDb(Map<String, dynamic> dbJson) {
     return {
       'id': dbJson['id'],
       'userId': dbJson['user_id'],
       'restaurantId': dbJson['restaurant_id'] ?? '',
-      'restaurantName': (dbJson['restaurants'] is Map) 
-          ? (dbJson['restaurants']['name'] ?? '') 
+      'restaurantName': (dbJson['restaurants'] is Map)
+          ? (dbJson['restaurants']['name'] ?? '')
           : '',
+      'shopCategory': (dbJson['restaurants'] is Map)
+          ? dbJson['restaurants']['category']?.toString()
+          : null,
       'items': _parseOrderItems(dbJson['order_items']),
       'deliveryAddress': dbJson['delivery_address'] ?? {},
       'subtotal': dbJson['subtotal'],

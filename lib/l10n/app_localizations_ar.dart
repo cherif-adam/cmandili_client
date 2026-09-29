@@ -543,7 +543,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get locations => 'المواقع';
 
   @override
-  String get pickupLocation => 'موقع الاستلام';
+  String get pickupLocation => 'مكان الاستلام';
 
   @override
   String get dropoffLocation => 'موقع التسليم';
@@ -689,6 +689,178 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get promoCodePlaceholder => 'أدخل رمز الخصم';
+
+  @override
+  String get billTypeElectricity => 'STEG (الكهرباء)';
+
+  @override
+  String get billTypeWater => 'SONEDE (الماء)';
+
+  @override
+  String get billTypeInternet => 'Topnet (الإنترنت)';
+
+  @override
+  String get packageFallback => 'طرد';
+
+  @override
+  String get orderStatusPending => 'قيد الانتظار';
+
+  @override
+  String get orderStatusConfirmed => 'مؤكّدة';
+
+  @override
+  String get orderStatusPreparing => 'قيد التحضير';
+
+  @override
+  String get orderStatusReady => 'جاهزة';
+
+  @override
+  String get orderStatusPickedUp => 'تم الاستلام';
+
+  @override
+  String get orderStatusOnTheWay => 'في الطريق';
+
+  @override
+  String get orderStatusDelivered => 'تم التوصيل';
+
+  @override
+  String get orderStatusCancelled => 'ملغاة';
+
+  @override
+  String get timelineOrderConfirmed => 'تم تأكيد الطلب';
+
+  @override
+  String get timelinePreparing => 'قيد التحضير';
+
+  @override
+  String get timelineReady => 'جاهز';
+
+  @override
+  String get timelineOnTheWay => 'في الطريق';
+
+  @override
+  String get timelineDelivered => 'تم التوصيل';
+
+  @override
+  String get timelineRequestConfirmed => 'تم تأكيد الطلب';
+
+  @override
+  String get timelinePickedUp => 'تم استلام الطرد';
+
+  @override
+  String get timelineDriverComing => 'السائق في طريقه إليك';
+
+  @override
+  String get timelineCashCollected => 'تم استلام المبلغ';
+
+  @override
+  String get timelineBillPaid => 'تم دفع الفاتورة';
+
+  @override
+  String estimatedDeliveryAt(String time) {
+    return 'التوصيل المتوقع: $time';
+  }
+
+  @override
+  String get orderDetailsTitle => 'تفاصيل الطلب';
+
+  @override
+  String get billDetailsTitle => 'تفاصيل الفاتورة';
+
+  @override
+  String get deliveryLocation => 'مكان التوصيل';
+
+  @override
+  String get paymentOffice => 'مكتب الدفع';
+
+  @override
+  String get yourAddress => 'عنوانك';
+
+  @override
+  String get driverLabel => 'السائق';
+
+  @override
+  String get routeLabel => 'المسار';
+
+  @override
+  String get billTypeField => 'النوع';
+
+  @override
+  String get billReferenceField => 'المرجع';
+
+  @override
+  String get billAmountField => 'المبلغ';
+
+  @override
+  String get billPhotoLabel => 'صورة الفاتورة';
+
+  @override
+  String get paymentReceiptLabel => 'إيصال الدفع';
+
+  @override
+  String get paymentMethodCash => 'نقداً';
+
+  @override
+  String get cancelOrderTitle => 'إلغاء الطلب';
+
+  @override
+  String get cancelDriverAssigned =>
+      'تم تعيين سائق لطلبك بالفعل. هل تريد الإلغاء رغم ذلك؟';
+
+  @override
+  String get cancelReasonLabel => 'سبب الإلغاء:';
+
+  @override
+  String get cancelReasonWrongOrder => 'خطأ في الطلب';
+
+  @override
+  String get cancelReasonTooLong => 'الانتظار طويل جداً';
+
+  @override
+  String get cancelReasonChangedMind => 'غيّرت رأيي';
+
+  @override
+  String get cancelReasonOther => 'سبب آخر';
+
+  @override
+  String get backAction => 'رجوع';
+
+  @override
+  String get confirmAction => 'تأكيد';
+
+  @override
+  String get orderCancelledOk => 'تم إلغاء الطلب.';
+
+  @override
+  String get cancelTooLatePreparing =>
+      'لا يمكن الإلغاء — الطلب قيد التحضير بالفعل.';
+
+  @override
+  String get cancelTooLateOnTheWay =>
+      'الطلب في الطريق بالفعل. تواصل مع الدعم للإلغاء.';
+
+  @override
+  String placeOrderWithTotal(String total) {
+    return 'اطلب — $total';
+  }
+
+  @override
+  String get venueClosedNow =>
+      'هذا المتجر مغلق حالياً ولا يمكنه استقبال الطلبات.';
+
+  @override
+  String get paymentFailedOrderCancelled => 'فشل الدفع. تم إلغاء الطلب.';
+
+  @override
+  String get loyaltyFreeDelivery => 'الولاء — توصيل مجاني';
+
+  @override
+  String get loyaltyHalfDelivery => 'الولاء — خصم 50% على التوصيل';
+
+  @override
+  String genericErrorWith(String message) {
+    return 'خطأ: $message';
+  }
 
   @override
   String promoOnEligible(String discount, String eligible) {

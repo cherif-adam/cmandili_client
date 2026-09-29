@@ -549,7 +549,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get locations => 'Locations';
 
   @override
-  String get pickupLocation => 'Pickup Location';
+  String get pickupLocation => 'Pickup location';
 
   @override
   String get dropoffLocation => 'Dropoff Location';
@@ -695,6 +695,178 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get promoCodePlaceholder => 'Enter your promo code';
+
+  @override
+  String get billTypeElectricity => 'STEG (electricity)';
+
+  @override
+  String get billTypeWater => 'SONEDE (water)';
+
+  @override
+  String get billTypeInternet => 'Topnet (internet)';
+
+  @override
+  String get packageFallback => 'Package';
+
+  @override
+  String get orderStatusPending => 'Pending';
+
+  @override
+  String get orderStatusConfirmed => 'Confirmed';
+
+  @override
+  String get orderStatusPreparing => 'Preparing';
+
+  @override
+  String get orderStatusReady => 'Ready';
+
+  @override
+  String get orderStatusPickedUp => 'Picked up';
+
+  @override
+  String get orderStatusOnTheWay => 'On the way';
+
+  @override
+  String get orderStatusDelivered => 'Delivered';
+
+  @override
+  String get orderStatusCancelled => 'Cancelled';
+
+  @override
+  String get timelineOrderConfirmed => 'Order confirmed';
+
+  @override
+  String get timelinePreparing => 'Preparing';
+
+  @override
+  String get timelineReady => 'Ready';
+
+  @override
+  String get timelineOnTheWay => 'On the way';
+
+  @override
+  String get timelineDelivered => 'Delivered';
+
+  @override
+  String get timelineRequestConfirmed => 'Request confirmed';
+
+  @override
+  String get timelinePickedUp => 'Picked up';
+
+  @override
+  String get timelineDriverComing => 'Driver on the way to you';
+
+  @override
+  String get timelineCashCollected => 'Cash collected';
+
+  @override
+  String get timelineBillPaid => 'Bill paid';
+
+  @override
+  String estimatedDeliveryAt(String time) {
+    return 'Estimated delivery: $time';
+  }
+
+  @override
+  String get orderDetailsTitle => 'Order details';
+
+  @override
+  String get billDetailsTitle => 'Bill details';
+
+  @override
+  String get deliveryLocation => 'Delivery location';
+
+  @override
+  String get paymentOffice => 'Payment office';
+
+  @override
+  String get yourAddress => 'Your address';
+
+  @override
+  String get driverLabel => 'Driver';
+
+  @override
+  String get routeLabel => 'Route';
+
+  @override
+  String get billTypeField => 'Type';
+
+  @override
+  String get billReferenceField => 'Reference';
+
+  @override
+  String get billAmountField => 'Amount';
+
+  @override
+  String get billPhotoLabel => 'Bill photo';
+
+  @override
+  String get paymentReceiptLabel => 'Payment receipt';
+
+  @override
+  String get paymentMethodCash => 'Cash';
+
+  @override
+  String get cancelOrderTitle => 'Cancel the order';
+
+  @override
+  String get cancelDriverAssigned =>
+      'A driver has already been assigned to your order. Cancel anyway?';
+
+  @override
+  String get cancelReasonLabel => 'Reason for cancelling:';
+
+  @override
+  String get cancelReasonWrongOrder => 'Ordering mistake';
+
+  @override
+  String get cancelReasonTooLong => 'Taking too long';
+
+  @override
+  String get cancelReasonChangedMind => 'I changed my mind';
+
+  @override
+  String get cancelReasonOther => 'Other';
+
+  @override
+  String get backAction => 'Back';
+
+  @override
+  String get confirmAction => 'Confirm';
+
+  @override
+  String get orderCancelledOk => 'Order cancelled.';
+
+  @override
+  String get cancelTooLatePreparing =>
+      'Too late to cancel — the order is already being prepared.';
+
+  @override
+  String get cancelTooLateOnTheWay =>
+      'The order is already on its way. Contact support to cancel.';
+
+  @override
+  String placeOrderWithTotal(String total) {
+    return 'Place order — $total';
+  }
+
+  @override
+  String get venueClosedNow =>
+      'This shop is currently closed and cannot take orders.';
+
+  @override
+  String get paymentFailedOrderCancelled => 'Payment failed. Order cancelled.';
+
+  @override
+  String get loyaltyFreeDelivery => 'Loyalty — free delivery';
+
+  @override
+  String get loyaltyHalfDelivery => 'Loyalty — 50% off delivery';
+
+  @override
+  String genericErrorWith(String message) {
+    return 'Error: $message';
+  }
 
   @override
   String promoOnEligible(String discount, String eligible) {

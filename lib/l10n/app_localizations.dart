@@ -1123,7 +1123,7 @@ abstract class AppLocalizations {
   /// No description provided for @pickupLocation.
   ///
   /// In en, this message translates to:
-  /// **'Pickup Location'**
+  /// **'Pickup location'**
   String get pickupLocation;
 
   /// No description provided for @dropoffLocation.
@@ -1407,6 +1407,330 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter your promo code'**
   String get promoCodePlaceholder;
+
+  /// No description provided for @billTypeElectricity.
+  ///
+  /// In en, this message translates to:
+  /// **'STEG (electricity)'**
+  String get billTypeElectricity;
+
+  /// No description provided for @billTypeWater.
+  ///
+  /// In en, this message translates to:
+  /// **'SONEDE (water)'**
+  String get billTypeWater;
+
+  /// No description provided for @billTypeInternet.
+  ///
+  /// In en, this message translates to:
+  /// **'Topnet (internet)'**
+  String get billTypeInternet;
+
+  /// No description provided for @packageFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Package'**
+  String get packageFallback;
+
+  /// No description provided for @orderStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get orderStatusPending;
+
+  /// No description provided for @orderStatusConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed'**
+  String get orderStatusConfirmed;
+
+  /// No description provided for @orderStatusPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get orderStatusPreparing;
+
+  /// No description provided for @orderStatusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get orderStatusReady;
+
+  /// No description provided for @orderStatusPickedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Picked up'**
+  String get orderStatusPickedUp;
+
+  /// No description provided for @orderStatusOnTheWay.
+  ///
+  /// In en, this message translates to:
+  /// **'On the way'**
+  String get orderStatusOnTheWay;
+
+  /// No description provided for @orderStatusDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get orderStatusDelivered;
+
+  /// No description provided for @orderStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get orderStatusCancelled;
+
+  /// No description provided for @timelineOrderConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Order confirmed'**
+  String get timelineOrderConfirmed;
+
+  /// No description provided for @timelinePreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get timelinePreparing;
+
+  /// No description provided for @timelineReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get timelineReady;
+
+  /// No description provided for @timelineOnTheWay.
+  ///
+  /// In en, this message translates to:
+  /// **'On the way'**
+  String get timelineOnTheWay;
+
+  /// No description provided for @timelineDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered'**
+  String get timelineDelivered;
+
+  /// No description provided for @timelineRequestConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Request confirmed'**
+  String get timelineRequestConfirmed;
+
+  /// No description provided for @timelinePickedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Picked up'**
+  String get timelinePickedUp;
+
+  /// No description provided for @timelineDriverComing.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver on the way to you'**
+  String get timelineDriverComing;
+
+  /// No description provided for @timelineCashCollected.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash collected'**
+  String get timelineCashCollected;
+
+  /// No description provided for @timelineBillPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill paid'**
+  String get timelineBillPaid;
+
+  /// No description provided for @estimatedDeliveryAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated delivery: {time}'**
+  String estimatedDeliveryAt(String time);
+
+  /// No description provided for @orderDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Order details'**
+  String get orderDetailsTitle;
+
+  /// No description provided for @billDetailsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill details'**
+  String get billDetailsTitle;
+
+  /// No description provided for @deliveryLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery location'**
+  String get deliveryLocation;
+
+  /// No description provided for @paymentOffice.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment office'**
+  String get paymentOffice;
+
+  /// No description provided for @yourAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Your address'**
+  String get yourAddress;
+
+  /// No description provided for @driverLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver'**
+  String get driverLabel;
+
+  /// No description provided for @routeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Route'**
+  String get routeLabel;
+
+  /// No description provided for @billTypeField.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get billTypeField;
+
+  /// No description provided for @billReferenceField.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference'**
+  String get billReferenceField;
+
+  /// No description provided for @billAmountField.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get billAmountField;
+
+  /// No description provided for @billPhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill photo'**
+  String get billPhotoLabel;
+
+  /// No description provided for @paymentReceiptLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment receipt'**
+  String get paymentReceiptLabel;
+
+  /// No description provided for @paymentMethodCash.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get paymentMethodCash;
+
+  /// No description provided for @cancelOrderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel the order'**
+  String get cancelOrderTitle;
+
+  /// No description provided for @cancelDriverAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'A driver has already been assigned to your order. Cancel anyway?'**
+  String get cancelDriverAssigned;
+
+  /// No description provided for @cancelReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason for cancelling:'**
+  String get cancelReasonLabel;
+
+  /// No description provided for @cancelReasonWrongOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordering mistake'**
+  String get cancelReasonWrongOrder;
+
+  /// No description provided for @cancelReasonTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Taking too long'**
+  String get cancelReasonTooLong;
+
+  /// No description provided for @cancelReasonChangedMind.
+  ///
+  /// In en, this message translates to:
+  /// **'I changed my mind'**
+  String get cancelReasonChangedMind;
+
+  /// No description provided for @cancelReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get cancelReasonOther;
+
+  /// No description provided for @backAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get backAction;
+
+  /// No description provided for @confirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get confirmAction;
+
+  /// No description provided for @orderCancelledOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Order cancelled.'**
+  String get orderCancelledOk;
+
+  /// No description provided for @cancelTooLatePreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Too late to cancel — the order is already being prepared.'**
+  String get cancelTooLatePreparing;
+
+  /// No description provided for @cancelTooLateOnTheWay.
+  ///
+  /// In en, this message translates to:
+  /// **'The order is already on its way. Contact support to cancel.'**
+  String get cancelTooLateOnTheWay;
+
+  /// No description provided for @placeOrderWithTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Place order — {total}'**
+  String placeOrderWithTotal(String total);
+
+  /// No description provided for @venueClosedNow.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop is currently closed and cannot take orders.'**
+  String get venueClosedNow;
+
+  /// No description provided for @paymentFailedOrderCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment failed. Order cancelled.'**
+  String get paymentFailedOrderCancelled;
+
+  /// No description provided for @loyaltyFreeDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty — free delivery'**
+  String get loyaltyFreeDelivery;
+
+  /// No description provided for @loyaltyHalfDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty — 50% off delivery'**
+  String get loyaltyHalfDelivery;
+
+  /// No description provided for @genericErrorWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {message}'**
+  String genericErrorWith(String message);
 
   /// No description provided for @promoOnEligible.
   ///
