@@ -12,12 +12,61 @@ enum OrderStatus {
   cancelled,
 }
 
+/// Ce que la commande livre.
+///
+/// Les sept premières valeurs sont les CATÉGORIES DE COMMERCE, avec les mêmes
+/// identifiants que `vendors.category` et `vendor_categories.id` : une seule
+/// liste à tenir pour toute la plateforme.
+///
+/// `supermarket` et `billPayment` ne sont plus jamais écrites. Elles restent
+/// pour que les commandes enregistrées avant la migration
+/// 20260930090000 continuent de se lire — les supprimer les ferait toutes
+/// retomber sur `food` au parsing.
 enum OrderType {
   food,
-  supermarket,
+  grocery,
+  bakery,
+  flowers,
+  pets,
+  gifts,
+  electronics,
   courier,
-  billPayment,
   facture,
+  supermarket,
+  billPayment,
+}
+
+/// Le `order_type` a enregistrer pour une commande passee chez un commerce.
+///
+/// C'est la categorie de la boutique, et rien d'autre. Le checkout deduisait
+/// auparavant « epicerie ou food », si bien qu'une commande de fleurs, de
+/// cadeaux ou d'electronique s'enregistrait comme une commande de restaurant
+/// -- 18 commandes sur 124 au moment de la correction. Personne ne s'en
+/// plaignait parce que le seul ecran qui comptait remontait deja a la
+/// categorie du commerce ; mais la colonne mentait, et tout rapport ecrit en
+/// partant d'elle serait ne faux.
+///
+/// Replie sur `food` quand la categorie est inconnue de cette version : c'est
+/// la valeur historique, et elle reste lisible par tous les lecteurs.
+OrderType orderTypeForCategory(String? category) {
+  switch (category) {
+    case 'food':
+      return OrderType.food;
+    case 'grocery':
+      return OrderType.grocery;
+    case 'bakery':
+      return OrderType.bakery;
+    case 'flowers':
+      return OrderType.flowers;
+    case 'pets':
+      return OrderType.pets;
+    case 'gifts':
+      return OrderType.gifts;
+    case 'electronics':
+      return OrderType.electronics;
+    default:
+      return OrderType.food;
+  }
 }
 
 class Order {

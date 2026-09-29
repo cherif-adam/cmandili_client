@@ -544,8 +544,19 @@ class _OrderCard extends ConsumerWidget {
     switch (order.type) {
       case OrderType.food:
         return Icons.restaurant;
+      case OrderType.grocery:
       case OrderType.supermarket:
         return Icons.shopping_cart;
+      case OrderType.bakery:
+        return Icons.bakery_dining_rounded;
+      case OrderType.flowers:
+        return Icons.local_florist_rounded;
+      case OrderType.pets:
+        return Icons.pets_rounded;
+      case OrderType.gifts:
+        return Icons.card_giftcard_rounded;
+      case OrderType.electronics:
+        return Icons.devices_other_rounded;
       case OrderType.courier:
         return Icons.local_shipping;
       case OrderType.billPayment:
@@ -559,8 +570,19 @@ class _OrderCard extends ConsumerWidget {
     switch (order.type) {
       case OrderType.food:
         return AppColors.primary;
+      case OrderType.grocery:
       case OrderType.supermarket:
         return Colors.green;
+      case OrderType.bakery:
+        return const Color(0xFFD97706);
+      case OrderType.flowers:
+        return const Color(0xFFEC4899);
+      case OrderType.pets:
+        return const Color(0xFF8B5CF6);
+      case OrderType.gifts:
+        return const Color(0xFFF59E0B);
+      case OrderType.electronics:
+        return const Color(0xFF3B82F6);
       case OrderType.courier:
         return Colors.indigo;
       case OrderType.billPayment:
@@ -570,18 +592,52 @@ class _OrderCard extends ConsumerWidget {
     }
   }
 
+  /// Pour une commande de commerce, le NOM de la boutique dit mieux de quoi il
+  /// s'agit que sa categorie : « Digital House » plutot que « Electronique ».
+  /// La categorie ne sert que de repli quand le nom n'a pas ete joint.
+  ///
+  /// Les cas sont enumeres un par un plutot que regroupes sous `default` : sans
+  /// cela le compilateur cesserait de signaler une valeur oubliee, et c'est
+  /// exactement lui qui a rattrape l'ajout des sept categories.
   String _getTypeLabel() {
     switch (order.type) {
       case OrderType.food:
-        return order.restaurantName.isNotEmpty ? order.restaurantName : 'Food Order';
+      case OrderType.grocery:
       case OrderType.supermarket:
-        return 'Supermarket Order';
+      case OrderType.bakery:
+      case OrderType.flowers:
+      case OrderType.pets:
+      case OrderType.gifts:
+      case OrderType.electronics:
+        return order.restaurantName.isNotEmpty
+            ? order.restaurantName
+            : _shopCategoryLabel();
       case OrderType.courier:
         return 'Courier Delivery';
       case OrderType.billPayment:
         return 'Bill Payment';
       case OrderType.facture:
         return 'Paiement de facture';
+    }
+  }
+
+  String _shopCategoryLabel() {
+    switch (order.type) {
+      case OrderType.grocery:
+      case OrderType.supermarket:
+        return 'Supermarche';
+      case OrderType.bakery:
+        return 'Patisserie';
+      case OrderType.flowers:
+        return 'Fleurs';
+      case OrderType.pets:
+        return 'Animalerie';
+      case OrderType.gifts:
+        return 'Cadeaux';
+      case OrderType.electronics:
+        return 'Electronique';
+      default:
+        return 'Restaurant';
     }
   }
 }

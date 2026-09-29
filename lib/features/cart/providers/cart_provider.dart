@@ -120,15 +120,27 @@ final cartItemCountProvider = Provider<int>((ref) {
 // Supermarket carts: flat rate, so the preview is the EXACT figure checkout
 // will charge. Previewing the base fee here instead would advertise 3.500 and
 // then bill 5.000 at checkout.
+/// Ce panier est-il facturé au FORFAIT plutôt qu'à la distance ?
+///
+/// Le supermarché l'est : le livreur fait les courses en rayon, le coût est
+/// par course et non par kilomètre. Les autres commerces ne le sont pas --
+/// prendre un bouquet ou un disque dur, c'est le même geste qu'un plat.
+///
+/// UNE seule définition, partagée par l'aperçu du panier et par le calcul au
+/// moment de la commande. Les deux la réécrivaient chacun de leur côté --
+/// l'un sur le type de ligne, l'autre sur `order_type` -- et il a suffi que
+/// `order_type` passe de 'supermarket' à 'grocery' pour que le client voie
+/// 5 DT dans son panier et paie 3,500 DT de frais à la commande.
+bool cartIsFlatRateDelivery(List<CartItem> cart) =>
+    cart.isNotEmpty && cart.first.type == CartItemType.grocery;
+
 final cartDeliveryFeeProvider = Provider<double>((ref) {
   final cart = ref.watch(cartProvider);
   if (cart.isEmpty) return 0.0;
-  // Mirrors how checkout classifies the order (a grocery line carries a
-  // supermarketId); a cart never mixes verticals.
-  final isSupermarket = cart.first.type == CartItemType.grocery;
+  final flat = cartIsFlatRateDelivery(cart);
   return calculateDeliveryFee(
-    partnerFlatFee: isSupermarket ? kFlatDeliveryFee : kDeliveryBaseFee,
-    isFlatRate: isSupermarket,
+    partnerFlatFee: flat ? kFlatDeliveryFee : kDeliveryBaseFee,
+    isFlatRate: flat,
   );
 });
 

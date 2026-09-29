@@ -223,11 +223,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       // orders up by this id, and the driver resolves the pickup pin from it.
       final restaurantId = firstItem?.foodItem?.restaurantId ??
           firstItem?.vendorItem?.vendorId;
-      final orderType =
-          supermarketId != null ? OrderType.supermarket : OrderType.food;
 
       double? pickupLat;
       double? pickupLng;
+      String? shopCategory;
 
       // Fetch pickup coordinates only — delivery_fee is no longer taken from
       // the partner row; the platform fee algorithm uses a fixed base instead.
@@ -242,12 +241,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         if (vendorId != null) {
           final row = await Supabase.instance.client
               .from('vendors')
-              .select('latitude, longitude')
+              .select('latitude, longitude, category')
               .eq('id', vendorId)
               .maybeSingle();
           if (row != null) {
             pickupLat = (row['latitude'] as num?)?.toDouble();
             pickupLng = (row['longitude'] as num?)?.toDouble();
+            // Lue dans la requête qui cherchait déjà les coordonnées : la
+            // catégorie ne vaut pas un aller-retour réseau de plus.
+            shopCategory = row['category']?.toString();
           }
         }
       } catch (_) {}
@@ -258,14 +260,26 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         destLat: _selectedAddress!.latitude,
         destLng: _selectedAddress!.longitude,
       );
-      // Food: base 3.500 TND + 0.500 TND/km beyond 3 km.
-      // Supermarket: flat 5 TND — the driver shops in store, so the cost is
-      // per-trip, not per-kilometre.
-      final isSupermarket = orderType == OrderType.supermarket;
+      // `order_type` porte désormais la CATÉGORIE du commerce, pas une
+      // déduction à partir du type de ligne. Une commande de fleurs, de
+      // cadeaux ou d'électronique s'enregistrait sinon comme une commande de
+      // restaurant. Repli sur l'ancienne déduction si la boutique n'a pas pu
+      // être lue : une ligne d'épicerie ne vient que d'un supermarché.
+      final orderType = shopCategory != null
+          ? orderTypeForCategory(shopCategory)
+          : (supermarketId != null ? OrderType.grocery : OrderType.food);
+
+      // Commerce : base 3.500 DT + 0.500 DT/km au-delà de 3 km.
+      // Supermarché : forfait 5 DT -- le livreur fait les courses en rayon,
+      // le coût est par course et non par kilomètre.
+      //
+      // Le même test que l'aperçu du panier, délibérément : c'est ce qui
+      // garantit que le client paie les frais qu'on lui a montrés.
+      final isFlatRate = cartIsFlatRateDelivery(cartItems);
       final finalDeliveryFee = calculateDeliveryFee(
         distanceKm: distanceKm,
-        partnerFlatFee: isSupermarket ? kFlatDeliveryFee : kDeliveryBaseFee,
-        isFlatRate: isSupermarket,
+        partnerFlatFee: isFlatRate ? kFlatDeliveryFee : kDeliveryBaseFee,
+        isFlatRate: isFlatRate,
       );
 
       // Best-effort ETA — reuses the same pickup/destination pair as the
