@@ -68,6 +68,27 @@ function copyFor(role: 'customer' | 'partner' | 'driver', status: string) {
   return src[status] ?? { title: 'Order Update', body: `Status: ${status}` };
 }
 
+// ── Per-app notification channels ───────────────────────────────────────────
+// Each app creates its own channels WITH sound, and Android never lets an app
+// change a channel's sound once created. Everything used to go out on
+// 'cmandili_orders' -- a channel the client app had created SILENT, so every
+// customer push arriving with the app closed made no sound. These ids must
+// match what each app creates:
+//   client : cmandili_orders_v3 / cmandili_orders_urgent_v3 (push_service.dart)
+//   driver, partner : cmandili_orders_v2 (Application.kt, native)
+const CHANNEL_CLIENT = 'cmandili_orders_v3';
+const CHANNEL_CLIENT_URGENT = 'cmandili_orders_urgent_v3';
+const CHANNEL_STAFF = 'cmandili_orders_v2';
+
+/** Driver on the way / picked up: the client's loud delivery-alert channel. */
+function customerChannel(status: string) {
+  return status === 'pickedUp' || status === 'onTheWay'
+    ? CHANNEL_CLIENT_URGENT
+    : CHANNEL_CLIENT;
+}
+
+type App = 'client' | 'driver' | 'partner';
+
 // Firebase OAuth — sign JWT with RSA key from service account JSON.
 async function getAccessToken(serviceAccountJson: string): Promise<string> {
   const sa = JSON.parse(serviceAccountJson);
@@ -127,7 +148,7 @@ async function sendFcm(
   title: string,
   body: string,
   data: Record<string, string>,
-  channelId = 'cmandili_orders',
+  channelId = CHANNEL_STAFF,
 ) {
   const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
   await fetch(url, {
@@ -212,12 +233,72 @@ async function sendDataOnlyFcm(
   }
 }
 
-async function tokensForUser(supabase: SupabaseClient, userId: string): Promise<string[]> {
-  const { data } = await supabase
+/**
+ * Tokens of [userId] in the given app(s) only, so a customer push never lands
+ * in the partner app on the same phone (and vice versa). Rows registered
+ * before tokens were tagged by app ('unknown') are included so nobody goes
+ * silent during the switch. Falls back to every token of the user if the
+ * device_tokens.app column does not exist yet (migration
+ * 20260929100000_device_tokens_per_app.sql not run).
+ */
+async function tokensForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  apps: App[],
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('device_tokens')
+    .select('token')
+    .eq('user_id', userId)
+    .in('app', [...apps, 'unknown']);
+  if (!error) return (data ?? []).map((r: { token: string }) => r.token);
+
+  const { data: all } = await supabase
     .from('device_tokens')
     .select('token')
     .eq('user_id', userId);
-  return (data ?? []).map((r: { token: string }) => r.token);
+  return (all ?? []).map((r: { token: string }) => r.token);
+}
+
+/**
+ * The partner account that owns the order's shop. Matched on the shop id
+ * alone: filtering on partner_type = 'restaurant' / 'supermarket' (as this
+ * used to) meant a florist, pet shop, bakery, gift shop or electronics
+ * partner was never found -- so they never got a new-order alarm at all.
+ */
+async function partnerUserFor(
+  supabase: SupabaseClient,
+  order: { restaurant_id?: string | null; supermarket_id?: string | null },
+): Promise<string | null> {
+  const shopId = order.restaurant_id ?? order.supermarket_id;
+  if (!shopId) return null;
+  const { data } = await supabase
+    .from('partners')
+    .select('user_id')
+    .eq('entity_id', shopId)
+    .limit(1)
+    .maybeSingle();
+  return (data?.user_id as string | undefined) ?? null;
+}
+
+/**
+ * The order's shop row from `vendors`, the one table every category lives
+ * in. The `restaurants` / `supermarkets` views only cover those two
+ * categories, so any other shop came back empty: no pickup coordinates (no
+ * driver was ever alerted) and an unknown open/closed state.
+ */
+async function vendorFor(
+  supabase: SupabaseClient,
+  order: { restaurant_id?: string | null; supermarket_id?: string | null },
+): Promise<{ is_open: boolean | null; latitude: number | null; longitude: number | null } | null> {
+  const shopId = order.restaurant_id ?? order.supermarket_id;
+  if (!shopId) return null;
+  const { data } = await supabase
+    .from('vendors')
+    .select('is_open, latitude, longitude')
+    .eq('id', shopId)
+    .maybeSingle();
+  return data ?? null;
 }
 
 /** Fan-out a standard (system-rendered) notification to multiple users. */
@@ -229,9 +310,10 @@ async function pushToUsers(
   title: string,
   body: string,
   data: Record<string, string>,
-  channelId = 'cmandili_orders',
+  channelId: string,
+  apps: App[],
 ): Promise<number> {
-  const all = await Promise.all(userIds.map(id => tokensForUser(supabase, id)));
+  const all = await Promise.all(userIds.map(id => tokensForUser(supabase, id, apps)));
   const tokens = Array.from(new Set(all.flat()));
   if (tokens.length === 0) return 0;
   await Promise.allSettled(
@@ -251,8 +333,9 @@ async function pushDataOnlyToUsers(
   projectId: string,
   userIds: string[],
   data: Record<string, string>,
+  apps: App[],
 ): Promise<number> {
-  const all = await Promise.all(userIds.map(id => tokensForUser(supabase, id)));
+  const all = await Promise.all(userIds.map(id => tokensForUser(supabase, id, apps)));
   const tokens = Array.from(new Set(all.flat()));
   if (tokens.length === 0) return 0;
   await Promise.allSettled(
@@ -306,6 +389,8 @@ serve(async (req: Request) => {
       '⚠️ Solde bas',
       `Votre solde est bas (${Number(balance).toFixed(3)} DT). Rechargez pour continuer à recevoir des commandes.`,
       { event: 'low_balance_warning', balance: String(balance) },
+      CHANNEL_STAFF,
+      ['driver', 'partner'], // prepaid wallets exist for both
     );
     return new Response(JSON.stringify({ mode: 'low_balance_warning', sent }), {
       headers: { 'Content-Type': 'application/json' },
@@ -358,6 +443,7 @@ serve(async (req: Request) => {
         title: '🔔 Nouvelle livraison',
         body: 'Acceptez dans les 15 secondes.',
       },
+      ['driver'],
     );
     return new Response(JSON.stringify({ mode: 'offer', sent }), {
       headers: { 'Content-Type': 'application/json' },
@@ -377,24 +463,7 @@ serve(async (req: Request) => {
 
     if (!noDriverOrder) return new Response('Order not found', { status: 404 });
 
-    let noDriverPartnerUserId: string | null = null;
-    if (noDriverOrder.restaurant_id) {
-      const { data: p } = await supabase
-        .from('partners')
-        .select('user_id')
-        .eq('partner_type', 'restaurant')
-        .eq('entity_id', noDriverOrder.restaurant_id)
-        .maybeSingle();
-      noDriverPartnerUserId = p?.user_id ?? null;
-    } else if (noDriverOrder.supermarket_id) {
-      const { data: p } = await supabase
-        .from('partners')
-        .select('user_id')
-        .eq('partner_type', 'supermarket')
-        .eq('entity_id', noDriverOrder.supermarket_id)
-        .maybeSingle();
-      noDriverPartnerUserId = p?.user_id ?? null;
-    }
+    const noDriverPartnerUserId = await partnerUserFor(supabase, noDriverOrder);
 
     if (!noDriverPartnerUserId) {
       return new Response('No partner found for order', { status: 200 });
@@ -407,7 +476,8 @@ serve(async (req: Request) => {
       '🚫 Aucun livreur disponible',
       `Aucun livreur n'a accepté la commande #${shortId}. Voulez-vous la livrer vous-même ?`,
       { event: 'no_drivers', order_id, status: 'no_drivers' },
-      'cmandili_orders',
+      CHANNEL_STAFF,
+      ['partner'],
     );
 
     return new Response(JSON.stringify({ mode: 'no_drivers', sent }), {
@@ -429,22 +499,10 @@ serve(async (req: Request) => {
     let lat: number | null = null;
     let lng: number | null = null;
 
-    if (order.restaurant_id) {
-      const { data: r } = await supabase
-        .from('restaurants')
-        .select('latitude, longitude')
-        .eq('id', order.restaurant_id)
-        .maybeSingle();
-      lat = r?.latitude ?? null;
-      lng = r?.longitude ?? null;
-    } else if (order.supermarket_id) {
-      const { data: s } = await supabase
-        .from('supermarkets')
-        .select('latitude, longitude')
-        .eq('id', order.supermarket_id)
-        .maybeSingle();
-      lat = s?.latitude ?? null;
-      lng = s?.longitude ?? null;
+    if (order.restaurant_id || order.supermarket_id) {
+      const v = await vendorFor(supabase, order);
+      lat = v?.latitude ?? null;
+      lng = v?.longitude ?? null;
     } else if (order.pickup_address) {
       // Courier orders: pickup_address is JSONB with {lat, lng}
       const p = order.pickup_address as { lat?: number; lng?: number };
@@ -502,6 +560,7 @@ serve(async (req: Request) => {
             title: '🔔 Nouvelle livraison',
             body: 'Une nouvelle commande est prête. Vous avez 15 secondes pour accepter.',
           },
+          ['driver'],
         );
         
         // Wait 15 seconds before offering to the next driver
@@ -532,41 +591,13 @@ serve(async (req: Request) => {
   // against edge-cases where an order slips through while the venue is closed
   // (e.g. the partner closed it mid-operation).
   let venueIsOpen = true; // courier orders (no restaurant/supermarket) are always OK
-  if (order.restaurant_id) {
-    const { data: venue } = await supabase
-      .from('restaurants')
-      .select('is_open')
-      .eq('id', order.restaurant_id)
-      .maybeSingle();
-    venueIsOpen = venue?.is_open ?? true;
-  } else if (order.supermarket_id) {
-    const { data: venue } = await supabase
-      .from('supermarkets')
-      .select('is_open')
-      .eq('id', order.supermarket_id)
-      .maybeSingle();
-    venueIsOpen = venue?.is_open ?? true;
+  if (order.restaurant_id || order.supermarket_id) {
+    const v = await vendorFor(supabase, order);
+    venueIsOpen = v?.is_open ?? true;
   }
 
   // ── Resolve partner user_id ────────────────────────────────────────────────
-  let partnerUserId: string | null = null;
-  if (order.restaurant_id) {
-    const { data: p } = await supabase
-      .from('partners')
-      .select('user_id')
-      .eq('partner_type', 'restaurant')
-      .eq('entity_id', order.restaurant_id)
-      .maybeSingle();
-    partnerUserId = p?.user_id ?? null;
-  } else if (order.supermarket_id) {
-    const { data: p } = await supabase
-      .from('partners')
-      .select('user_id')
-      .eq('partner_type', 'supermarket')
-      .eq('entity_id', order.supermarket_id)
-      .maybeSingle();
-    partnerUserId = p?.user_id ?? null;
-  }
+  const partnerUserId = await partnerUserFor(supabase, order);
 
   // ── Resolve existing assigned driver user_id ───────────────────────────────
   let driverUserId: string | null = null;
@@ -586,6 +617,8 @@ serve(async (req: Request) => {
     const c = copyFor('customer', status);
     results.customer = await pushToUsers(
       supabase, accessToken, projectId, [order.user_id], c.title, c.body, data,
+      customerChannel(status),
+      ['client'],
     );
   }
 
@@ -607,6 +640,7 @@ serve(async (req: Request) => {
           title: c.title,
           body:  c.body,
         },
+        ['partner'],
       );
     } else if (status === 'pending' && !venueIsOpen) {
       console.log(`Partner alarm skipped — venue is closed (order ${order_id})`);
@@ -617,7 +651,8 @@ serve(async (req: Request) => {
       if (c.title) {
         results.partner = await pushToUsers(
           supabase, accessToken, projectId, [partnerUserId], c.title, c.body, data,
-          'cmandili_orders',
+          CHANNEL_STAFF,
+          ['partner'],
         );
       }
     }
@@ -660,6 +695,7 @@ serve(async (req: Request) => {
           title:       '🔔 Nouvelle livraison',
           body:        'Acceptez dans les 30 secondes.',
         },
+        ['driver'],
       );
 
       results.driver_dispatched = driver_id;
@@ -678,6 +714,8 @@ serve(async (req: Request) => {
     if (c.title) {
       results.driver = await pushToUsers(
         supabase, accessToken, projectId, [driverUserId], c.title, c.body, data,
+        CHANNEL_STAFF,
+        ['driver'],
       );
     }
   }
