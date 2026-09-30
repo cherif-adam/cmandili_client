@@ -88,6 +88,11 @@ class AuthRepository {
     return out.stream;
   }
 
+  /// Whether a usable session exists right now. After signUp this is false
+  /// when the project requires email confirmation: the account is created but
+  /// the user cannot enter until they click the link in the email.
+  bool get hasSession => _supabase.auth.currentSession != null;
+
   // Sign in with email and password
   Future<User?> signInWithEmail(String email, String password) async {
     final response = await _supabase.auth.signInWithPassword(
@@ -205,9 +210,14 @@ class AuthRepository {
     return List.generate(length, (_) => chars[rand.nextInt(chars.length)]).join();
   }
 
-  // Sign out
+  // Sign out. The Supabase session is what the app routes on, so it must end
+  // even if the Google sign-out fails (e.g. the user never used Google).
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    try {
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('signOut: Google sign-out failed ($e), continuing');
+    }
     await _supabase.auth.signOut();
   }
 

@@ -184,6 +184,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           _passwordController.text,
           _nameController.text.trim(),
         );
+        // Account created but no session: the project requires the user to
+        // confirm their email first. Say so, instead of leaving the form
+        // sitting there as if nothing happened.
+        if (!authRepo.hasSession) {
+          if (mounted) {
+            _tabController.animateTo(0); // ready to sign in once confirmed
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Compte créé ! Ouvrez l'email de confirmation que nous "
+                  "venons d'envoyer, puis connectez-vous.",
+                ),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 6),
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      // Signed in. main.dart swaps its root to Home by itself; if this login
+      // screen was pushed on top of it (as the old logout did), close it so
+      // Home is actually visible instead of hidden underneath.
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {
@@ -206,6 +233,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     setState(() => _isLoading = true);
     try {
       await signInMethod();
+      // Same as email sign-in: never leave a pushed login screen over Home.
+      if (mounted &&
+          ref.read(authRepositoryProvider).hasSession &&
+          Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

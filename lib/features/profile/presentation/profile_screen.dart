@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_repository.dart' show User;
-import '../../auth/presentation/auth_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/profile_repository.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
@@ -30,6 +29,25 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  /// Really signs out, then lets main.dart show the login screen.
+  ///
+  /// This used to push a fresh AuthScreen with pushAndRemoveUntil(... false)
+  /// and never call signOut. The session stayed alive, and the route that
+  /// main.dart swaps between login and Home (MaterialApp.home) was removed
+  /// from the stack. So after the next sign-in the app switched to Home
+  /// UNDERNEATH the pushed login screen, which stayed on top: the user was
+  /// signed in but stuck on the login form until they restarted the app.
+  Future<void> _logout() async {
+    // Back to the root route first (drop anything pushed over Home), so the
+    // root is what changes to the login screen when the session ends.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    try {
+      await ref.read(authRepositoryProvider).signOut();
+    } catch (e) {
+      debugPrint('Logout failed: $e');
+    }
+  }
+
   final _profileRepo = ProfileRepository();
   final _imagePicker = ImagePicker();
   bool _billRemindersEnabled = true;
@@ -284,10 +302,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   textColor: AppColors.error,
                   iconColor: AppColors.error,
                   showArrow: false,
-                  onTap: () => Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const AuthScreen()),
-                    (route) => false,
-                  ),
+                  onTap: _logout,
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),
