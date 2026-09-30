@@ -100,6 +100,120 @@ abstract class AppLocalizations {
     Locale('fr')
   ];
 
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password?'**
+  String get forgotPassword;
+
+  /// No description provided for @changePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change password'**
+  String get changePassword;
+
+  /// No description provided for @pwdIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your current password, then choose a new one. You will stay signed in on this device.'**
+  String get pwdIntro;
+
+  /// No description provided for @pwdCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password'**
+  String get pwdCurrent;
+
+  /// No description provided for @pwdNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get pwdNew;
+
+  /// No description provided for @pwdConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get pwdConfirm;
+
+  /// No description provided for @pwdErrorRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get pwdErrorRequired;
+
+  /// No description provided for @pwdErrorWrongCurrent.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password is wrong'**
+  String get pwdErrorWrongCurrent;
+
+  /// No description provided for @pwdErrorTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'At least {min} characters'**
+  String pwdErrorTooShort(int min);
+
+  /// No description provided for @pwdErrorMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two passwords do not match'**
+  String get pwdErrorMismatch;
+
+  /// No description provided for @pwdErrorSameAsOld.
+  ///
+  /// In en, this message translates to:
+  /// **'The new password is the same as the old one'**
+  String get pwdErrorSameAsOld;
+
+  /// No description provided for @pwdErrorReauthNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'For security, confirm your identity again before changing your password'**
+  String get pwdErrorReauthNeeded;
+
+  /// No description provided for @pwdErrorNoSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session has expired. Sign in again.'**
+  String get pwdErrorNoSession;
+
+  /// No description provided for @pwdErrorFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not change the password. Try again.'**
+  String get pwdErrorFailed;
+
+  /// No description provided for @pwdChangedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed'**
+  String get pwdChangedTitle;
+
+  /// No description provided for @pwdChangedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices are still signed in with the old session. Sign them out?'**
+  String get pwdChangedBody;
+
+  /// No description provided for @pwdKeepOtherDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep them'**
+  String get pwdKeepOtherDevices;
+
+  /// No description provided for @pwdSignOutOthers.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out other devices'**
+  String get pwdSignOutOthers;
+
+  /// No description provided for @pwdOtherDevicesSignedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Other devices have been signed out'**
+  String get pwdOtherDevicesSignedOut;
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:

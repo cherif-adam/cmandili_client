@@ -9,6 +9,68 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
+  String get forgotPassword => 'نسيت كلمة المرور؟';
+
+  @override
+  String get changePassword => 'تغيير كلمة المرور';
+
+  @override
+  String get pwdIntro =>
+      'أدخل كلمة المرور الحالية، ثم اختر واحدة جديدة. ستبقى متصلاً على هذا الجهاز.';
+
+  @override
+  String get pwdCurrent => 'كلمة المرور الحالية';
+
+  @override
+  String get pwdNew => 'كلمة المرور الجديدة';
+
+  @override
+  String get pwdConfirm => 'تأكيد كلمة المرور الجديدة';
+
+  @override
+  String get pwdErrorRequired => 'حقل مطلوب';
+
+  @override
+  String get pwdErrorWrongCurrent => 'كلمة المرور الحالية غير صحيحة';
+
+  @override
+  String pwdErrorTooShort(int min) {
+    return '$min أحرف على الأقل';
+  }
+
+  @override
+  String get pwdErrorMismatch => 'كلمتا المرور غير متطابقتين';
+
+  @override
+  String get pwdErrorSameAsOld => 'كلمة المرور الجديدة مطابقة للقديمة';
+
+  @override
+  String get pwdErrorReauthNeeded =>
+      'للأمان، أكّد هويتك مجدداً قبل تغيير كلمة المرور';
+
+  @override
+  String get pwdErrorNoSession => 'انتهت الجلسة. سجّل الدخول مجدداً.';
+
+  @override
+  String get pwdErrorFailed => 'تعذّر تغيير كلمة المرور. حاول مجدداً.';
+
+  @override
+  String get pwdChangedTitle => 'تم تغيير كلمة المرور';
+
+  @override
+  String get pwdChangedBody =>
+      'لا تزال أجهزة أخرى متصلة بالجلسة القديمة. هل تريد إنهاء جلساتها؟';
+
+  @override
+  String get pwdKeepOtherDevices => 'احتفظ بها';
+
+  @override
+  String get pwdSignOutOthers => 'إنهاء جلسات الأجهزة الأخرى';
+
+  @override
+  String get pwdOtherDevicesSignedOut => 'تم إنهاء جلسات الأجهزة الأخرى';
+
+  @override
   String get appTitle => 'Amana';
 
   @override

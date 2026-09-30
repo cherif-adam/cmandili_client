@@ -9,6 +9,68 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get forgotPassword => 'Forgot your password?';
+
+  @override
+  String get changePassword => 'Change password';
+
+  @override
+  String get pwdIntro =>
+      'Enter your current password, then choose a new one. You will stay signed in on this device.';
+
+  @override
+  String get pwdCurrent => 'Current password';
+
+  @override
+  String get pwdNew => 'New password';
+
+  @override
+  String get pwdConfirm => 'Confirm new password';
+
+  @override
+  String get pwdErrorRequired => 'Required';
+
+  @override
+  String get pwdErrorWrongCurrent => 'Current password is wrong';
+
+  @override
+  String pwdErrorTooShort(int min) {
+    return 'At least $min characters';
+  }
+
+  @override
+  String get pwdErrorMismatch => 'The two passwords do not match';
+
+  @override
+  String get pwdErrorSameAsOld => 'The new password is the same as the old one';
+
+  @override
+  String get pwdErrorReauthNeeded =>
+      'For security, confirm your identity again before changing your password';
+
+  @override
+  String get pwdErrorNoSession => 'Your session has expired. Sign in again.';
+
+  @override
+  String get pwdErrorFailed => 'Could not change the password. Try again.';
+
+  @override
+  String get pwdChangedTitle => 'Password changed';
+
+  @override
+  String get pwdChangedBody =>
+      'Other devices are still signed in with the old session. Sign them out?';
+
+  @override
+  String get pwdKeepOtherDevices => 'Keep them';
+
+  @override
+  String get pwdSignOutOthers => 'Sign out other devices';
+
+  @override
+  String get pwdOtherDevicesSignedOut => 'Other devices have been signed out';
+
+  @override
   String get appTitle => 'Amana';
 
   @override

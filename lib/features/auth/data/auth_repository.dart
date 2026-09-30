@@ -207,4 +207,85 @@ class AuthRepository {
       supabase.UserAttributes(password: newPassword),
     );
   }
+
+  // ── Changement de mot de passe, utilisateur connecte ──────────────────────
+
+  /// Change le mot de passe d'un utilisateur DEJA connecte.
+  ///
+  /// Renvoie `null` en cas de succes, sinon un CODE d'erreur que l'ecran
+  /// traduit : le depot ne connait pas la langue du client, et les messages
+  /// que renvoie Supabase sont en anglais.
+  ///
+  ///   wrong_current   le mot de passe actuel est faux
+  ///   same_as_old     le nouveau est identique a l'ancien
+  ///   too_short       refuse par le serveur (longueur, politique)
+  ///   reauth_needed   « Secure password change » est actif cote Supabase :
+  ///                   il faut un code de reauthentification recent
+  ///   no_session      plus de session, ou compte sans email
+  ///   failed          tout le reste
+  ///
+  /// Le mot de passe actuel est verifie en se reconnectant avec lui. C'est la
+  /// seule verification que Supabase offre : il n'existe pas d'API « ce mot de
+  /// passe est-il le bon ». signInWithPassword rafraichit la session en place,
+  /// l'utilisateur n'est donc pas deconnecte de cet appareil -- mais il FAUT
+  /// verifier avant, sinon un telephone laisse deverrouille suffirait a
+  /// changer le mot de passe du compte.
+  Future<String?> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final email = _supabase.auth.currentUser?.email;
+    if (email == null || email.isEmpty) return 'no_session';
+
+    if (currentPassword == newPassword) return 'same_as_old';
+
+    try {
+      await _supabase.auth.signInWithPassword(
+        email: email,
+        password: currentPassword,
+      );
+    } on supabase.AuthException catch (e) {
+      debugPrint('changePassword: reauth refusee (${e.message})');
+      return 'wrong_current';
+    } catch (e) {
+      debugPrint('changePassword: reauth impossible ($e)');
+      return 'failed';
+    }
+
+    try {
+      await _supabase.auth.updateUser(
+        supabase.UserAttributes(password: newPassword),
+      );
+      return null;
+    } on supabase.AuthException catch (e) {
+      final m = e.message.toLowerCase();
+      // Supabase ne renvoie pas de code stable ici : on lit le message, et on
+      // retombe sur 'failed' plutot que d'afficher de l'anglais au client.
+      if (m.contains('reauthentication')) return 'reauth_needed';
+      if (m.contains('should be different') ||
+          m.contains('same as the old')) {
+        return 'same_as_old';
+      }
+      if (m.contains('at least') || m.contains('password')) return 'too_short';
+      debugPrint('changePassword: refus serveur (${e.message})');
+      return 'failed';
+    } catch (e) {
+      debugPrint('changePassword: echec ($e)');
+      return 'failed';
+    }
+  }
+
+  /// Deconnecte les AUTRES appareils, en gardant celui-ci connecte.
+  ///
+  /// Propose apres un changement de mot de passe : si quelqu'un d'autre avait
+  /// une session ouverte, la changer ne la ferme pas toute seule.
+  Future<bool> signOutOtherDevices() async {
+    try {
+      await _supabase.auth.signOut(scope: supabase.SignOutScope.others);
+      return true;
+    } catch (e) {
+      debugPrint('signOutOtherDevices: $e');
+      return false;
+    }
+  }
 }

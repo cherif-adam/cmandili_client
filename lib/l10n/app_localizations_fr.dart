@@ -9,6 +9,71 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get forgotPassword => 'Mot de passe oublié ?';
+
+  @override
+  String get changePassword => 'Changer le mot de passe';
+
+  @override
+  String get pwdIntro =>
+      'Saisissez votre mot de passe actuel, puis choisissez-en un nouveau. Vous resterez connecté sur cet appareil.';
+
+  @override
+  String get pwdCurrent => 'Mot de passe actuel';
+
+  @override
+  String get pwdNew => 'Nouveau mot de passe';
+
+  @override
+  String get pwdConfirm => 'Confirmer le nouveau mot de passe';
+
+  @override
+  String get pwdErrorRequired => 'Champ obligatoire';
+
+  @override
+  String get pwdErrorWrongCurrent => 'Mot de passe actuel incorrect';
+
+  @override
+  String pwdErrorTooShort(int min) {
+    return 'Au moins $min caractères';
+  }
+
+  @override
+  String get pwdErrorMismatch => 'Les deux mots de passe ne correspondent pas';
+
+  @override
+  String get pwdErrorSameAsOld =>
+      'Le nouveau mot de passe est identique à l\'ancien';
+
+  @override
+  String get pwdErrorReauthNeeded =>
+      'Par sécurité, confirmez à nouveau votre identité avant de changer votre mot de passe';
+
+  @override
+  String get pwdErrorNoSession => 'Votre session a expiré. Reconnectez-vous.';
+
+  @override
+  String get pwdErrorFailed =>
+      'Impossible de changer le mot de passe. Réessayez.';
+
+  @override
+  String get pwdChangedTitle => 'Mot de passe modifié';
+
+  @override
+  String get pwdChangedBody =>
+      'D\'autres appareils restent connectés avec l\'ancienne session. Voulez-vous les déconnecter ?';
+
+  @override
+  String get pwdKeepOtherDevices => 'Les garder';
+
+  @override
+  String get pwdSignOutOthers => 'Déconnecter les autres appareils';
+
+  @override
+  String get pwdOtherDevicesSignedOut =>
+      'Les autres appareils ont été déconnectés';
+
+  @override
   String get appTitle => 'Amana';
 
   @override

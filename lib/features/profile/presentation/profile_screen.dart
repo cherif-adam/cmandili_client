@@ -19,6 +19,7 @@ import '../../bills/presentation/mes_factures_screen.dart';
 import '../../bills/services/bill_reminder_service.dart';
 import 'saved_addresses_screen.dart';
 import 'payment_methods_screen.dart';
+import '../../auth/presentation/change_password_screen.dart';
 import 'help_support_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -251,6 +252,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ? AppLocalizations.of(context)!.darkMode
                       : AppLocalizations.of(context)!.lightMode,
                   onTap: () => ref.read(themeProvider.notifier).toggleTheme(),
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+                _buildProfileItem(
+                  context,
+                  icon: Icons.lock_outline_rounded,
+                  title: AppLocalizations.of(context)!.changePassword,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const ChangePasswordScreen()),
+                  ),
                   screenWidth: screenWidth,
                   screenHeight: screenHeight,
                 ),
