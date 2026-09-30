@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/debug/build_info.dart';
 import '../providers/auth_provider.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/providers/localization_provider.dart';
@@ -490,8 +491,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                           unselectedLabelColor: AppColors.textSecondary,
                                           labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: screenWidth * 0.04),
                                           tabs: [
-                                            Tab(text: AppLocalizations.of(context)!.signIn),
-                                            Tab(text: AppLocalizations.of(context)!.signUp),
+                                            Tab(key: const Key('auth_tab_signin'), text: AppLocalizations.of(context)!.signIn),
+                                            Tab(key: const Key('auth_tab_signup'), text: AppLocalizations.of(context)!.signUp),
                                           ],
                                           onTap: (_) => setState(() {}),
                                         ),
@@ -505,6 +506,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                           children: [
                                             if (_tabController.index == 1) ...[
                                               _buildTextField(
+                                                fieldKey: const Key('auth_name'),
                                                 controller: _nameController,
                                                 label: AppLocalizations.of(context)!.fullName,
                                                 icon: Icons.person_outline_rounded,
@@ -514,6 +516,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                               SizedBox(height: screenHeight * 0.015),
                                             ],
                                             _buildTextField(
+                                              fieldKey: const Key('auth_email'),
                                               controller: _emailController,
                                               label: AppLocalizations.of(context)!.email,
                                               icon: Icons.email_outlined,
@@ -523,6 +526,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                             ),
                                             SizedBox(height: screenHeight * 0.015),
                                             _buildTextField(
+                                              fieldKey: const Key('auth_password'),
                                               controller: _passwordController,
                                               label: AppLocalizations.of(context)!.password,
                                               icon: Icons.lock_outline_rounded,
@@ -571,6 +575,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                               width: double.infinity,
                                               height: screenHeight * 0.06,
                                               child: ElevatedButton(
+                                                key: const Key('auth_submit'),
                                                 onPressed: _isLoading ? null : _handleEmailAuth,
                                                 style: ElevatedButton.styleFrom(
                                                   backgroundColor: AppColors.primary,
@@ -659,12 +664,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               ),
             ),
           ),
+
+            // Etiquette de build (mode debug uniquement) : sans elle, on ne
+            // sait pas si le telephone execute le correctif ou une vieille
+            // installation.
+            if (BuildInfo.label != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 6,
+                child: IgnorePointer(
+                  child: Text(
+                    BuildInfo.label!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ),
         ],
       ),
     );
   }
 
   Widget _buildTextField({
+    Key? fieldKey,
     required TextEditingController controller,
     required String label,
     required IconData icon,
@@ -676,6 +702,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     TextInputType? keyboardType,
   }) {
     return TextFormField(
+      key: fieldKey,
       controller: controller,
       obscureText: isObscure ?? false,
       keyboardType: keyboardType,

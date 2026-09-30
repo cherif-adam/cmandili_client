@@ -35,7 +35,7 @@ class ProfileRepository {
       if (userId == null) return false;
 
       final updates = <String, dynamic>{
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
       if (fullName != null) updates['full_name'] = fullName;
