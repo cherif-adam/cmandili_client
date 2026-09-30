@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,8 +28,25 @@ String friendlyAuthErrorMessage(Object e) {
   if (raw.contains('password') && raw.contains('6 characters')) {
     return 'Le mot de passe doit contenir au moins 6 caractères';
   }
-  if (raw.contains('socketexception') || raw.contains('network') || raw.contains('connection')) {
+  if (raw.contains('socketexception') ||
+      raw.contains('network') ||
+      raw.contains('failed host lookup') ||
+      raw.contains('connection')) {
     return 'Problème de connexion internet';
+  }
+  // Serveur injoignable ou en panne : 502/503/504 et les délais dépassés.
+  // Sans ces cas, une panne Supabase tombait dans le message generique
+  // « une erreur est survenue », qui laisse croire a une faute de saisie.
+  if (raw.contains('timeout') || raw.contains('timed out')) {
+    return 'Le serveur met trop de temps à répondre. Réessayez.';
+  }
+  if (raw.contains('statuscode: 50') ||
+      raw.contains('502') ||
+      raw.contains('503') ||
+      raw.contains('504') ||
+      raw.contains('service unavailable') ||
+      raw.contains('bad gateway')) {
+    return 'Le service est momentanément indisponible. Réessayez dans un instant.';
   }
   return 'Une erreur est survenue, veuillez réessayer';
 }
@@ -117,8 +135,31 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     super.dispose();
   }
 
+  /// Un message par-dessus l'ecran, toujours visible.
+  ///
+  /// Les erreurs peintes sous un champ passent inapercues quand le clavier
+  /// couvre le bas du formulaire.
+  void _showAuthMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _handleEmailAuth() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Le SEUL chemin muet de tout l'ecran etait ce `return` : pas de message,
+    // pas de roue, rien. `validate()` peint bien une erreur sous le champ
+    // fautif, mais ce champ peut etre hors ecran quand le clavier est ouvert,
+    // et le bouton passe alors pour mort. Un message par-dessus dit au moins
+    // qu'il y a quelque chose a corriger.
+    if (!_formKey.currentState!.validate()) {
+      _showAuthMessage('Vérifiez les champs du formulaire');
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -126,10 +167,22 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       final authRepo = ref.read(authRepositoryProvider);
 
       if (_tabController.index == 0) {
-        await authRepo.signInWithEmail(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
+        await authRepo
+            .signInWithEmail(
+              _emailController.text.trim(),
+              _passwordController.text,
+            )
+            // Sans delai maximum, une requete qui ne revient jamais laisse
+            // _isLoading a true -- et le bouton, desactive pendant le
+            // chargement, ne repond plus du tout.
+            .timeout(const Duration(seconds: 25));
+
+        // La navigation depend du flux onAuthStateChange. S'il n'a pas emis
+        // -- flux en erreur, evenement manque apres un changement de mot de
+        // passe -- l'utilisateur reste sur cet ecran alors qu'il EST connecte,
+        // et retaper son mot de passe ne change rien. On relit donc la session
+        // nous-memes apres un succes.
+        if (mounted) ref.invalidate(authStateProvider);
       } else {
         await authRepo.signUpWithEmail(
           _emailController.text.trim(),
