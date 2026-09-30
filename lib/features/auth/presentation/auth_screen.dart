@@ -177,12 +177,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             // chargement, ne repond plus du tout.
             .timeout(const Duration(seconds: 25));
 
-        // La navigation depend du flux onAuthStateChange. S'il n'a pas emis
-        // -- flux en erreur, evenement manque apres un changement de mot de
-        // passe -- l'utilisateur reste sur cet ecran alors qu'il EST connecte,
-        // et retaper son mot de passe ne change rien. On relit donc la session
-        // nous-memes apres un succes.
-        if (mounted) ref.invalidate(authStateProvider);
       } else {
         await authRepo.signUpWithEmail(
           _emailController.text.trim(),

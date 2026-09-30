@@ -47,11 +47,45 @@ class AuthRepository {
   }
 
   // Auth state changes stream
+  /// L'etat de connexion, tel que l'ecran principal doit le lire.
+  ///
+  /// Deux protections, et chacune corrige un symptome observe.
+  ///
+  /// AMORCAGE. On emet d'abord la session REELLE, sans attendre un evenement.
+  /// `onAuthStateChange` est un BehaviorSubject : un nouvel abonne recoit sa
+  /// derniere valeur, qui peut n'avoir aucun rapport avec l'etat courant --
+  /// ou ne rien contenir du tout.
+  ///
+  /// ERREURS NEUTRALISEES. `notifyException` pousse les ERREURS dans ce meme
+  /// sujet : un rafraichissement de jeton qui echoue met le flux en erreur.
+  /// Changer son mot de passe revoque justement les jetons des autres
+  /// sessions, donc le rafraichissement suivant echouait. L'ecran principal
+  /// traduisait cette erreur par « pas de session » et affichait l'ecran de
+  /// connexion -- la connexion suivante reussissait cote serveur, mais rien
+  /// ne bougeait, et seul un redemarrage reparait, puisqu'il recree le sujet.
+  /// Un `ref.invalidate` n'y pouvait rien : le sujet REJOUE son erreur au
+  /// nouvel abonne.
+  ///
+  /// Une panne de rafraichissement n'est pas une deconnexion. Elle est
+  /// signalee, jamais propagee ; le dernier etat connu tient.
+  /// Voir test/auth_state_stream_test.dart.
   Stream<User?> get authStateChanges {
-    return _supabase.auth.onAuthStateChange.map((data) {
-      final user = data.session?.user;
+    User? fromSession(supabase.Session? session) {
+      final user = session?.user;
       return user != null ? User.fromSupabase(user) : null;
-    });
+    }
+
+    final out = StreamController<User?>();
+    out.add(fromSession(_supabase.auth.currentSession));
+
+    final sub = _supabase.auth.onAuthStateChange.listen(
+      (data) => out.add(fromSession(data.session)),
+      onError: (Object e) {
+        debugPrint('authStateChanges: erreur ignoree ($e)');
+      },
+    );
+    out.onCancel = sub.cancel;
+    return out.stream;
   }
 
   // Sign in with email and password
