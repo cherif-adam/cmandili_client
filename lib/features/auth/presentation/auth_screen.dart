@@ -698,25 +698,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             ),
           ),
 
-            // Etiquette de build (mode debug uniquement) : sans elle, on ne
-            // sait pas si le telephone execute le correctif ou une vieille
-            // installation.
-            if (BuildInfo.label != null)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 6,
-                child: IgnorePointer(
-                  child: Text(
-                    BuildInfo.label!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.white.withValues(alpha: 0.6),
-                    ),
+          // Etiquette de build (mode debug uniquement) : sans elle, on ne
+          // sait pas si le telephone execute le correctif ou une vieille
+          // installation.
+          if (BuildInfo.label != null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 6,
+              child: IgnorePointer(
+                child: Text(
+                  BuildInfo.label!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                 ),
               ),
+            ),
         ],
       ),
     );
