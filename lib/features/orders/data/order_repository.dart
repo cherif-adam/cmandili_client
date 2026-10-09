@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../cart/data/models/cart_item.dart';
 import '../../cart/data/models/order_customization.dart';
 import '../../checkout/data/models/delivery_address.dart';
-import '../../../core/utils/platform_pricing.dart';
 import '../../restaurant/data/models/food_item.dart';
 import '../data/models/order.dart';
 
@@ -481,11 +480,9 @@ class OrderRepository {
   /// threw "type 'Null' is not a subtype of type 'Map<String, dynamic>'"
   /// and failed the whole order history.
   ///
-  /// `order_items.price` is the CLIENT price — it was written from
-  /// [CartItem.price], which already includes the platform markup. Since
-  /// that getter re-applies the markup when the line is read back, the
-  /// stored price is divided back down to the base here; otherwise a past
-  /// order would display 10% above what the customer actually paid.
+  /// `order_items.price` is the price the customer actually paid, stored at
+  /// checkout. It is replayed as-is, so a past order always shows the amount
+  /// that was charged, even if the partner has changed his price since.
   List<Map<String, dynamic>> _parseOrderItems(dynamic rawItems) {
     if (rawItems is! List) return [];
     final result = <Map<String, dynamic>>[];
@@ -494,8 +491,7 @@ class OrderRepository {
       if (raw is! Map) continue;
       final row = Map<String, dynamic>.from(raw);
       final quantity = (row['quantity'] as num?)?.toInt() ?? 1;
-      final clientPrice = (row['price'] as num?)?.toDouble() ?? 0.0;
-      final basePrice = removePlatformMarkup(clientPrice);
+      final paidPrice = (row['price'] as num?)?.toDouble() ?? 0.0;
 
       // `options` holds the variant and option-group picks made at
       // checkout. Their own prices are baked into `price` already, so they
@@ -526,7 +522,7 @@ class OrderRepository {
             'name': nameWithVariant(foodData['name']?.toString() ?? 'Item'),
             'description': foodData['description'] ?? '',
             'imageUrl': foodData['image_url'] ?? '',
-            'price': basePrice, // order-time price, not today's menu price
+            'price': paidPrice, // order-time price, not today's menu price
             'category': foodData['category'] ?? '',
             'isAvailable': foodData['is_available'] ?? true,
             'tags': [],
@@ -549,7 +545,7 @@ class OrderRepository {
             'name': nameWithVariant(groceryData['name']?.toString() ?? 'Item'),
             'description': groceryData['description'] ?? '',
             'imageUrl': groceryData['image_url'] ?? '',
-            'price': basePrice,
+            'price': paidPrice,
             'category': groceryData['category'] ?? 'vegetables',
             'unit': groceryData['unit'] ?? 'piece',
             'isOrganic': groceryData['is_organic'] ?? false,
@@ -573,7 +569,7 @@ class OrderRepository {
             'name': nameWithVariant(vendorData['name']?.toString() ?? 'Item'),
             'description': vendorData['description'] ?? '',
             'image_url': vendorData['image_url'] ?? '',
-            'price': basePrice,
+            'price': paidPrice,
             'category': vendorData['category'],
             'unit': vendorData['unit'],
             'is_organic': vendorData['is_organic'] ?? false,
@@ -595,7 +591,7 @@ class OrderRepository {
           'name': nameWithVariant(row['name']?.toString() ?? 'Item'),
           'description': '',
           'imageUrl': '',
-          'price': basePrice,
+          'price': paidPrice,
           'category': '',
           'isAvailable': true,
           'tags': [],

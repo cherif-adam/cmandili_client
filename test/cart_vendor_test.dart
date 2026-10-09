@@ -25,11 +25,10 @@ void main() {
     expect(line.quantity, 2);
   });
 
-  test('price applies the platform markup once, like the other types', () {
+  test('price is the partner price, with no markup added', () {
     final line = CartItem.vendor(vendorItem: item);
-    // Same markup path as food/grocery — the exact multiplier lives in
-    // platform_pricing, so assert the relationship rather than a constant.
-    expect(line.price, greaterThanOrEqualTo(45.0));
+    // The customer pays exactly what the partner set: 45 DT, not a cent more.
+    expect(line.price, closeTo(45.0, 0.001));
     expect(line.totalPrice, closeTo(line.price, 0.001));
   });
 

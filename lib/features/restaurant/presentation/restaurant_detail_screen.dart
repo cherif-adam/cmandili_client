@@ -6,7 +6,6 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/delivery_fee.dart';
-import '../../../core/utils/platform_pricing.dart';
 import '../../home/data/models/restaurant.dart';
 import '../../cart/providers/cart_provider.dart';
 import '../../cart/presentation/cart_screen.dart';
@@ -606,7 +605,7 @@ class _FoodItemCard extends ConsumerWidget {
                                         const SizedBox(width: 6),
                                         Flexible(
                                           child: Text(
-                                            CurrencyFormatter.formatPrice(applyPlatformMarkup(foodItem.price)),
+                                            CurrencyFormatter.formatPrice(foodItem.price),
                                             style: const TextStyle(
                                               fontSize: 13,
                                               color: AppColors.textSecondary,

@@ -2,8 +2,7 @@ import 'item_variant.dart';
 
 /// One selectable choice inside a [FoodItemOptionGroup], e.g. "Harissa" (0 TND)
 /// or "Gruyère" (6 TND). `price` is a raw add-on charged on top of the food
-/// item's base price — never marked up here; markup is applied once, at
-/// `CartItem.price`.
+/// item's base price, and is summed into `CartItem.price`.
 class FoodItemOption {
   final String id;
   final String name;

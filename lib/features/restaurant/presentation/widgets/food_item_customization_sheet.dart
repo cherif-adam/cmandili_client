@@ -5,7 +5,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/platform_pricing.dart';
 import '../../../cart/data/models/cart_item.dart';
 import '../../../cart/data/models/order_customization.dart';
 import '../../../cart/data/models/selected_option_group.dart';
@@ -61,7 +60,7 @@ class _DisplayGroup {
 class _DisplayOption {
   final String id;
   final String name;
-  final double price; // raw, pre-markup
+  final double price;
 
   const _DisplayOption({
     required this.id,
@@ -564,7 +563,7 @@ class _OptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayPrice = applyPlatformMarkup(price);
+    final displayPrice = price;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),

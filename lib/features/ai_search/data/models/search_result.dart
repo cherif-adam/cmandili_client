@@ -1,4 +1,3 @@
-import '../../../../core/utils/platform_pricing.dart';
 
 /// Represents a single food item result returned from the AI search Edge Function.
 /// The nested [restaurantName] / [restaurantImageUrl] / etc. come from the
@@ -42,8 +41,8 @@ class AiSearchFoodResult {
     required this.restaurantIsOpen,
   });
 
-  /// Effective client price: (discounted base if active, else base) + platform fee.
-  double get effectivePrice => applyPlatformMarkup(discountPrice ?? price);
+  /// Effective price: the discounted price when a promotion is live, else the base.
+  double get effectivePrice => discountPrice ?? price;
 
   factory AiSearchFoodResult.fromJson(Map<String, dynamic> json) {
     final restaurant = (json['restaurants'] as Map<String, dynamic>?) ?? {};

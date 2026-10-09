@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/utils/platform_pricing.dart';
 import '../../restaurant/data/models/food_item.dart';
 import '../../supermarket/data/models/grocery_item.dart';
 import '../../supermarket/data/models/grocery_category.dart';
@@ -213,8 +212,7 @@ final happyHourShopsProvider = FutureProvider<List<VendorItem>>((ref) async {
 
 /// One live happy-hour offer, flattened across food and grocery so the home
 /// screen can show "what's on right now" without caring where it came from.
-/// Prices are the customer-facing ones (platform markup applied), matching
-/// what the Happy Hour screen shows.
+/// Prices are the partner prices, the same ones the Happy Hour screen shows.
 class HappyHourDeal {
   final String id;
   final String name;
@@ -285,7 +283,7 @@ final happyHourLiveDealsProvider = Provider<List<HappyHourDeal>>((ref) {
           id: f.id,
           name: f.name,
           imageUrl: f.imageUrl,
-          price: applyPlatformMarkup(f.price),
+          price: f.price,
           dealPrice: f.clientPrice,
           endsAt: f.discountEndTime,
           categoryId: 'food',
@@ -296,7 +294,7 @@ final happyHourLiveDealsProvider = Provider<List<HappyHourDeal>>((ref) {
           id: g.id,
           name: g.name,
           imageUrl: g.imageUrl,
-          price: applyPlatformMarkup(g.price),
+          price: g.price,
           dealPrice: g.clientPrice,
           endsAt: g.discountEndTime,
           categoryId: 'grocery',
@@ -307,8 +305,8 @@ final happyHourLiveDealsProvider = Provider<List<HappyHourDeal>>((ref) {
           id: v.id,
           name: v.name,
           imageUrl: v.imageUrl,
-          price: applyPlatformMarkup(v.price),
-          dealPrice: applyPlatformMarkup(v.effectivePrice),
+          price: v.price,
+          dealPrice: v.effectivePrice,
           endsAt: v.discountEndTime,
           categoryId: v.shopCategory ?? '',
         ),

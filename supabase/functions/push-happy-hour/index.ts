@@ -40,10 +40,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-/** Must match kPlatformMarkupRate in the client app: customers see and pay
- *  base price + 10%, so the notification quotes the same numbers. */
-const PLATFORM_MARKUP = 0.10;
-
 /** One push per item per hour at most (stop/restart, repeated calls). */
 const RENOTIFY_AFTER_MS = 60 * 60 * 1000;
 
@@ -249,8 +245,8 @@ serve(async (req: Request) => {
   // Kept for builds older than the two-screen split: they read `tab` alone.
   const tab = category === 'food' ? '0' : category === 'grocery' ? '1' : '2';
 
-  const deal = money(discount * (1 + PLATFORM_MARKUP));
-  const old = money(price * (1 + PLATFORM_MARKUP));
+  const deal = money(discount);
+  const old = money(price);
   const percentOff = Math.round((1 - discount / price) * 100);
   const quantity = item.discount_quantity == null ? null : Number(item.discount_quantity);
 
