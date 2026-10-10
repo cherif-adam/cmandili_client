@@ -101,6 +101,16 @@ class OrderRepository {
               item.selectedOptionGroups.map((g) => g.toJson()).toList();
         }
 
+        // The customer's typed note. The partner app shows a text note from
+        // order_items.special_instructions and nothing else, but this only
+        // ever went into `options` (below) -- so "Instructions spéciales" was
+        // saved and never seen by the shop. Written to both now: the column
+        // for the partner, `options` unchanged for anything already reading it.
+        final typedNote = (finalCustomization != null &&
+                finalCustomization.type == CustomizationType.text)
+            ? finalCustomization.content.trim()
+            : (item.specialInstructions ?? '').trim();
+
         await _supabase.from('order_items').insert({
           'order_id': orderId,
           // One nullable FK per vertical; exactly one is set per line. A
@@ -114,6 +124,7 @@ class OrderRepository {
           'quantity': item.quantity,
           'price': item.price,
           'options': options,
+          if (typedNote.isNotEmpty) 'special_instructions': typedNote,
           if (voiceUrl != null) 'voice_note_url': voiceUrl,
         });
       }
