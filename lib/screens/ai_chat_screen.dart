@@ -471,6 +471,12 @@ class _AiChatScreenState extends State<AiChatScreen>
   PreferredSizeWidget _buildAppBar() {
     final double statusBarH = MediaQuery.of(context).padding.top;
     const double toolbarH   = 68;
+    // Usable width inside the 12dp horizontal padding applied below. The two
+    // labelled pills and the buttons take a fixed slice of the row; under this
+    // threshold what is left for the title column is too narrow for the
+    // longest status text ("En train d'écrire..."), so the pills drop their
+    // labels and keep the emoji.
+    final bool compactPills = MediaQuery.sizeOf(context).width - 24 < 380;
 
     return PreferredSize(
       preferredSize: Size.fromHeight(toolbarH + statusBarH),
@@ -531,18 +537,22 @@ class _AiChatScreenState extends State<AiChatScreen>
                         children: [
                           Container(width: 7, height: 7, decoration: const BoxDecoration(color: _kGreenDot, shape: BoxShape.circle)),
                           const SizedBox(width: 5),
-                          Text(
-                            _isLoading ? 'En train d\'écrire...' : 'En ligne',
-                            style: const TextStyle(color: Colors.white70, fontSize: 11.5),
+                          Flexible(
+                            child: Text(
+                              _isLoading ? 'En train d\'écrire...' : 'En ligne',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white70, fontSize: 11.5),
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const _Pill(emoji: '🍽️', label: 'Food'),
+                _Pill(emoji: '🍽️', label: 'Food', compact: compactPills),
                 const SizedBox(width: 6),
-                const _Pill(emoji: '📦', label: 'P2P'),
+                _Pill(emoji: '📦', label: 'P2P', compact: compactPills),
                 const SizedBox(width: 6),
                 _AppBarBtn(
                   icon: Icons.delete_outline_rounded,
@@ -1024,24 +1034,32 @@ class _AppBarBtn extends StatelessWidget {
 class _Pill extends StatelessWidget {
   final String emoji;
   final String label;
-  const _Pill({required this.emoji, required this.label});
+  /// Narrow screens: keep the emoji, drop the label, so the title column keeps
+  /// enough room for the longest status text.
+  final bool compact;
+  const _Pill({required this.emoji, required this.label, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 11)),
-          const SizedBox(width: 4),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
-        ],
+    return Semantics(
+      label: label,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.22),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.35), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 11)),
+            if (!compact) ...[
+              const SizedBox(width: 4),
+              Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+            ],
+          ],
+        ),
       ),
     );
   }
