@@ -18,6 +18,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/utils/delivery_fee.dart';
 import '../models/chat_message.dart';
 
 class AiChatService {
@@ -47,6 +48,169 @@ class AiChatService {
   static const String _kNoResultsMessage =
       'Aucun résultat trouvé pour cette recherche, essayez autre chose 🔍';
 
+  // ── Shop catalogues ───────────────────────────────────────────────────────
+  // The 7 `vendors.category` slugs, mirroring `vendor_categories.id` and
+  // ServiceTypeX.vendorCategory. The edge function sends one in
+  // `service_category`; everything below turns it into a real query, a label
+  // and an honest empty-state line.
+  static const List<String> kServiceCategories = [
+    'food',
+    'grocery',
+    'bakery',
+    'flowers',
+    'pets',
+    'gifts',
+    'electronics',
+  ];
+
+  /// What the user actually called the shop, for the empty-state line.
+  static const Map<String, String> _kCategoryLabel = {
+    'food': 'restaurant',
+    'grocery': 'supermarché',
+    'bakery': 'pâtisserie',
+    'flowers': 'fleuriste',
+    'pets': 'animalerie',
+    'gifts': 'magasin de cadeaux',
+    'electronics': 'magasin d\'électronique',
+  };
+
+  /// Nearest catalogue to point at when one comes back empty. Deliberately a
+  /// sibling that plausibly carries something similar — never a promise that
+  /// it does, the wording below stays conditional.
+  static const Map<String, String> _kCategoryNeighbour = {
+    'grocery': 'food',
+    'bakery': 'food',
+    'flowers': 'gifts',
+    'gifts': 'flowers',
+    'pets': 'grocery',
+    'electronics': 'gifts',
+  };
+
+  /// Accepts only a known slug, with the same aliases the edge function maps,
+  /// so an older function build that sends "supermarket" or "animalerie" in
+  /// the field still lands on the right catalogue. Returns null for anything
+  /// else rather than guessing — an unknown slug would query nothing.
+  static String? normaliseServiceCategory(Object? raw) {
+    if (raw is! String) return null;
+    final s = raw.trim().toLowerCase();
+    if (s.isEmpty) return null;
+    const aliases = <String, String>{
+      'supermarket': 'grocery',
+      'supermarche': 'grocery',
+      'groceries': 'grocery',
+      'patisserie': 'bakery',
+      'pastry': 'bakery',
+      'flower': 'flowers',
+      'pet': 'pets',
+      'animalerie': 'pets',
+      'gift': 'gifts',
+      'cadeaux': 'gifts',
+      'electronic': 'electronics',
+      'restaurant': 'food',
+    };
+    final mapped = aliases[s] ?? s;
+    return kServiceCategories.contains(mapped) ? mapped : null;
+  }
+
+  // Keyword → catalogue, used ONLY as the backward-compatibility fallback
+  // below. Terms are lowercase and accent-stripped before matching, so
+  // "litière" and "litiere" both hit. Order matters: the first catalogue with
+  // a hit wins, so the lists are kept disjoint enough not to fight each other.
+  static const Map<String, List<String>> _kCategoryKeywords = {
+    'flowers': [
+      'fleur', 'bouquet', 'rose', 'fleuriste', 'zhour', 'zhar', 'flower',
+      'orchidee', 'plante', 'زهور', 'ورد',
+    ],
+    'pets': [
+      // No bare 'laisse' (leash): it collides with the verb laisser
+      // ("laisse tomber"), which has nothing to do with pets.
+      'animalerie', 'croquette', 'litiere', 'chiot', 'chaton',
+      'pour chat', 'pour chien', 'mon chat', 'mon chien', 'pet food',
+      'nourriture pour', 'aquarium', 'حيوان',
+    ],
+    'electronics': [
+      'chargeur', 'charger', 'cable', 'usb', 'ecouteur', 'casque',
+      'powerbank', 'batterie externe', 'telephone', 'smartphone', 'adaptateur',
+      'شاحن',
+    ],
+    'gifts': [
+      // 'present' left out on purpose — too common as an ordinary adjective
+      // in FR and EN; 'cadeau' and 'gift' already carry the intent.
+      'cadeau', 'cadhiya', 'gift', 'souvenir', 'offrir',
+      'هدية',
+    ],
+    'bakery': [
+      'patisserie', 'gateau', 'viennoiserie', 'croissant', 'tarte',
+      'mlawi', 'cake', 'pastry', 'anniversaire', 'مخبزة', 'حلويات',
+    ],
+    'grocery': [
+      'course', 'supermarche', 'epicerie', 'lait', 'shampoing', 'detergent',
+      'grand surface', 'grocery', 'سوبر ماركت',
+    ],
+  };
+
+  static String _foldAccents(String s) {
+    const from = 'àâäáãéèêëíìîïóòôöõúùûüçñ';
+    const to = 'aaaaaeeeeiiiiooooouuuucn';
+    final buf = StringBuffer();
+    for (final ch in s.toLowerCase().split('')) {
+      final i = from.indexOf(ch);
+      buf.write(i >= 0 ? to[i] : ch);
+    }
+    return buf.toString();
+  }
+
+  /// Backward-compatibility fallback (plan risk R5).
+  ///
+  /// A deployment where the edge function predates `service_category` still
+  /// returns `shop_search` with the catalogue only hinted at in prose. Rather
+  /// than searching nothing, infer the slug from what the user typed. This
+  /// runs ONLY when the server left the field empty — a server-sent slug
+  /// always wins, because the model saw the whole conversation and this
+  /// doesn't.
+  static String? inferServiceCategory(String userText) {
+    final t = _foldAccents(userText);
+    if (t.trim().isEmpty) return null;
+    for (final slug in _kCategoryKeywords.keys) {
+      for (final kw in _kCategoryKeywords[slug]!) {
+        if (_containsTerm(t, _foldAccents(kw))) return slug;
+      }
+    }
+    return null;
+  }
+
+  /// Whole-word match for Latin terms, plain substring for the Arabic ones.
+  /// Substring matching alone is too eager here: "lait" would fire on
+  /// "laitue", "rose" on "arrosé", "cable" on "cablage" — each of which would
+  /// drag a food question into the wrong catalogue.
+  static bool _containsTerm(String haystack, String term) {
+    final isLatin = RegExp(r'^[a-z0-9 ]+$').hasMatch(term);
+    if (!isLatin) return haystack.contains(term);
+    // [sx]? so the singular term still matches the French plural:
+    // fleur→fleurs, cadeau→cadeaux, course→courses.
+    return RegExp('(?<![a-z0-9])${RegExp.escape(term)}[sx]?(?![a-z0-9])')
+        .hasMatch(haystack);
+  }
+
+  /// Honest empty state. Names the catalogue that was actually searched and
+  /// offers the nearest sibling — without claiming the sibling has anything,
+  /// and without ever inventing a shop, a product or a price.
+  static String noResultsMessageFor(String? slug) {
+    final label = _kCategoryLabel[slug];
+    if (label == null) return _kNoResultsMessage;
+    if (slug == 'food') {
+      return 'Je ne trouve rien qui corresponde dans les restaurants ouverts '
+          'en ce moment. Essaie un autre plat ou reviens un peu plus tard 🍽️';
+    }
+    final neighbour = _kCategoryNeighbour[slug];
+    final neighbourLabel = neighbour == null ? null : _kCategoryLabel[neighbour];
+    final suffix = neighbourLabel == null
+        ? ''
+        : ' Je peux regarder côté $neighbourLabel si tu veux.';
+    return 'Rien de disponible côté $label pour le moment — '
+        'soit la boutique est fermée, soit elle n\'a pas cet article.$suffix';
+  }
+
   // ── System prompt ─────────────────────────────────────────────────────────
   // Lives SERVER-SIDE in supabase/functions/ai-chat/index.ts (SYSTEM_PROMPT),
   // ported verbatim from the old client-side implementation.
@@ -69,27 +233,43 @@ class AiChatService {
       return ChatMessage(text: _errorMessageFor(kind), isUser: false);
     }
 
-    String finalText = intent.message;
+    // R5 — forward/backward compatibility between app build and function
+    // build. An edge function that predates `service_category` still emits
+    // shop_search, with the catalogue only implied in prose; infer it from the
+    // user's own words rather than searching nothing. A slug the server did
+    // send always wins — the model saw the whole conversation, this doesn't.
+    // When nothing can be inferred we keep 'grocery', which is exactly what
+    // this intent searched before the multi-catalogue work.
+    final _AiIntent resolved =
+        (intent.intentRaw == 'shop_search' && intent.serviceCategory == null)
+            ? intent.withServiceCategory(
+                inferServiceCategory(userText) ?? 'grocery',
+              )
+            : intent;
+
+    String finalText = resolved.message;
     List<ProductResult> products = [];
-    switch (intent.intentRaw) {
+    switch (resolved.intentRaw) {
       case 'search_food':
-        products = await _queryFoodItems(intent);
-        if (products.isEmpty) finalText = _kNoResultsMessage;
+        products = await _queryFoodItems(resolved);
+        if (products.isEmpty) finalText = noResultsMessageFor('food');
         break;
       case 'restaurant_search':
-        products = await _queryRestaurants(intent);
-        if (products.isEmpty) finalText = _kNoResultsMessage;
+        products = await _queryRestaurants(resolved);
+        if (products.isEmpty) finalText = noResultsMessageFor('food');
         break;
       case 'shop_search':
-        products = await _queryShopItems(intent);
-        if (products.isEmpty) finalText = _kNoResultsMessage;
+        products = await _queryShopItems(resolved);
+        if (products.isEmpty) {
+          finalText = noResultsMessageFor(resolved.serviceCategory);
+        }
         break;
       case 'delivery_request':
-        finalText = await _appendRecipientHint(intent.message);
+        finalText = await _appendRecipientHint(resolved.message);
         products = [_buildDeliveryCard()];
         break;
       case 'track_order':
-        finalText = await _buildOrderStatusReply(intent.message);
+        finalText = await _buildOrderStatusReply(resolved.message);
         break;
       default:
         // 'general' is also where Facture questions land (SYSTEM_PROMPT RULE
@@ -98,8 +278,12 @@ class AiChatService {
         // investigation). Only touch the message when the raw text actually
         // looks facture-shaped, so off-topic redirects / disambiguation
         // questions / every other 'general' reply is left untouched.
-        if (intent.intentRaw == 'general' && _looksLikeFactureQuestion(userText)) {
-          finalText = await _appendBillTypeHint(intent.message);
+        if (resolved.intentRaw == 'general' &&
+            _looksLikeFactureQuestion(userText)) {
+          finalText = await _appendBillTypeHint(resolved.message);
+          // The explanation used to be text-only, leaving the user to find
+          // the Facture section themselves. The card below opens it.
+          products = [_buildFactureCard()];
         }
         break;
     }
@@ -117,7 +301,7 @@ class AiChatService {
     return ChatMessage(
       text: finalText,
       isUser: false,
-      intent: intent.intentRaw,
+      intent: resolved.intentRaw,
       products: products,
     );
   }
@@ -451,14 +635,21 @@ class AiChatService {
     }
   }
 
-  // ── Query grocery_items ───────────────────────────────────────────────────
+  // ── Query one shop catalogue ──────────────────────────────────────────────
+  // Was `grocery_items`, which is a VIEW hard-filtered to
+  // `WHERE vendors.category = 'grocery'` — so bakery, flowers, pets, gifts and
+  // electronics items were structurally unreachable no matter what the model
+  // asked for. Goes straight to `vendor_items` + `vendors` (the single source
+  // of truth, see migration 20260922010000) and filters on the slug instead.
+  // For 'grocery' this returns exactly the rows the old view returned.
 
   Future<List<ProductResult>> _queryShopItems(_AiIntent intent) async {
+    final slug = intent.serviceCategory ?? 'grocery';
     try {
-      var query = _supabase.from('grocery_items').select('''
+      var query = _supabase.from('vendor_items').select('''
         id, name, description, price, discount_price, image_url, category,
-        supermarkets (id, name, image_url, rating, is_open)
-      ''').eq('is_available', true);
+        vendors!inner (id, name, image_url, rating, is_open, category)
+      ''').eq('is_available', true).eq('vendors.category', slug);
 
       if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
       if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
@@ -477,10 +668,10 @@ class AiChatService {
       return rows
           // Same reasoning as the restaurant query above — drop closed shops.
           .where((r) =>
-              r['supermarkets'] != null &&
-              (r['supermarkets'] as Map<String, dynamic>)['is_open'] == true)
+              r['vendors'] != null &&
+              (r['vendors'] as Map<String, dynamic>)['is_open'] == true)
           .map<ProductResult>((r) {
-        final shop = r['supermarkets'] as Map<String, dynamic>;
+        final shop = r['vendors'] as Map<String, dynamic>;
         return ProductResult(
           type: 'shop',
           id: (r['id'] ?? '').toString(),
@@ -513,6 +704,27 @@ class AiChatService {
         currency: 'TND',
         imageUrl: null,
         sourceName: 'Amana Courier',
+        rating: null,
+      );
+
+  // ── Facture card ──────────────────────────────────────────────────────────
+  // Opens the Facture flow. The fee is read from kFlatDeliveryFee — the same
+  // constant facture_screen.dart uses — rather than retyped, so the figure
+  // the assistant quotes cannot drift from the one the user is charged. It is
+  // existing fee logic, not a price this assistant invents.
+
+  ProductResult _buildFactureCard() => ProductResult(
+        type: 'facture',
+        id: 'facture_payment',
+        name: 'Payer une facture',
+        description:
+            'STEG, SONEDE, Topnet… un livreur collecte le montant et paie '
+            'pour vous. Frais de service : '
+            '${kFlatDeliveryFee.toStringAsFixed(3)} TND.',
+        price: 0.0,
+        currency: 'TND',
+        imageUrl: null,
+        sourceName: 'Amana Facture',
         rating: null,
       );
 
@@ -735,6 +947,10 @@ class _AiIntent {
   final String message;
   final String intentRaw;
   final String? healthGoal;
+  /// Which Amana shop catalogue to search — a `vendors.category` slug. Null
+  /// when the request isn't a catalogue search, or when an older deployment of
+  /// the edge function didn't send the field (see [AiChatService.inferServiceCategory]).
+  final String? serviceCategory;
   final String? category;
   final String? keyword;
   final bool? spicy;
@@ -749,6 +965,7 @@ class _AiIntent {
     required this.message,
     required this.intentRaw,
     this.healthGoal,
+    this.serviceCategory,
     this.category,
     this.keyword,
     this.spicy,
@@ -758,6 +975,20 @@ class _AiIntent {
     this.deliveryTime,
   });
 
+  _AiIntent withServiceCategory(String? slug) => _AiIntent(
+        message: message,
+        intentRaw: intentRaw,
+        healthGoal: healthGoal,
+        serviceCategory: slug,
+        category: category,
+        keyword: keyword,
+        spicy: spicy,
+        vegetarian: vegetarian,
+        maxPrice: maxPrice,
+        minPrice: minPrice,
+        deliveryTime: deliveryTime,
+      );
+
   /// Builds an intent from the JSON map the `ai-chat` Edge Function returns.
   factory _AiIntent.fromJson(Map<String, dynamic> json) {
     return _AiIntent(
@@ -766,6 +997,8 @@ class _AiIntent {
           : 'Comment puis-je vous aider ? 😊',
       intentRaw: (json['intent'] as String?) ?? 'general',
       healthGoal: json['health_goal'] as String?,
+      serviceCategory:
+          AiChatService.normaliseServiceCategory(json['service_category']),
       category: json['category'] as String?,
       keyword: json['keyword'] as String?,
       spicy: json['spicy'] as bool?,

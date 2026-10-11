@@ -20,6 +20,10 @@ import '../models/chat_message.dart';
 import '../services/ai_chat_service.dart';
 import '../features/restaurant/presentation/restaurant_detail_screen.dart';
 import '../features/home/data/models/restaurant.dart';
+import '../core/data/vendor_repository.dart';
+import '../features/vendors/presentation/vendor_detail_screen.dart';
+import '../features/courier/presentation/courier_screen.dart';
+import '../features/facture/presentation/facture_screen.dart';
 
 // ─── Brand palette ─────────────────────────────────────────────────────────
 const _kOrange        = Color(0xFFFF9800);
@@ -668,11 +672,61 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Widget _buildCard(ProductResult product) {
     switch (product.type) {
-      case 'delivery':   return _DeliveryCard(product: product);
-      case 'shop':       return _ShopCard(product: product);
+      case 'delivery':   return _DeliveryCard(product: product, onTap: _openCourier);
+      case 'facture':    return _FactureCard(product: product, onTap: _openFacture);
+      case 'shop':       return _ShopCard(product: product, onTap: () => _navigateToVendor(product));
       case 'restaurant': return _RestaurantCard(product: product, onTap: () => _navigateToRestaurant(product));
       default:           return _FoodCard(product: product, onTap: () => _navigateToRestaurant(product));
     }
+  }
+
+  // ── Navigate to a shop (any of the 7 catalogues) ──────────────────────────
+  // The card only carries the vendor id, so the full row is fetched before
+  // pushing — VendorDetailScreen needs a real Vendor, and it is the same
+  // screen (and the same cart) the home screen uses for that category.
+
+  Future<void> _navigateToVendor(ProductResult product) async {
+    final id = product.sourceId;
+    if (id == null || id.isEmpty) {
+      _showSnack('Boutique introuvable');
+      return;
+    }
+    final vendor = await VendorRepository().getVendor(id);
+    if (!mounted) return;
+    if (vendor == null) {
+      _showSnack('Boutique introuvable');
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => VendorDetailScreen(vendor: vendor)),
+    );
+  }
+
+  void _openCourier() {
+    final size = MediaQuery.sizeOf(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CourierScreen(
+          screenWidth: size.width,
+          screenHeight: size.height,
+        ),
+      ),
+    );
+  }
+
+  void _openFacture() {
+    final size = MediaQuery.sizeOf(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FactureScreen(
+          screenWidth: size.width,
+          screenHeight: size.height,
+        ),
+      ),
+    );
   }
 
   // ── Task 2: Navigate to RestaurantDetailScreen ────────────────────────────
@@ -1388,11 +1442,16 @@ class _RestaurantCard extends StatelessWidget {
 
 class _ShopCard extends StatelessWidget {
   final ProductResult product;
-  const _ShopCard({required this.product});
+  /// Opens the shop in VendorDetailScreen so the item can actually be ordered.
+  /// The card used to be inert — results were visible but not buyable.
+  final VoidCallback onTap;
+  const _ShopCard({required this.product, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       width: 162,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
@@ -1447,6 +1506,7 @@ class _ShopCard extends StatelessWidget {
           ],
         ),
       ),
+      ),
     );
   }
 }
@@ -1455,7 +1515,10 @@ class _ShopCard extends StatelessWidget {
 
 class _DeliveryCard extends StatelessWidget {
   final ProductResult product;
-  const _DeliveryCard({required this.product});
+  /// Opens CourierScreen. The button used to pop a "bientôt disponible"
+  /// snackbar even though the courier flow has shipped.
+  final VoidCallback onTap;
+  const _DeliveryCard({required this.product, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1520,16 +1583,7 @@ class _DeliveryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Service P2P — bientôt disponible ! 🚀', style: TextStyle(color: Colors.white)),
-                        backgroundColor: _kOrange,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    );
-                  },
+                  onTap: onTap,
                   child: Container(
                     width: double.infinity, height: 42,
                     decoration: BoxDecoration(
@@ -1539,6 +1593,87 @@ class _DeliveryCard extends StatelessWidget {
                     ),
                     child: const Center(
                       child: Text('Créer une livraison  →', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Facture Card ──────────────────────────────────────────────────────────────
+// Facture answers used to be text-only ("rendez-vous dans la section
+// Facture…"), leaving the user to go find it. Same shape as the P2P card so
+// the two standalone services read alike; the fee shown comes from the
+// service's own kFlatDeliveryFee, never from the model.
+
+class _FactureCard extends StatelessWidget {
+  final ProductResult product;
+  final VoidCallback onTap;
+  const _FactureCard({required this.product, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 268,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: _kOrange.withValues(alpha: 0.28), blurRadius: 20, offset: const Offset(0, 8))],
+      ),
+      child: Stack(
+        children: [
+          const Positioned(right: -18, top: -18, child: _DecorCircle(size: 110, opacity: 0.05)),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 46, height: 46,
+                      decoration: BoxDecoration(color: _kOrange.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
+                      child: const Center(child: Text('🧾', style: TextStyle(fontSize: 24))),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        product.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  product.description ?? '',
+                  style: const TextStyle(color: Colors.white60, fontSize: 12, height: 1.5),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: onTap,
+                  child: Container(
+                    width: double.infinity, height: 42,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(colors: [_kOrangeLight, _kOrangeDark], begin: Alignment.centerLeft, end: Alignment.centerRight),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [BoxShadow(color: _kOrange.withValues(alpha: 0.45), blurRadius: 12, offset: const Offset(0, 4))],
+                    ),
+                    child: const Center(
+                      child: Text('Payer une facture  →', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5)),
                     ),
                   ),
                 ),
