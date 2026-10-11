@@ -74,6 +74,17 @@ class AiChatService {
     'electronics': 'magasin d\'électronique',
   };
 
+  /// Same shops, carrying their French article — "le fleuriste", not "la".
+  static const Map<String, String> _kCategoryWithArticle = {
+    'food': 'le restaurant',
+    'grocery': 'le supermarché',
+    'bakery': 'la pâtisserie',
+    'flowers': 'le fleuriste',
+    'pets': 'l\'animalerie',
+    'gifts': 'le magasin de cadeaux',
+    'electronics': 'le magasin d\'électronique',
+  };
+
   /// Nearest catalogue to point at when one comes back empty. Deliberately a
   /// sibling that plausibly carries something similar — never a promise that
   /// it does, the wording below stays conditional.
@@ -192,6 +203,18 @@ class AiChatService {
         .hasMatch(haystack);
   }
 
+  /// Said when the exact request found nothing but the catalogue is not
+  /// empty, so the cards shown are the shop's stock rather than matches.
+  /// Claims nothing about them beyond where they come from.
+  static String relaxedNoticeFor(String? slug) {
+    final phrase = _kCategoryWithArticle[slug];
+    if (phrase == null) {
+      return 'Je n\'ai pas trouvé exactement ça — voici ce qui est disponible.';
+    }
+    return 'Je n\'ai pas trouvé exactement ça, mais voici ce que '
+        '$phrase a en rayon 👇';
+  }
+
   /// Honest empty state. Names the catalogue that was actually searched and
   /// offers the nearest sibling — without claiming the sibling has anything,
   /// and without ever inventing a shop, a product or a price.
@@ -259,9 +282,16 @@ class AiChatService {
         if (products.isEmpty) finalText = noResultsMessageFor('food');
         break;
       case 'shop_search':
-        products = await _queryShopItems(resolved);
+        final shopResult = await _queryShopItems(resolved);
+        products = shopResult.items;
         if (products.isEmpty) {
           finalText = noResultsMessageFor(resolved.serviceCategory);
+        } else if (shopResult.relaxed) {
+          // The cards below are the shop's catalogue, not matches for what
+          // was asked. Say so rather than letting the lead-in ("Je regarde
+          // côté électronique") imply these are the chargers they wanted.
+          finalText =
+              '${resolved.message}\n\n${relaxedNoticeFor(resolved.serviceCategory)}';
         }
         break;
       case 'delivery_request':
@@ -643,8 +673,54 @@ class AiChatService {
   // of truth, see migration 20260922010000) and filters on the slug instead.
   // For 'grocery' this returns exactly the rows the old view returned.
 
-  Future<List<ProductResult>> _queryShopItems(_AiIntent intent) async {
+  /// Runs the catalogue search, relaxing the filters until something comes
+  /// back. [relaxed] is true when the rows are the shop's catalogue rather
+  /// than matches for what was literally asked — the caller says so instead
+  /// of passing them off as exact hits.
+  ///
+  /// This tiering is not academic. Measured against the live catalogues, the
+  /// model's own keyword emptied 3 of 6 shops that had stock: "chargeur"
+  /// matched none of the 6 electronics items, "anniversaire"+"gâteau" none of
+  /// the 5 bakery items, and for groceries it emitted the two words glued
+  /// together ("lait shampoing"), which matches nothing by construction.
+  /// Small catalogues plus a free-text keyword is simply a bad combination.
+  ///
+  /// Price bounds are never relaxed: a budget is the user's own constraint,
+  /// not a search hint, and showing over-budget items would be worse than
+  /// showing none.
+  Future<({List<ProductResult> items, bool relaxed})> _queryShopItems(
+    _AiIntent intent,
+  ) async {
     final slug = intent.serviceCategory ?? 'grocery';
+    final hasKeyword = intent.keyword != null && intent.keyword!.isNotEmpty;
+    final hasCategory = intent.category != null && intent.category!.isNotEmpty;
+
+    // Tier 1 asks for exactly what the model wanted; each later tier drops one
+    // layer. Tiers that would repeat the previous query are never added.
+    final attempts = <({bool keyword, bool category})>[
+      (keyword: hasKeyword, category: hasCategory),
+      if (hasKeyword) (keyword: false, category: hasCategory),
+      if (hasCategory) (keyword: false, category: false),
+    ];
+
+    for (var i = 0; i < attempts.length; i++) {
+      final rows = await _fetchShopRows(
+        slug,
+        intent,
+        useKeyword: attempts[i].keyword,
+        useCategory: attempts[i].category,
+      );
+      if (rows.isNotEmpty) return (items: rows, relaxed: i > 0);
+    }
+    return (items: const <ProductResult>[], relaxed: false);
+  }
+
+  Future<List<ProductResult>> _fetchShopRows(
+    String slug,
+    _AiIntent intent, {
+    required bool useKeyword,
+    required bool useCategory,
+  }) async {
     try {
       var query = _supabase.from('vendor_items').select('''
         id, name, description, price, discount_price, image_url, category,
@@ -653,10 +729,10 @@ class AiChatService {
 
       if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
       if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
-      if (intent.category != null && intent.category!.isNotEmpty) {
+      if (useCategory) {
         query = query.ilike('category', '%${intent.category}%');
       }
-      if (intent.keyword != null && intent.keyword!.isNotEmpty) {
+      if (useKeyword) {
         query = query.or(
           'name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%',
         );

@@ -156,4 +156,38 @@ void main() {
       expect(msg, contains('Aucun résultat'));
     });
   });
+
+  group('relaxedNoticeFor — says the cards are stock, not matches', () {
+    test('never claims the items match what was asked', () {
+      for (final slug in AiChatService.kServiceCategories) {
+        final msg = AiChatService.relaxedNoticeFor(slug);
+        expect(msg, contains("pas trouvé exactement"),
+            reason: 'must admit the miss for $slug');
+      }
+    });
+
+    test('uses the right French article for each shop', () {
+      expect(AiChatService.relaxedNoticeFor('flowers'),
+          contains('le fleuriste'));
+      expect(AiChatService.relaxedNoticeFor('pets'),
+          contains("l'animalerie"));
+      expect(AiChatService.relaxedNoticeFor('bakery'),
+          contains('la pâtisserie'));
+      expect(AiChatService.relaxedNoticeFor('electronics'),
+          contains("le magasin d'électronique"));
+    });
+
+    test('invents no product or price', () {
+      for (final slug in AiChatService.kServiceCategories) {
+        final msg = AiChatService.relaxedNoticeFor(slug);
+        expect(msg, isNot(contains('TND')));
+        expect(RegExp(r'\d').hasMatch(msg), isFalse, reason: msg);
+      }
+    });
+
+    test('handles an unknown slug without crashing', () {
+      expect(AiChatService.relaxedNoticeFor(null),
+          contains("pas trouvé exactement"));
+    });
+  });
 }

@@ -92,9 +92,18 @@ probe_prompt() {
   echo
 }
 
+probe_cards() {
+  echo "=== CARDS — does each catalogue actually render cards? ==="
+  echo "(replays the client's tiered query with the model's real keyword;"
+  echo " a catalogue with stock must never come back with zero cards)"
+  echo
+  python -I "$(dirname "$0")/ai_chat_cards_check.py" "$URL" "$KEY"
+}
+
 case "$MODE" in
   retrieval) probe_retrieval ;;
   prompt)    probe_prompt ;;
-  all)       probe_retrieval; probe_prompt ;;
-  *) echo "usage: $0 [retrieval|prompt|all]" >&2; exit 2 ;;
+  cards)     probe_cards ;;
+  all)       probe_retrieval; probe_prompt; probe_cards ;;
+  *) echo "usage: $0 [retrieval|prompt|cards|all]" >&2; exit 2 ;;
 esac
