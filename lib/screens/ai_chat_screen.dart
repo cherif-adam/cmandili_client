@@ -21,9 +21,12 @@ import '../services/ai_chat_service.dart';
 import '../features/restaurant/presentation/restaurant_detail_screen.dart';
 import '../features/home/data/models/restaurant.dart';
 import '../core/data/vendor_repository.dart';
+import '../core/models/service_category.dart';
 import '../features/vendors/presentation/vendor_detail_screen.dart';
 import '../features/courier/presentation/courier_screen.dart';
 import '../features/facture/presentation/facture_screen.dart';
+import '../features/home/presentation/widgets/service_selector.dart'
+    show ServiceSelector;
 
 // ─── Brand palette ─────────────────────────────────────────────────────────
 const _kOrange        = Color(0xFFFF9800);
@@ -40,6 +43,32 @@ const _kGreenDot      = Color(0xFF34C759);
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
+
+  /// The message a category chip sends. Phrased the way a customer would ask,
+  /// so it goes through the ordinary intent classification rather than a
+  /// special path — a chip is just a shortcut for typing.
+  static String starterQueryFor(ServiceType type) {
+    switch (type) {
+      case ServiceType.foodDelivery:
+        return 'Montre-moi les restaurants disponibles';
+      case ServiceType.supermarket:
+        return 'Montre-moi ce qu\'il y a au supermarché';
+      case ServiceType.bakery:
+        return 'Montre-moi les pâtisseries disponibles';
+      case ServiceType.flowers:
+        return 'Montre-moi les fleurs disponibles';
+      case ServiceType.pets:
+        return 'Montre-moi les produits d\'animalerie';
+      case ServiceType.gifts:
+        return 'Montre-moi des idées cadeaux';
+      case ServiceType.electronics:
+        return 'Montre-moi les produits électroniques';
+      case ServiceType.courier:
+        return 'Je veux envoyer un colis';
+      case ServiceType.billPayments:
+        return 'Je veux payer une facture';
+    }
+  }
 
   @override
   State<AiChatScreen> createState() => _AiChatScreenState();
@@ -356,6 +385,39 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   void _sendSuggestion(String prompt) => _handleSubmitted(prompt);
 
+  // ── Category bar ────────────────────────────────────────────────────────
+  // Reads the same ServiceCategory.categories list the home screen's
+  // ServiceSelector uses, so the chat offers exactly the services the app
+  // offers — the 7 shop catalogues plus Colis and Facture — and a category
+  // added there shows up here with no extra work.
+
+  Widget _buildCategoryBar() {
+    const categories = ServiceCategory.categories;
+    return Container(
+      height: 48,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0x11000000))),
+      ),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final c = categories[i];
+          return _CategoryChip(
+            emoji: c.icon,
+            label: c.nameFr,
+            color: ServiceSelector.colorFromHex(c.colorHex),
+            onTap: () => _sendSuggestion(AiChatScreen.starterQueryFor(c.type)),
+          );
+        },
+      ),
+    );
+  }
+
+
   Widget _buildEmptyState() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 12),
@@ -434,6 +496,13 @@ class _AiChatScreenState extends State<AiChatScreen>
       appBar: _buildAppBar(),
       body: Column(
         children: [
+          // ── Category bar ──────────────────────────────────────────────────
+          // All 9 services live here, NOT in the header: the header row is
+          // already at its width limit (see the overflow fix in _buildAppBar),
+          // so adding chips up there would bring the overflow straight back.
+          // A horizontal scroller has no width ceiling.
+          _buildCategoryBar(),
+
           // ── Listening banner ─────────────────────────────────────────────
           if (_isListening) _ListeningBanner(controller: _micPulseController),
 
@@ -1113,6 +1182,59 @@ class _Pill extends StatelessWidget {
               Text(label, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Category chip (bar under the header) ──────────────────────────────────
+// Tinted with the category's own colour from ServiceCategory, so the chat bar
+// and the home screen's service selector read as the same set of services.
+
+class _CategoryChip extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _CategoryChip({
+    required this.emoji,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 13)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

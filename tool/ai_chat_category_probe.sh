@@ -53,21 +53,29 @@ print(f'{slug:14} {len(rows):8}  {ex}')
   echo
 }
 
-ask() { # $1 = label, $2 = question
-  local out
+# $1 = label, $2 = question, $3 = optional JSON history array (for follow-ups)
+ask() {
+  local out hist="${3:-[]}"
   out=$(curl -s -X POST "$URL/functions/v1/ai-chat" \
     -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-    -d "$(python -c 'import json,sys; print(json.dumps({"text": sys.argv[1], "history": []}))' "$2")")
+    -d "$(python -c 'import json,sys; print(json.dumps({"text": sys.argv[1], "history": json.loads(sys.argv[2])}))' "$2" "$hist")")
   printf '%s' "$out" | python -c "
-import sys, json
+import sys, json, re
 label = sys.argv[1]
 try:
     d = json.load(sys.stdin)
 except Exception:
-    print(f'  {label:13} PARSE ERROR'); raise SystemExit
+    print(f'  {label:16} PARSE ERROR'); raise SystemExit
 if 'error' in d:
-    print(f\"  {label:13} ERROR {str(d.get('error'))[:60]}\"); raise SystemExit
-print(f\"  {label:13} intent={d.get('intent'):<17} service_category={str(d.get('service_category')):<12} {d.get('message','')[:58]}\")
+    print(f\"  {label:16} ERROR {str(d.get('error'))[:70]}\"); raise SystemExit
+msg = d.get('message', '')
+# Rough language tell, enough to spot the 'answered in French' bug: Derja is
+# Latin script with digit-letters and its own function words.
+derja = bool(re.search(r'[0-9][a-z]|\b(hani|nchouf|famma|behi|chnoua|taht|a9al|mta3|tw|lek|bech|besh)\b', msg, re.I))
+arabic = bool(re.search(r'[؀-ۿ]', msg))
+lang = 'AR' if arabic else ('TN' if derja else 'fr/en')
+print(f\"  {label:16} intent={d.get('intent'):<13} svc={str(d.get('service_category')):<12} \"
+      f\"max_price={str(d.get('max_price')):<6} lang~{lang:<5} {msg[:46]}\")
 " "$1"
 }
 
@@ -89,6 +97,27 @@ probe_prompt() {
   ask nutrition   "je fais un régime, qu'est-ce que je peux manger ?"
   ask off-topic   "quel temps fait-il à Kairouan ?"
   ask derja       "n7eb nechri zhour l omi"
+  echo
+  echo "-- budget: max_price MUST be filled, in every language (RULE 2G) --"
+  ask "budget TN"    "aatini bouquet a9al mn 40 dt"
+  ask "budget TN2"   "nheb cadeau a9al mn 50 dt"
+  ask "budget TN3"   "cadeau ma yfoutech 30 dt"
+  ask "budget FR"    "je veux un bouquet moins de 40 dinars"
+  ask "budget FR2"   "un cadeau entre 20 et 50 dinars"
+  ask "budget EN"    "a phone charger under 40 dinars"
+  ask "budget AR"    "نحب باقة ورد أقل من 40 دينار"
+  ask "no-number"    "un bouquet pas cher"
+  echo
+  echo "-- budget-only follow-up: repeats the previous search with the budget --"
+  ask "follow 50dt" "50 dt" \
+    '[{"role":"user","parts":[{"text":"nheb cadeau"}]},{"role":"model","parts":[{"text":"Behi! Nchouf lek chnoua famma fel cadeaux 🎁"}]}]'
+  ask "follow 30"   "ma yfoutech 30" \
+    '[{"role":"user","parts":[{"text":"nheb bouquet"}]},{"role":"model","parts":[{"text":"Hani nchouf lek 3and el fleuristes 💐"}]}]'
+  echo
+  echo "-- language: a Derja question must get a Derja answer (lang~TN) --"
+  ask "derja shop"  "famma croquettes lel 9otos?"
+  ask "derja elec"  "3andek chargeur telephone?"
+  ask "derja budget" "aatini cadeau a9al mn 40 dt"
   echo
 }
 

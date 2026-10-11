@@ -218,12 +218,31 @@ class AiChatService {
   /// Honest empty state. Names the catalogue that was actually searched and
   /// offers the nearest sibling — without claiming the sibling has anything,
   /// and without ever inventing a shop, a product or a price.
-  static String noResultsMessageFor(String? slug) {
+  static String noResultsMessageFor(
+    String? slug, {
+    num? maxPrice,
+    num? minPrice,
+  }) {
+    // When a budget was applied, it is by far the most likely reason the
+    // search came back empty — saying "rien de disponible" without naming it
+    // reads as "the shop is empty", which is usually false and unhelpful.
+    final budget = _budgetPhrase(maxPrice, minPrice);
     final label = _kCategoryLabel[slug];
-    if (label == null) return _kNoResultsMessage;
+    if (label == null) {
+      return budget == null
+          ? _kNoResultsMessage
+          : 'Rien trouvé $budget. Essaie avec un budget un peu plus large 🔍';
+    }
     if (slug == 'food') {
-      return 'Je ne trouve rien qui corresponde dans les restaurants ouverts '
-          'en ce moment. Essaie un autre plat ou reviens un peu plus tard 🍽️';
+      return budget == null
+          ? 'Je ne trouve rien qui corresponde dans les restaurants ouverts '
+              'en ce moment. Essaie un autre plat ou reviens un peu plus tard 🍽️'
+          : 'Rien $budget dans les restaurants ouverts en ce moment. '
+              'Avec un budget un peu plus large je devrais trouver 🍽️';
+    }
+    if (budget != null) {
+      return 'Rien $budget côté $label pour le moment. '
+          'Dis-moi un budget un peu plus large et je regarde à nouveau 💡';
     }
     final neighbour = _kCategoryNeighbour[slug];
     final neighbourLabel = neighbour == null ? null : _kCategoryLabel[neighbour];
@@ -232,6 +251,20 @@ class AiChatService {
         : ' Je peux regarder côté $neighbourLabel si tu veux.';
     return 'Rien de disponible côté $label pour le moment — '
         'soit la boutique est fermée, soit elle n\'a pas cet article.$suffix';
+  }
+
+  /// "sous 40 TND" / "au-dessus de 30 TND" / "entre 20 et 50 TND", or null.
+  /// Trailing zeros are trimmed so 40.0 reads as "40", not "40.000".
+  static String? _budgetPhrase(num? maxPrice, num? minPrice) {
+    String n(num v) => v == v.roundToDouble()
+        ? v.toInt().toString()
+        : v.toString();
+    if (maxPrice != null && minPrice != null) {
+      return 'entre ${n(minPrice)} et ${n(maxPrice)} TND';
+    }
+    if (maxPrice != null) return 'sous ${n(maxPrice)} TND';
+    if (minPrice != null) return 'au-dessus de ${n(minPrice)} TND';
+    return null;
   }
 
   // ── System prompt ─────────────────────────────────────────────────────────
@@ -275,7 +308,10 @@ class AiChatService {
     switch (resolved.intentRaw) {
       case 'search_food':
         products = await _queryFoodItems(resolved);
-        if (products.isEmpty) finalText = noResultsMessageFor('food');
+        if (products.isEmpty) {
+          finalText = noResultsMessageFor('food',
+              maxPrice: resolved.maxPrice, minPrice: resolved.minPrice);
+        }
         break;
       case 'restaurant_search':
         products = await _queryRestaurants(resolved);
@@ -285,7 +321,11 @@ class AiChatService {
         final shopResult = await _queryShopItems(resolved);
         products = shopResult.items;
         if (products.isEmpty) {
-          finalText = noResultsMessageFor(resolved.serviceCategory);
+          finalText = noResultsMessageFor(
+            resolved.serviceCategory,
+            maxPrice: resolved.maxPrice,
+            minPrice: resolved.minPrice,
+          );
         } else if (shopResult.relaxed) {
           // The cards below are the shop's catalogue, not matches for what
           // was asked. Say so rather than letting the lead-in ("Je regarde
@@ -688,6 +728,25 @@ class AiChatService {
   /// Price bounds are never relaxed: a budget is the user's own constraint,
   /// not a search hint, and showing over-budget items would be worse than
   /// showing none.
+  /// The order filters are given up in, as a list of tiers. Tier 1 asks for
+  /// exactly what the model wanted; each later tier drops one layer. Tiers
+  /// that would repeat the previous query are never emitted.
+  ///
+  /// Note what is NOT in this record: price. There is deliberately no knob
+  /// for it, so no tier can drop the user's budget — a budget is their own
+  /// constraint, and showing over-budget items would be worse than showing
+  /// none. [_fetchShopRows] applies the bounds unconditionally.
+  @visibleForTesting
+  static List<({bool keyword, bool category})> relaxationPlan({
+    required bool hasKeyword,
+    required bool hasCategory,
+  }) =>
+      [
+        (keyword: hasKeyword, category: hasCategory),
+        if (hasKeyword) (keyword: false, category: hasCategory),
+        if (hasCategory) (keyword: false, category: false),
+      ];
+
   Future<({List<ProductResult> items, bool relaxed})> _queryShopItems(
     _AiIntent intent,
   ) async {
@@ -695,13 +754,10 @@ class AiChatService {
     final hasKeyword = intent.keyword != null && intent.keyword!.isNotEmpty;
     final hasCategory = intent.category != null && intent.category!.isNotEmpty;
 
-    // Tier 1 asks for exactly what the model wanted; each later tier drops one
-    // layer. Tiers that would repeat the previous query are never added.
-    final attempts = <({bool keyword, bool category})>[
-      (keyword: hasKeyword, category: hasCategory),
-      if (hasKeyword) (keyword: false, category: hasCategory),
-      if (hasCategory) (keyword: false, category: false),
-    ];
+    final attempts = relaxationPlan(
+      hasKeyword: hasKeyword,
+      hasCategory: hasCategory,
+    );
 
     for (var i = 0; i < attempts.length; i++) {
       final rows = await _fetchShopRows(

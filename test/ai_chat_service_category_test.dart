@@ -157,6 +157,85 @@ void main() {
     });
   });
 
+  group('budget — the empty state names it instead of blaming the shop', () {
+    test('an upper bound is stated, in each catalogue', () {
+      for (final slug in AiChatService.kServiceCategories) {
+        final msg = AiChatService.noResultsMessageFor(slug, maxPrice: 40);
+        expect(msg, contains('sous 40 TND'), reason: 'for $slug: $msg');
+      }
+    });
+
+    test('a range and a lower bound are stated too', () {
+      expect(
+        AiChatService.noResultsMessageFor('gifts', maxPrice: 50, minPrice: 20),
+        contains('entre 20 et 50 TND'),
+      );
+      expect(
+        AiChatService.noResultsMessageFor('gifts', minPrice: 30),
+        contains('au-dessus de 30 TND'),
+      );
+    });
+
+    test('whole amounts print without decimals', () {
+      // The LLM sends 40 or 40.0 depending on the provider; both must read
+      // as "40 TND", never "40.0 TND".
+      expect(AiChatService.noResultsMessageFor('flowers', maxPrice: 40.0),
+          contains('sous 40 TND'));
+      expect(AiChatService.noResultsMessageFor('flowers', maxPrice: 40),
+          contains('sous 40 TND'));
+    });
+
+    test('suggests widening the budget rather than implying the shop is empty',
+        () {
+      final msg = AiChatService.noResultsMessageFor('flowers', maxPrice: 40);
+      expect(msg, contains('budget'));
+      expect(msg, isNot(contains('la boutique est fermée')));
+    });
+
+    test('without a budget the wording is unchanged', () {
+      final msg = AiChatService.noResultsMessageFor('flowers');
+      expect(msg, contains('fleuriste'));
+      expect(msg, isNot(contains('TND')));
+    });
+  });
+
+  group('relaxationPlan — the budget is never a tier', () {
+    test('no tier can drop the price: the record has no price knob', () {
+      final plan = AiChatService.relaxationPlan(
+          hasKeyword: true, hasCategory: true);
+      // Every tier is described by exactly (keyword, category). If a price
+      // flag is ever added here, this test should be revisited on purpose.
+      for (final tier in plan) {
+        expect(tier.keyword, isA<bool>());
+        expect(tier.category, isA<bool>());
+      }
+    });
+
+    test('drops the keyword first, then the sub-category', () {
+      final plan = AiChatService.relaxationPlan(
+          hasKeyword: true, hasCategory: true);
+      expect(plan, hasLength(3));
+      expect(plan[0], (keyword: true, category: true));
+      expect(plan[1], (keyword: false, category: true));
+      expect(plan[2], (keyword: false, category: false));
+    });
+
+    test('emits no duplicate tier when a filter is absent', () {
+      expect(
+        AiChatService.relaxationPlan(hasKeyword: true, hasCategory: false),
+        [(keyword: true, category: false), (keyword: false, category: false)],
+      );
+      expect(
+        AiChatService.relaxationPlan(hasKeyword: false, hasCategory: true),
+        [(keyword: false, category: true), (keyword: false, category: false)],
+      );
+      expect(
+        AiChatService.relaxationPlan(hasKeyword: false, hasCategory: false),
+        [(keyword: false, category: false)],
+      );
+    });
+  });
+
   group('relaxedNoticeFor — says the cards are stock, not matches', () {
     test('never claims the items match what was asked', () {
       for (final slug in AiChatService.kServiceCategories) {
