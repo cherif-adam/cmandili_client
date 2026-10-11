@@ -84,3 +84,6 @@ app.*.map.json
 # Environment secrets — never commit
 .env
 .env.*
+
+# Kotlin compiler session artifacts
+android/.kotlin/
