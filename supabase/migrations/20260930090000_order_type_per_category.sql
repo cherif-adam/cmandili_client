@@ -1,7 +1,23 @@
 -- ============================================================================
 -- CMANDILI — `orders.order_type` dit enfin la vérité
 --
--- NON EXÉCUTÉ. À relire, puis à lancer vous-même dans le SQL Editor.
+-- APPLIQUÉE À LA MAIN EN PRODUCTION. Vérifiée le 2026-10-11 dans le SQL
+-- Editor, les trois sections sont bien en place :
+--   1. orders_order_type_check accepte les 7 catégories ;
+--   2a. apply_loyalty_at_checkout filtre NOT IN ('supermarket','grocery',
+--       'billPayment') — il ne dépend plus de 'food' ;
+--   2b. order_ratings_insert_own_delivered filtre sur courier/facture et non
+--       plus sur order_type = 'food' ;
+--   3. 0 commande dont le order_type diverge de la catégorie de sa boutique.
+-- Restent 5 commandes dont le commerce n'existe plus : laissées en 'food',
+-- comme prévu ci-dessous.
+--
+-- L'en-tête disait « NON EXÉCUTÉ » jusqu'à cette vérification. C'est la
+-- formule par défaut de ces fichiers (10 migrations la portent) et elle veut
+-- dire « à lancer vous-même », pas « jamais lancée » : ne pas la lire comme un
+-- statut. L'historique CLI ne tranche pas non plus — 60 migrations locales
+-- sont absentes de supabase_migrations.schema_migrations parce que tout est
+-- appliqué manuellement. Seule la base fait foi.
 --
 -- Aujourd'hui la colonne ment. Le checkout calcule
 --   order_type = 'supermarket' si la ligne est de l'épicerie, sinon 'food'
