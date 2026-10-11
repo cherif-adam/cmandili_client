@@ -6,7 +6,6 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/delivery_fee.dart';
 import '../../../core/utils/currency_formatter.dart';
-import '../../../core/utils/platform_pricing.dart';
 import '../data/models/supermarket.dart';
 import '../data/models/grocery_category.dart';
 import '../data/models/grocery_item.dart';
@@ -395,7 +394,7 @@ class _ProductCard extends ConsumerWidget {
                                       ),
                                     ),
                                     Text(
-                                      CurrencyFormatter.formatPrice(applyPlatformMarkup(item.price)),
+                                      CurrencyFormatter.formatPrice(item.price),
                                       style: const TextStyle(
                                         fontSize: 11,
                                         color: AppColors.textSecondary,
@@ -511,7 +510,7 @@ class _ProductCard extends ConsumerWidget {
                     title: Text(v.name,
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                     trailing: Text(
-                      CurrencyFormatter.formatPrice(applyPlatformMarkup(v.price)),
+                      CurrencyFormatter.formatPrice(v.price),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF4CAF50),

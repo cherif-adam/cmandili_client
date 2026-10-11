@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/platform_pricing.dart';
 import '../../data/models/search_result.dart';
 
 /// Card displaying a single food item from an AI search result.
@@ -160,7 +159,7 @@ class AiSearchResultCard extends StatelessWidget {
                           if (hasDiscount) ...[
                             const SizedBox(width: 4),
                             Text(
-                              applyPlatformMarkup(item.price).toStringAsFixed(1),
+                              item.price.toStringAsFixed(1),
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: AppColors.textLight,

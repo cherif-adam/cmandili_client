@@ -2,7 +2,6 @@ import '../../../menu/data/models/item_variant.dart';
 import '../../../restaurant/data/models/food_item.dart';
 import '../../../supermarket/data/models/grocery_item.dart';
 import '../../../../core/models/vendor.dart';
-import '../../../../core/utils/platform_pricing.dart';
 import 'order_customization.dart';
 import 'selected_option_group.dart';
 
@@ -113,8 +112,8 @@ class CartItem {
       : selectedOptionGroups.expand((g) => g.selections).map((s) => s.name).join(', ');
 
   double get price {
-    // Raw base (or variant-replacement) price + raw selected add-ons, with
-    // the 10% platform fee applied ONCE to the sum — never per-component.
+    // Base price (or the variant that replaces it) plus the selected
+    // add-ons. The partner's price is used as-is — nothing is added on top.
     // This getter is the single source used for cart totals, checkout, and
     // the order_items.price column stored in the DB.
     final unitBase = variant != null
@@ -131,7 +130,7 @@ class CartItem {
     final addOns = selectedOptionGroups
         .expand((g) => g.selections)
         .fold(0.0, (sum, s) => sum + s.price);
-    return applyPlatformMarkup(unitBase + addOns);
+    return unitBase + addOns;
   }
 
   String get imageUrl => switch (type) {

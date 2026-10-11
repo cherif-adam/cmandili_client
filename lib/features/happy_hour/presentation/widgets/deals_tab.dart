@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/models/vendor.dart';
-import '../../../../core/utils/platform_pricing.dart';
 import '../../../cart/data/models/cart_item.dart';
 import '../../../cart/presentation/add_to_cart_guard.dart';
 import '../../../cart/presentation/cart_screen.dart';
@@ -45,7 +44,7 @@ class DealsTab extends ConsumerWidget {
             name: item.name,
             description: item.description,
             imageUrl: item.imageUrl,
-            originalPrice: applyPlatformMarkup(item.price),
+            originalPrice: item.price,
             discountPrice: item.clientPrice,
             endsAt: item.discountEndTime,
             quantity: item.discountQuantity,
@@ -61,7 +60,7 @@ class DealsTab extends ConsumerWidget {
             name: item.name,
             description: '${item.description} (${item.unit})',
             imageUrl: item.imageUrl,
-            originalPrice: applyPlatformMarkup(item.price),
+            originalPrice: item.price,
             discountPrice: item.clientPrice,
             endsAt: item.discountEndTime,
             quantity: item.discountQuantity,
@@ -82,8 +81,8 @@ class DealsTab extends ConsumerWidget {
             name: item.name,
             description: item.description,
             imageUrl: item.imageUrl,
-            originalPrice: applyPlatformMarkup(item.price),
-            discountPrice: applyPlatformMarkup(item.effectivePrice),
+            originalPrice: item.price,
+            discountPrice: item.effectivePrice,
             endsAt: item.discountEndTime,
             quantity: item.discountQuantity,
             cartItem: CartItem.vendor(vendorItem: item, quantity: 1),
