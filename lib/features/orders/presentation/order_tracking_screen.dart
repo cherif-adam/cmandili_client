@@ -15,6 +15,7 @@ import 'order_labels.dart';
 import '../../loyalty/presentation/loyalty_card_sheet.dart';
 import '../../loyalty/presentation/loyalty_cancel_dialog.dart';
 import '../../rating/presentation/rating_prompt_sheet.dart';
+import 'widgets/receipt_confirmation_card.dart';
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
@@ -95,6 +96,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   // RatingPromptSheet.maybeShow itself.
   void _maybeScheduleRatingPrompt(Order order) {
     if (order.status != OrderStatus.delivered || _ratingPromptScheduled) return;
+    // First things first: the customer is being asked whether the order
+    // arrived at all (ReceiptConfirmationCard), and may be rating the driver
+    // right after. Rating the shop waits for that, and is not latched here
+    // so it still fires once they have answered.
+    if (order.awaitsReceiptConfirmation || ReceiptConfirmationCard.flowBusy) {
+      return;
+    }
     _ratingPromptScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -674,6 +682,20 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                             _formatTime(order.estimatedDeliveryTime!)),
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       ),
+
+                    // The driver says it is delivered: ask the customer.
+                    // Renders nothing for orders from before this existed.
+                    if (order.status == OrderStatus.delivered) ...[
+                      const SizedBox(height: 16),
+                      ReceiptConfirmationCard(
+                        order: order,
+                        // Rebuild so the shop-rating prompt held back above
+                        // gets its turn.
+                        onFlowFinished: () {
+                          if (mounted) setState(() {});
+                        },
+                      ),
+                    ],
 
                     // Live route: traffic-aware ETA, remaining distance, and
                     // the streets the driver is taking. Redrawn whenever they

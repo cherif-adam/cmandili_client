@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/order_repository.dart';
@@ -72,6 +72,47 @@ final activeOrderProvider = StreamProvider<Order?>((ref) {
     controller.close();
   });
   return controller.stream;
+});
+
+/// An order the driver has delivered and the customer has not confirmed yet,
+/// or null. Drives the "did you receive your order?" reminder on the home
+/// screen.
+///
+/// Re-checked the moment the active order changes (an order leaving "active"
+/// is exactly an order being delivered), every 10 s while the app is on
+/// screen, and it goes back to null by itself once the customer answers or
+/// the server confirms after three minutes.
+final receiptPendingOrderProvider = StreamProvider<Order?>((ref) {
+  final repository = ref.watch(orderRepositoryProvider);
+  final controller = StreamController<Order?>();
+  var closed = false;
+
+  Future<void> refresh() async {
+    final order = await repository.getOrderAwaitingReceipt();
+    if (!closed) controller.add(order);
+  }
+
+  refresh();
+  ref.listen(activeOrderProvider, (_, __) => refresh());
+  final timer = Timer.periodic(const Duration(seconds: 10), (_) {
+    if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+      refresh();
+    }
+  });
+
+  ref.onDispose(() {
+    closed = true;
+    timer.cancel();
+    controller.close();
+  });
+  return controller.stream;
+});
+
+/// Whether the driver of [orderId] can still be rated by this customer.
+/// Invalidated after a rating is sent.
+final canRateDriverProvider =
+    FutureProvider.autoDispose.family<bool, String>((ref, orderId) {
+  return ref.watch(orderRepositoryProvider).canRateDriver(orderId);
 });
 
 // Future provider for fetching facture (bill payment) orders only

@@ -22,6 +22,7 @@ import '../../happy_hour/providers/happy_hour_provider.dart';
 import '../../orders/presentation/order_history_screen.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
 import '../../orders/providers/order_provider.dart';
+import '../../orders/data/models/order.dart';
 import '../../ai_search/presentation/ai_search_screen.dart';
 import '../../../screens/ai_chat_screen.dart';
 import '../../courier/presentation/courier_screen.dart';
@@ -749,7 +750,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // activeOrderProvider re-polls, so an order placed during this session
     // appears here and a delivered/cancelled one disappears without a restart.
     final activeOrder = ref.watch(activeOrderProvider).valueOrNull;
-    if (activeOrder == null) return const SizedBox.shrink();
+    // A delivered order waiting for "did you receive it?" is no longer
+    // active, so it would have no way back into the tracking screen where
+    // the question is asked. It takes the pill, and takes it first: the
+    // question closes by itself after three minutes.
+    final awaitingReceipt = ref.watch(receiptPendingOrderProvider).valueOrNull;
+    final pillOrder = awaitingReceipt ?? activeOrder;
+    if (pillOrder == null) return const SizedBox.shrink();
+    final isReceipt = awaitingReceipt != null;
+    final pillColor = isReceipt ? AppColors.success : AppColors.primary;
 
     return Positioned(
       left: sw * 0.06,
@@ -758,9 +767,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       right: 80,
       bottom: sh * 0.03 + sh * 0.085 + sh * 0.015,
       child: Material(
-        color: AppColors.primary,
+        color: pillColor,
         elevation: 6,
-        shadowColor: AppColors.primary.withValues(alpha: 0.4),
+        shadowColor: pillColor.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(sw * 0.05),
         child: InkWell(
           borderRadius: BorderRadius.circular(sw * 0.05),
@@ -768,7 +777,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => OrderTrackingScreen(orderId: activeOrder.id),
+                builder: (_) => OrderTrackingScreen(orderId: pillOrder.id),
               ),
             );
           },
@@ -776,7 +785,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             padding: EdgeInsets.symmetric(horizontal: sw * 0.035, vertical: sh * 0.012),
             child: Row(
               children: [
-                const Icon(Icons.delivery_dining, color: Colors.white),
+                Icon(
+                  isReceipt ? Icons.inventory_2_rounded : Icons.delivery_dining,
+                  color: Colors.white,
+                ),
                 SizedBox(width: sw * 0.025),
                 Expanded(
                   child: Column(
@@ -784,7 +796,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        AppLocalizations.of(context)!.activeOrder,
+                        isReceipt
+                            ? (pillOrder.type == OrderType.courier
+                                ? AppLocalizations.of(context)!.receiptQuestionParcel
+                                : AppLocalizations.of(context)!.receiptQuestion)
+                            : AppLocalizations.of(context)!.activeOrder,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -794,7 +810,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                       Text(
-                        activeOrder.getStatusText(),
+                        isReceipt
+                            ? AppLocalizations.of(context)!.receiptTapToConfirm
+                            : pillOrder.getStatusText(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

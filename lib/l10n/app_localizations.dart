@@ -826,6 +826,156 @@ abstract class AppLocalizations {
   /// **'LIVE'**
   String get happyHourLive;
 
+  /// No description provided for @receiptQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Did you receive your order?'**
+  String get receiptQuestion;
+
+  /// No description provided for @receiptQuestionParcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Was your parcel handed over?'**
+  String get receiptQuestionParcel;
+
+  /// No description provided for @receiptYesParcel.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, delivered'**
+  String get receiptYesParcel;
+
+  /// No description provided for @receiptNoParcel.
+  ///
+  /// In en, this message translates to:
+  /// **'No, not delivered'**
+  String get receiptNoParcel;
+
+  /// No description provided for @receiptNotDeliveredParcelLink.
+  ///
+  /// In en, this message translates to:
+  /// **'My parcel was not delivered'**
+  String get receiptNotDeliveredParcelLink;
+
+  /// No description provided for @receiptReportBodyParcel.
+  ///
+  /// In en, this message translates to:
+  /// **'We will tell our support team that this parcel was not handed over.'**
+  String get receiptReportBodyParcel;
+
+  /// No description provided for @receiptAutoIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirms automatically in {time}'**
+  String receiptAutoIn(String time);
+
+  /// No description provided for @receiptYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, received'**
+  String get receiptYes;
+
+  /// No description provided for @receiptNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No, not received'**
+  String get receiptNo;
+
+  /// No description provided for @receiptConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt confirmed. Thank you!'**
+  String get receiptConfirmed;
+
+  /// No description provided for @receiptAutoConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt confirmed automatically'**
+  String get receiptAutoConfirmed;
+
+  /// No description provided for @receiptNotReceivedLink.
+  ///
+  /// In en, this message translates to:
+  /// **'I did not receive my order'**
+  String get receiptNotReceivedLink;
+
+  /// No description provided for @receiptReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a problem?'**
+  String get receiptReportTitle;
+
+  /// No description provided for @receiptReportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We will tell our support team that you did not receive this order.'**
+  String get receiptReportBody;
+
+  /// No description provided for @receiptReportConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get receiptReportConfirm;
+
+  /// No description provided for @receiptReported.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported. Our support team will contact you.'**
+  String get receiptReported;
+
+  /// No description provided for @receiptSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save your answer. Please try again.'**
+  String get receiptSaveFailed;
+
+  /// No description provided for @receiptTapToConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to confirm'**
+  String get receiptTapToConfirm;
+
+  /// No description provided for @rateDriverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate your driver'**
+  String get rateDriverTitle;
+
+  /// No description provided for @rateDriverButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate the driver'**
+  String get rateDriverButton;
+
+  /// No description provided for @rateDriverHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A comment? (optional)'**
+  String get rateDriverHint;
+
+  /// No description provided for @rateDriverSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get rateDriverSend;
+
+  /// No description provided for @rateDriverLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get rateDriverLater;
+
+  /// No description provided for @rateDriverThanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for your review!'**
+  String get rateDriverThanks;
+
+  /// No description provided for @rateDriverFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send your review right now.'**
+  String get rateDriverFailed;
+
   /// No description provided for @happyHourDealsSummary.
   ///
   /// In en, this message translates to:

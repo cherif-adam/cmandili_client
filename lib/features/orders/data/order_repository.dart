@@ -668,7 +668,107 @@ class OrderRepository {
       'senderPhone': dbJson['sender_phone'],
       'loyaltyMilestoneType': dbJson['loyalty_milestone_type'],
       'loyaltyDiscountAmount': dbJson['loyalty_discount_amount'],
+      // Absent (so null) until 20261011120000_receipt_confirmation_and_
+      // driver_ratings.sql has been run: the feature then stays hidden.
+      'deliveredAt': dbJson['delivered_at'],
+      'clientConfirmation': dbJson['client_confirmation'],
     };
+  }
+
+  // ── Receipt confirmation ──────────────────────────────────────────────────
+
+  /// Records the customer's answer to "did you receive your order?".
+  ///
+  /// Goes through the confirm_order_receipt() database function rather than
+  /// an UPDATE: the orders column guard only lets a customer change a short
+  /// whitelist of columns, and the function also files the support ticket
+  /// when the answer is no. Returns the stored state ('confirmed' /
+  /// 'not_received'), or null if it could not be saved.
+  Future<String?> confirmReceipt(String orderId, {required bool received}) async {
+    try {
+      final result = await _supabase.rpc('confirm_order_receipt', params: {
+        'p_order_id': orderId,
+        'p_received': received,
+      });
+      return result as String?;
+    } catch (e) {
+      debugPrint('confirmReceipt failed: $e');
+      return null;
+    }
+  }
+
+  /// The customer's most recent order that the driver has delivered and that
+  /// is still waiting for their confirmation, or null. Backs the home-screen
+  /// reminder: once an order is delivered it is no longer "active", so
+  /// without this the question would only ever be seen by someone who
+  /// happened to be on the tracking screen.
+  ///
+  /// Returns null on any error -- including the columns not existing yet.
+  Future<Order?> getOrderAwaitingReceipt() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+    try {
+      final row = await _supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('status', 'delivered')
+          .isFilter('client_confirmation', null)
+          .not('delivered_at', 'is', null)
+          .order('delivered_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (row == null) return null;
+      return Order.fromJson(_mapOrderFromDb(row));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ── Driver rating ─────────────────────────────────────────────────────────
+
+  /// Whether the customer can still rate the driver of this order: true only
+  /// when the check itself succeeds and finds no rating. False when one
+  /// exists, and false on any error (driver_ratings not created yet), so the
+  /// prompt never appears for something that could not be saved.
+  Future<bool> canRateDriver(String orderId) async {
+    try {
+      final row = await _supabase
+          .from('driver_ratings')
+          .select('id')
+          .eq('order_id', orderId)
+          .maybeSingle();
+      return row == null;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Records a 1-5 star rating (+ optional comment) for the driver who
+  /// delivered [orderId]. A database trigger keeps the driver's average and
+  /// count up to date. Returns false on any failure.
+  Future<bool> submitDriverRating({
+    required String orderId,
+    required String driverId,
+    required int rating,
+    String? comment,
+  }) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+      await _supabase.from('driver_ratings').insert({
+        'order_id': orderId,
+        'driver_id': driverId,
+        'user_id': userId,
+        'rating': rating,
+        if (comment != null && comment.trim().isNotEmpty)
+          'comment': comment.trim(),
+      });
+      return true;
+    } catch (e) {
+      debugPrint('submitDriverRating failed: $e');
+      return false;
+    }
   }
 
   /// Customer's lifetime delivered-order count for the loyalty program

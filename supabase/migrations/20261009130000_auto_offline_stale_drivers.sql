@@ -22,11 +22,21 @@
 -- next_eligible_driver fix in scripts/20260926_fix_phantom_block_and_stale_
 -- online.sql uses, and comfortably more than three missed heartbeats.
 --
--- WARNING -- run this only once every driver has an app build with the
--- 4-minute heartbeat (driver commit 3255e20, 2026-09-29, or later). An older
--- build writes its position only when the driver MOVES, so a driver waiting
--- outside a restaurant would be switched offline after 15 minutes while
--- their app still shows them online, and they would stop receiving orders.
+-- WARNING -- run this only once every driver has the app build of 2026-10-11
+-- or later, the first one where the APP ITSELF reports "still here" every
+-- two minutes and goes back online if the server switched it off.
+--
+-- This was learnt the hard way: with earlier builds the timestamp was only
+-- refreshed by the background service (on a GPS movement, or on a heartbeat
+-- that wrote nothing when the phone had no stored position), and that
+-- service stops when location permission is missing or the phone maker
+-- kills it. Drivers sitting in the open app were switched offline after 15
+-- minutes and stopped receiving orders while their switch still showed
+-- online.
+--
+-- If orders have stopped reaching drivers and this job is active, turn it
+-- off first, then update the driver app:
+--     select cron.unschedule('drivers_auto_offline_stale');
 --
 -- Safe to re-run: cron.schedule() replaces a job with the same name.
 -- To remove it later:  select cron.unschedule('drivers_auto_offline_stale');

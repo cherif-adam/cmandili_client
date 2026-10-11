@@ -119,6 +119,30 @@ class Order {
   /// par une étape de préparation.
   final String? shopCategory;
 
+  /// When the driver marked the order delivered. Null on orders delivered
+  /// before receipt confirmation existed (and while the database script for
+  /// it has not been run), which is what keeps old orders from asking.
+  final DateTime? deliveredAt;
+
+  /// The customer's answer to "did you receive your order?":
+  /// 'confirmed', 'not_received', 'auto_confirmed' (nobody answered for
+  /// three minutes), or null while the question is still open.
+  final String? clientConfirmation;
+
+  /// How long the customer has to answer before the server confirms for them.
+  static const receiptWindow = Duration(minutes: 3);
+
+  /// Delivered by the driver and still waiting for the customer's word.
+  bool get awaitsReceiptConfirmation =>
+      status == OrderStatus.delivered &&
+      deliveredAt != null &&
+      clientConfirmation == null;
+
+  /// Confirmed only because nobody answered: the customer may still say the
+  /// order never came.
+  bool get receiptAutoConfirmed =>
+      status == OrderStatus.delivered && clientConfirmation == 'auto_confirmed';
+
   Order({
     required this.id,
     required this.userId,
@@ -154,6 +178,8 @@ class Order {
     this.loyaltyMilestoneType,
     this.loyaltyDiscountAmount = 0,
     this.shopCategory,
+    this.deliveredAt,
+    this.clientConfirmation,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -203,6 +229,10 @@ class Order {
       billReceiptUrl: json['billReceiptUrl'],
       senderPhone: json['senderPhone'],
       shopCategory: json['shopCategory'] as String?,
+      deliveredAt: json['deliveredAt'] != null
+          ? DateTime.tryParse(json['deliveredAt'].toString())
+          : null,
+      clientConfirmation: json['clientConfirmation'] as String?,
       loyaltyMilestoneType: json['loyaltyMilestoneType'] as String?,
       loyaltyDiscountAmount: (json['loyaltyDiscountAmount'] as num?)?.toDouble() ?? 0,
     );
@@ -242,6 +272,8 @@ class Order {
       'billReceiptUrl': billReceiptUrl,
       'senderPhone': senderPhone,
       'shopCategory': shopCategory,
+      'deliveredAt': deliveredAt?.toIso8601String(),
+      'clientConfirmation': clientConfirmation,
       'loyaltyMilestoneType': loyaltyMilestoneType,
       'loyaltyDiscountAmount': loyaltyDiscountAmount,
     };

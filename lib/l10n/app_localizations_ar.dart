@@ -381,6 +381,84 @@ class AppLocalizationsAr extends AppLocalizations {
   String get happyHourLive => 'مباشر';
 
   @override
+  String get receiptQuestion => 'هل استلمت طلبك؟';
+
+  @override
+  String get receiptQuestionParcel => 'هل تم تسليم طردك؟';
+
+  @override
+  String get receiptYesParcel => 'نعم، تم التسليم';
+
+  @override
+  String get receiptNoParcel => 'لا، لم يُسلَّم';
+
+  @override
+  String get receiptNotDeliveredParcelLink => 'لم يتم تسليم طردي';
+
+  @override
+  String get receiptReportBodyParcel =>
+      'سنبلغ فريق الدعم بأن هذا الطرد لم يُسلَّم.';
+
+  @override
+  String receiptAutoIn(String time) {
+    return 'تأكيد تلقائي خلال $time';
+  }
+
+  @override
+  String get receiptYes => 'نعم، استلمته';
+
+  @override
+  String get receiptNo => 'لا، لم أستلمه';
+
+  @override
+  String get receiptConfirmed => 'تم تأكيد الاستلام. شكراً!';
+
+  @override
+  String get receiptAutoConfirmed => 'تم تأكيد الاستلام تلقائياً';
+
+  @override
+  String get receiptNotReceivedLink => 'لم أستلم طلبي';
+
+  @override
+  String get receiptReportTitle => 'الإبلاغ عن مشكلة؟';
+
+  @override
+  String get receiptReportBody => 'سنبلغ فريق الدعم بأنك لم تستلم هذا الطلب.';
+
+  @override
+  String get receiptReportConfirm => 'إبلاغ';
+
+  @override
+  String get receiptReported => 'تم الإبلاغ. سيتواصل معك فريق الدعم.';
+
+  @override
+  String get receiptSaveFailed => 'تعذر حفظ إجابتك. حاول مرة أخرى.';
+
+  @override
+  String get receiptTapToConfirm => 'اضغط للتأكيد';
+
+  @override
+  String get rateDriverTitle => 'قيّم السائق';
+
+  @override
+  String get rateDriverButton => 'تقييم السائق';
+
+  @override
+  String get rateDriverHint => 'تعليق؟ (اختياري)';
+
+  @override
+  String get rateDriverSend => 'إرسال';
+
+  @override
+  String get rateDriverLater => 'لاحقاً';
+
+  @override
+  String get rateDriverThanks => 'شكراً على تقييمك!';
+
+  @override
+  String get rateDriverFailed => 'تعذر إرسال تقييمك حالياً.';
+
+  @override
   String happyHourDealsSummary(int count, int percent) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

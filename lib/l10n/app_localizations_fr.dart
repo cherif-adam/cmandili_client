@@ -394,6 +394,87 @@ class AppLocalizationsFr extends AppLocalizations {
   String get happyHourLive => 'EN DIRECT';
 
   @override
+  String get receiptQuestion => 'Avez-vous reçu votre commande ?';
+
+  @override
+  String get receiptQuestionParcel => 'Votre colis a-t-il bien été remis ?';
+
+  @override
+  String get receiptYesParcel => 'Oui, remis';
+
+  @override
+  String get receiptNoParcel => 'Non, pas remis';
+
+  @override
+  String get receiptNotDeliveredParcelLink => 'Mon colis n\'a pas été remis';
+
+  @override
+  String get receiptReportBodyParcel =>
+      'Nous préviendrons notre support que ce colis n\'a pas été remis.';
+
+  @override
+  String receiptAutoIn(String time) {
+    return 'Confirmation automatique dans $time';
+  }
+
+  @override
+  String get receiptYes => 'Oui, reçue';
+
+  @override
+  String get receiptNo => 'Non, pas reçue';
+
+  @override
+  String get receiptConfirmed => 'Réception confirmée. Merci !';
+
+  @override
+  String get receiptAutoConfirmed => 'Réception confirmée automatiquement';
+
+  @override
+  String get receiptNotReceivedLink => 'Je n\'ai pas reçu ma commande';
+
+  @override
+  String get receiptReportTitle => 'Signaler un problème ?';
+
+  @override
+  String get receiptReportBody =>
+      'Nous préviendrons notre support que vous n\'avez pas reçu cette commande.';
+
+  @override
+  String get receiptReportConfirm => 'Signaler';
+
+  @override
+  String get receiptReported => 'Signalé. Notre support va vous contacter.';
+
+  @override
+  String get receiptSaveFailed =>
+      'Impossible d\'enregistrer votre réponse. Réessayez.';
+
+  @override
+  String get receiptTapToConfirm => 'Touchez pour confirmer';
+
+  @override
+  String get rateDriverTitle => 'Notez votre livreur';
+
+  @override
+  String get rateDriverButton => 'Noter le livreur';
+
+  @override
+  String get rateDriverHint => 'Un commentaire ? (facultatif)';
+
+  @override
+  String get rateDriverSend => 'Envoyer';
+
+  @override
+  String get rateDriverLater => 'Plus tard';
+
+  @override
+  String get rateDriverThanks => 'Merci pour votre avis !';
+
+  @override
+  String get rateDriverFailed =>
+      'Impossible d\'envoyer votre avis pour le moment.';
+
+  @override
   String happyHourDealsSummary(int count, int percent) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
