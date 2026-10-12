@@ -15,6 +15,7 @@ import 'order_labels.dart';
 import '../../loyalty/presentation/loyalty_card_sheet.dart';
 import '../../loyalty/presentation/loyalty_cancel_dialog.dart';
 import '../../rating/presentation/rating_prompt_sheet.dart';
+import 'widgets/colis_receipt_card.dart';
 import 'widgets/receipt_confirmation_card.dart';
 
 class OrderTrackingScreen extends ConsumerStatefulWidget {
@@ -682,6 +683,17 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                             _formatTime(order.estimatedDeliveryTime!)),
                         style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       ),
+
+                    // Colis : code de remise, puis preuves une fois la
+                    // livraison faite, puis signalement pendant 24 h. La
+                    // carte ne rend rien si la commande n'a pas de reçu.
+                    if (isCourier) ...[
+                      const SizedBox(height: 16),
+                      ColisReceiptCard(
+                        orderId: order.id,
+                        deliveredAt: order.deliveredAt,
+                      ),
+                    ],
 
                     // The driver says it is delivered: ask the customer.
                     // Renders nothing for orders from before this existed.

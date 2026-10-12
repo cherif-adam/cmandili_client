@@ -8,6 +8,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/location_service.dart';
 import '../../../core/utils/delivery_fee.dart';
+import '../data/colis_repository.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
 import '../../orders/presentation/order_success_screen.dart';
@@ -65,9 +66,26 @@ class CourierScreen extends ConsumerStatefulWidget {
 class _CourierScreenState extends ConsumerState<CourierScreen> {
   final _formKey = GlobalKey<FormState>();
   final _packageDescController = TextEditingController();
+  final _declaredValueController = TextEditingController();
+  final _receiverLabelController = TextEditingController();
   final _senderPhoneController = TextEditingController();
   final _recipientNameController = TextEditingController();
   final _recipientPhoneController = TextEditingController();
+
+  // ── Bon de prise en charge ────────────────────────────────────────────────
+  final _colisRepo = ColisRepository();
+
+  /// Plafond lu en base, pour qu'un admin le change sans livrer une version.
+  /// La valeur de repli ne sert qu'à l'affichage : le serveur revalide.
+  double _maxDeclaredValue = kColisFallbackMaxValue;
+
+  ColisDeliveryMode _deliveryMode = ColisDeliveryMode.code;
+
+  /// L'expéditeur confirme que son colis ne contient rien d'interdit.
+  bool _forbiddenConfirmed = false;
+
+  /// En remise sans code, il accepte que photo et GPS tiennent lieu de preuve.
+  bool _noCodeAccepted = false;
 
   DeliveryAddress? _pickupAddress;
   DeliveryAddress? _dropoffAddress;
@@ -102,6 +120,12 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     _setInitialPickupLocation();
     _loadSavedRecipients();
     _loadLoyaltyPreview();
+    _loadMaxDeclaredValue();
+  }
+
+  Future<void> _loadMaxDeclaredValue() async {
+    final v = await _colisRepo.maxDeclaredValue();
+    if (mounted) setState(() => _maxDeclaredValue = v);
   }
 
   Future<void> _loadLoyaltyPreview() async {
@@ -112,6 +136,8 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
   @override
   void dispose() {
     _packageDescController.dispose();
+    _declaredValueController.dispose();
+    _receiverLabelController.dispose();
     _senderPhoneController.dispose();
     _recipientNameController.dispose();
     _recipientPhoneController.dispose();
@@ -342,6 +368,17 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
       return;
     }
 
+    // Les deux cases ne sont pas des champs de formulaire : un validator ne
+    // les couvre pas, il faut les vérifier à la main.
+    if (!_forbiddenConfirmed) {
+      _snack('Confirmez que votre colis ne contient aucun article interdit.');
+      return;
+    }
+    if (_deliveryMode == ColisDeliveryMode.noCode && !_noCodeAccepted) {
+      _snack('Acceptez que la photo et la position tiennent lieu de preuve.');
+      return;
+    }
+
     final supabase = Supabase.instance.client;
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
@@ -369,44 +406,36 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
           );
       final deliveryFee = calculateDeliveryFee(distanceKm: distanceKm);
 
-      final response = await supabase.from('orders').insert({
-        'user_id': userId,
-        'status': 'ready',
-        'subtotal': 0.0,
-        'delivery_fee': deliveryFee,
-        'total': deliveryFee,
-        'payment_method': 'cash',
-        'notes': _packageDescController.text.trim().isEmpty
-            ? null
-            : _packageDescController.text.trim(),
-        'delivery_address': _dropoffAddress!.toJson(),
-        'pickup_address': _pickupAddress!.toJson(),
-        'order_type': 'courier',
-        'package_description': _packageDescController.text.trim().isEmpty
-            ? null
-            : _packageDescController.text.trim(),
-        'package_size': _packageSize.name,
-        'sender_phone': _senderPhoneController.text.trim(),
-        'recipient_name': _recipientNameController.text.trim().isEmpty
+      // Plus d'insertion directe dans `orders` : create_colis_order écrit la
+      // commande ET sa déclaration dans la même transaction. Un colis part en
+      // broadcast dès sa création ; il ne doit jamais exister sans valeur
+      // déclarée ni mode de remise, sinon un livreur peut l'accepter sans rien
+      // qui le protège. Le serveur revalide aussi le plafond : le contrôle du
+      // formulaire est du confort, celui-là est la règle.
+      final orderId = await _colisRepo.createOrder(
+        pickupAddress: _pickupAddress!.toJson(),
+        deliveryAddress: _dropoffAddress!.toJson(),
+        senderPhone: _senderPhoneController.text.trim(),
+        recipientPhone: _recipientPhoneController.text.trim(),
+        packageSize: _packageSize.name,
+        description: _packageDescController.text.trim(),
+        declaredValue:
+            double.parse(_declaredValueController.text.trim().replaceAll(',', '.')),
+        deliveryFee: deliveryFee,
+        recipientName: _recipientNameController.text.trim().isEmpty
             ? null
             : _recipientNameController.text.trim(),
-        'recipient_phone': _recipientPhoneController.text.trim(),
-        if (photoUrl != null) 'package_photo_url': photoUrl,
-        // .toUtc() — see order_repository.dart. Without it this 45-minute
-        // estimate was stored as 105 minutes in Tunisia (45 + the UTC+1
-        // offset), which is how the timezone bug was first confirmed.
-        'estimated_delivery_time': DateTime.now()
-            .add(const Duration(minutes: 45))
-            .toUtc()
-            .toIso8601String(),
-      }).select('id').single();
+        mode: _deliveryMode,
+        receiverLabel: _deliveryMode == ColisDeliveryMode.noCode
+            ? _receiverLabelController.text.trim()
+            : null,
+        packagePhotoUrl: photoUrl,
+      );
 
       // Persist saved recipient (non-fatal if it fails)
       try {
         await _persistRecipient(userId);
       } catch (_) {}
-
-      final orderId = response['id'] as String;
 
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
@@ -568,17 +597,54 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             SizedBox(height: h * 0.025),
 
             // ── Package description ──────────────────────────────────────────
-            _buildSectionHeader('Description du colis', Icons.description_outlined, w, h),
+            // Obligatoire désormais : c'est ce que le livreur confirme avoir
+            // reçu, et ce qu'un admin lit en cas de litige. « Optionnel » ne
+            // tient plus dès lors qu'on s'en sert comme preuve.
+            _buildSectionHeader('Que contient votre colis ?',
+                Icons.description_outlined, w, h),
             SizedBox(height: h * 0.015),
             TextFormField(
               controller: _packageDescController,
               maxLines: 2,
               decoration: _inputDecoration(
-                'Ex: documents, vêtements, chaussures… (optionnel)',
+                'Ex : téléphone Samsung A15, documents, vêtements…',
                 Icons.description,
                 w,
               ),
+              validator: (v) => (v ?? '').trim().isEmpty
+                  ? 'Décrivez le contenu de votre colis'
+                  : null,
             ),
+            SizedBox(height: h * 0.025),
+
+            // ── Valeur déclarée ──────────────────────────────────────────────
+            _buildSectionHeader('Valeur déclarée', Icons.sell_outlined, w, h),
+            SizedBox(height: h * 0.008),
+            Text(
+              'Plafond : ${_maxDeclaredValue.toStringAsFixed(0)} TND. Au-delà, '
+              'scindez votre envoi en plusieurs colis.',
+              style: TextStyle(
+                  fontSize: w * 0.032, color: AppColors.textSecondary),
+            ),
+            SizedBox(height: h * 0.015),
+            TextFormField(
+              controller: _declaredValueController,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: _inputDecoration('Valeur en TND', Icons.payments_outlined, w),
+              validator: _validateDeclaredValue,
+            ),
+            SizedBox(height: h * 0.025),
+
+            // ── Articles interdits ───────────────────────────────────────────
+            _buildForbiddenItems(w, h),
+            SizedBox(height: h * 0.025),
+
+            // ── Mode de remise ───────────────────────────────────────────────
+            _buildSectionHeader('Remise au destinataire',
+                Icons.verified_user_outlined, w, h),
+            SizedBox(height: h * 0.015),
+            _buildDeliveryModeSelector(w, h),
             SizedBox(height: h * 0.025),
 
             // ── Package photo ────────────────────────────────────────────────
@@ -1080,6 +1146,186 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  // ── Bon de prise en charge : saisie ───────────────────────────────────────
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
+    );
+  }
+
+  /// Le serveur revalide ce plafond. Ce validator évite juste à l'utilisateur
+  /// de remplir tout le formulaire pour se faire refuser à la fin.
+  String? _validateDeclaredValue(String? v) {
+    final raw = (v ?? '').trim().replaceAll(',', '.');
+    if (raw.isEmpty) return 'Indiquez la valeur de votre colis';
+    final value = double.tryParse(raw);
+    if (value == null) return 'Montant invalide';
+    if (value <= 0) return 'La valeur doit être supérieure à 0';
+    if (value > _maxDeclaredValue) {
+      return 'Maximum ${_maxDeclaredValue.toStringAsFixed(0)} TND — '
+          'scindez votre envoi';
+    }
+    return null;
+  }
+
+  Widget _buildForbiddenItems(double w, double h) {
+    return Container(
+      padding: EdgeInsets.all(w * 0.04),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF4E5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFFD9A0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Interdit dans un colis',
+            style: TextStyle(
+                fontSize: w * 0.038, fontWeight: FontWeight.w700),
+          ),
+          SizedBox(height: h * 0.012),
+          ...kColisForbiddenItems.map((item) => Padding(
+                padding: EdgeInsets.only(bottom: h * 0.006),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.$1, style: TextStyle(fontSize: w * 0.038)),
+                    SizedBox(width: w * 0.025),
+                    Expanded(
+                      child: Text(item.$2,
+                          style: TextStyle(
+                              fontSize: w * 0.034,
+                              color: AppColors.textSecondary)),
+                    ),
+                  ],
+                ),
+              )),
+          SizedBox(height: h * 0.004),
+          // La case vient APRÈS la liste : on ne confirme pas à l'aveugle.
+          CheckboxListTile(
+            value: _forbiddenConfirmed,
+            onChanged: (v) =>
+                setState(() => _forbiddenConfirmed = v ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            activeColor: AppColors.primary,
+            title: Text(
+              'Je confirme que mon colis ne contient aucun de ces articles',
+              style: TextStyle(fontSize: w * 0.034),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeliveryModeSelector(double w, double h) {
+    Widget option({
+      required ColisDeliveryMode mode,
+      required String title,
+      required String subtitle,
+      required IconData icon,
+    }) {
+      final selected = _deliveryMode == mode;
+      return InkWell(
+        onTap: () => setState(() => _deliveryMode = mode),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: EdgeInsets.all(w * 0.035),
+          margin: EdgeInsets.only(bottom: h * 0.012),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary.withValues(alpha: 0.08) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? AppColors.primary : const Color(0xFFE0E0E0),
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon,
+                  color: selected ? AppColors.primary : AppColors.textSecondary,
+                  size: w * 0.055),
+              SizedBox(width: w * 0.03),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: w * 0.038,
+                            fontWeight: FontWeight.w700)),
+                    SizedBox(height: h * 0.004),
+                    Text(subtitle,
+                        style: TextStyle(
+                            fontSize: w * 0.031,
+                            color: AppColors.textSecondary,
+                            height: 1.3)),
+                  ],
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check_circle, color: AppColors.primary, size: w * 0.05),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        option(
+          mode: ColisDeliveryMode.code,
+          title: 'Avec code',
+          subtitle:
+              'Un code à 4 chiffres vous sera donné. Le destinataire le '
+              'communique au livreur à la remise.',
+          icon: Icons.pin_outlined,
+        ),
+        option(
+          mode: ColisDeliveryMode.noCode,
+          title: 'Remise sans code',
+          subtitle:
+              "Quand le destinataire n'a pas de téléphone — un enfant à "
+              "l'école, un gardien. La preuve sera la photo et la position.",
+          icon: Icons.handshake_outlined,
+        ),
+        if (_deliveryMode == ColisDeliveryMode.noCode) ...[
+          SizedBox(height: h * 0.004),
+          TextFormField(
+            controller: _receiverLabelController,
+            decoration: _inputDecoration(
+                "Ex : Gardien de l'école, voisin du 3e…",
+                Icons.person_pin_circle_outlined,
+                w),
+            validator: (v) {
+              if (_deliveryMode != ColisDeliveryMode.noCode) return null;
+              return (v ?? '').trim().isEmpty
+                  ? 'Indiquez à qui le colis sera remis'
+                  : null;
+            },
+          ),
+          CheckboxListTile(
+            value: _noCodeAccepted,
+            onChanged: (v) => setState(() => _noCodeAccepted = v ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            activeColor: AppColors.primary,
+            title: Text(
+              "J'accepte que la preuve de remise soit la photo et la position "
+              'du livreur.',
+              style: TextStyle(fontSize: w * 0.034),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
