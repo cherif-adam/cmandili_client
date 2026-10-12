@@ -149,6 +149,13 @@ async function sendFcm(
   body: string,
   data: Record<string, string>,
   channelId = CHANNEL_STAFF,
+  /**
+   * Optional picture shown in the expanded notification. Only ever set for a
+   * delivered Colis, so the sender sees the handover photo without opening
+   * the app. When undefined the payload below is byte-for-byte what it was
+   * before this parameter existed — every other notification is unchanged.
+   */
+  imageUrl?: string,
 ) {
   const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
   await fetch(url, {
@@ -160,7 +167,7 @@ async function sendFcm(
     body: JSON.stringify({
       message: {
         token,
-        notification: { title, body },
+        notification: imageUrl ? { title, body, image: imageUrl } : { title, body },
         data,
         android: {
           priority: 'high',
@@ -169,6 +176,7 @@ async function sendFcm(
             // has never been opened (before Flutter creates channels at runtime).
             channel_id: channelId,
             sound: 'default',
+            ...(imageUrl ? { image: imageUrl } : {}),
           },
         },
         apns: {
@@ -312,14 +320,49 @@ async function pushToUsers(
   data: Record<string, string>,
   channelId: string,
   apps: App[],
+  /** Voir sendFcm : renseigné uniquement pour un colis livré. */
+  imageUrl?: string,
 ): Promise<number> {
   const all = await Promise.all(userIds.map(id => tokensForUser(supabase, id, apps)));
   const tokens = Array.from(new Set(all.flat()));
   if (tokens.length === 0) return 0;
   await Promise.allSettled(
-    tokens.map(t => sendFcm(accessToken, projectId, t, title, body, data, channelId)),
+    tokens.map(t => sendFcm(accessToken, projectId, t, title, body, data, channelId, imageUrl)),
   );
   return tokens.length;
+}
+
+/**
+ * URL signée de la photo de remise, pour un colis livré et rien d'autre.
+ *
+ * Renvoie undefined dans tous les autres cas — y compris si le reçu n'existe
+ * pas, si la photo manque, ou si la signature échoue. Un échec ici ne doit
+ * jamais empêcher la notification de partir : la photo est un plus, pas le
+ * message.
+ */
+async function colisDeliveryPhotoUrl(
+  supabase: SupabaseClient,
+  orderId: string,
+): Promise<string | undefined> {
+  try {
+    const { data: receipt } = await supabase
+      .from('colis_receipts')
+      .select('delivery_photo_path')
+      .eq('order_id', orderId)
+      .maybeSingle();
+
+    const path = receipt?.delivery_photo_path as string | null | undefined;
+    if (!path) return undefined;
+
+    // colis-proofs est privé. Deux heures de validité : largement de quoi
+    // couvrir une notification restée dans le volet quelques heures.
+    const { data: signed } = await supabase.storage
+      .from('colis-proofs')
+      .createSignedUrl(path, 7200);
+    return signed?.signedUrl ?? undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -580,7 +623,7 @@ serve(async (req: Request) => {
 
   const { data: order } = await supabase
     .from('orders')
-    .select('user_id, restaurant_id, supermarket_id, driver_id')
+    .select('user_id, restaurant_id, supermarket_id, driver_id, order_type')
     .eq('id', order_id)
     .maybeSingle();
 
@@ -615,10 +658,20 @@ serve(async (req: Request) => {
   // ── Customer ───────────────────────────────────────────────────────────────
   if (order.user_id) {
     const c = copyFor('customer', status);
+
+    // Un colis livré, et rien d'autre : l'expéditeur voit la photo de remise
+    // dans le volet de notification. Toute autre combinaison laisse
+    // imageUrl à undefined, et la charge FCM est identique à l'existante.
+    const imageUrl =
+      order.order_type === 'courier' && status === 'delivered'
+        ? await colisDeliveryPhotoUrl(supabase, order_id)
+        : undefined;
+
     results.customer = await pushToUsers(
       supabase, accessToken, projectId, [order.user_id], c.title, c.body, data,
       customerChannel(status),
       ['client'],
+      imageUrl,
     );
   }
 
