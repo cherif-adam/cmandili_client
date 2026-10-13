@@ -213,5 +213,34 @@ void main() {
       expect(prompt, contains('RULE 1B'));
       expect(prompt, contains('"vous", ALWAYS'));
     });
+
+    test('the function actually RETURNS lang, it does not just ask for it', () {
+      // The bug this exists for: `lang` was added to the system prompt and to
+      // this client, and shapeIntent — a field whitelist — was not updated.
+      // The model emitted lang on every reply, the function parsed it and
+      // dropped it, and the client fell back to French every single time.
+      // Deployed and silently inert; only the live probe showed it, as
+      // `lang=-`. Declaring the field required on ChatIntent makes
+      // `deno check` refuse a shapeIntent that omits it; this asserts the
+      // same thing without needing Deno installed.
+      expect(prompt, contains('lang: normaliseLang(parsed.lang)'),
+          reason: 'shapeIntent must copy lang into its result, or the field '
+              'never leaves the edge function');
+      expect(prompt, contains('lang: string;'),
+          reason: 'ChatIntent must REQUIRE lang (not lang?: string), so the '
+              'type checker enforces the passthrough');
+      expect(prompt, isNot(contains('lang?: string')));
+    });
+
+    test('the function normalises lang on its own side too', () {
+      // The model can answer "French" or "derja" instead of the code. The
+      // client copes, but it must not be the only place that does: anything
+      // reading this function's JSON gets a clean value.
+      expect(prompt, contains('function normaliseLang'));
+      for (final code in ['"fr"', '"en"', '"ar"', '"tn"']) {
+        expect(prompt, contains(code),
+            reason: '$code should be an accepted value server-side');
+      }
+    });
   });
 }

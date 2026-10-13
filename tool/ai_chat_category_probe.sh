@@ -131,7 +131,9 @@ probe_prompt() {
 
 probe_venues() {
   echo "=== VENUES — a kind of place reaches the restaurants that sell it ==="
-  echo "(matching a venue's NAME or its `categories` tags found almost"
+  # Single quotes: backticks inside a double-quoted string are command
+  # substitution, so "its `categories` tags" would try to run `categories`.
+  echo '(matching a venue'"'"'s NAME or its categories tags found almost'
   echo " nothing: 11 of 12 rows have an empty tag array, so \"fast food\""
   echo " reached no venue while 9 open restaurants sell its items)"
   echo

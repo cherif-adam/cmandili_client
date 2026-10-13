@@ -698,6 +698,16 @@ const SERVICE_CATEGORIES = [
 
 interface ChatIntent {
   message: string;
+  /// Which language `message` is written in — "fr" | "en" | "ar" | "tn".
+  ///
+  /// NON-OPTIONAL on purpose. This field was added to the system prompt and to
+  /// the client without being added to shapeIntent below, which is a
+  /// whitelist: the model emitted `lang` on every reply, the function parsed it
+  /// and then dropped it on the floor, and the client fell back to French
+  /// every time. Declaring it required here makes `deno check` refuse a
+  /// shapeIntent that forgets it, which is the only reason that class of bug
+  /// is now impossible rather than merely unlikely.
+  lang: string;
   intent: string;
   health_goal: string | null;
   service_category: string | null;
@@ -708,6 +718,41 @@ interface ChatIntent {
   min_price: number | null;
   delivery_time: string | null;
   keyword: string | null;
+}
+
+/// The language the reply is written in. Mirrors AiChatService.normaliseLang
+/// on the client: only the four supported codes get through, anything else
+/// becomes "fr" (the app's default locale) rather than reaching the client as
+/// a value it would silently map to French anyway. Normalising on BOTH sides
+/// is deliberate — the model is free to answer "French" or "derja" instead of
+/// the code, and the client cannot be the only place that copes with it.
+function normaliseLang(raw: unknown): string {
+  if (typeof raw !== "string") return "fr";
+  const t = raw.trim().toLowerCase();
+  if (t === "fr" || t === "en" || t === "ar" || t === "tn") return t;
+  switch (t) {
+    case "fra":
+    case "fre":
+    case "french":
+    case "francais":
+    case "français":
+      return "fr";
+    case "eng":
+    case "english":
+      return "en";
+    case "ara":
+    case "arabic":
+    case "arabe":
+    case "fusha":
+      return "ar";
+    case "tun":
+    case "derja":
+    case "darija":
+    case "tunisian":
+      return "tn";
+    default:
+      return "fr";
+  }
 }
 
 /// Accepts only a known slug (case/whitespace tolerant), else null. A couple of
@@ -744,6 +789,7 @@ function shapeIntent(parsed: Record<string, unknown>): ChatIntent {
     : "Comment puis-je vous aider ? 😊";
   return {
     message,
+    lang: normaliseLang(parsed.lang),
     intent: typeof parsed.intent === "string" ? (parsed.intent as string) : "general",
     health_goal: typeof parsed.health_goal === "string" ? (parsed.health_goal as string) : null,
     service_category: normaliseServiceCategory(parsed.service_category),
