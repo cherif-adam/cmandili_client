@@ -356,6 +356,13 @@ begin
 end;
 $fn$;
 
+-- Supabase accorde EXECUTE a anon/authenticated sur toute nouvelle fonction
+-- du schema public (ALTER DEFAULT PRIVILEGES). Un `revoke from public` ne
+-- retire PAS cet octroi nominatif : il faut nommer anon. Le revoke suit
+-- immediatement la creation, car re-creer la fonction re-applique les
+-- privileges par defaut.
+revoke execute on function public.colis_receipt_immutable() from public, anon, authenticated;
+
 drop trigger if exists trg_colis_receipt_immutable on public.colis_receipts;
 create trigger trg_colis_receipt_immutable
   before update or delete on public.colis_receipts
@@ -371,6 +378,13 @@ begin
     coalesce(old.order_id, new.order_id);
 end;
 $fn$;
+
+-- Supabase accorde EXECUTE a anon/authenticated sur toute nouvelle fonction
+-- du schema public (ALTER DEFAULT PRIVILEGES). Un `revoke from public` ne
+-- retire PAS cet octroi nominatif : il faut nommer anon. Le revoke suit
+-- immediatement la creation, car re-creer la fonction re-applique les
+-- privileges par defaut.
+revoke execute on function public.colis_code_immutable() from public, anon, authenticated;
 
 drop trigger if exists trg_colis_code_immutable on public.colis_delivery_codes;
 create trigger trg_colis_code_immutable
@@ -425,6 +439,13 @@ begin
 end;
 $fn$;
 
+-- Supabase accorde EXECUTE a anon/authenticated sur toute nouvelle fonction
+-- du schema public (ALTER DEFAULT PRIVILEGES). Un `revoke from public` ne
+-- retire PAS cet octroi nominatif : il faut nommer anon. Le revoke suit
+-- immediatement la creation, car re-creer la fonction re-applique les
+-- privileges par defaut.
+revoke execute on function public.colis_bootstrap_receipt() from public, anon, authenticated;
+
 drop trigger if exists trg_colis_bootstrap_receipt on public.orders;
 create trigger trg_colis_bootstrap_receipt
   after insert on public.orders
@@ -451,6 +472,15 @@ as $$
          )))::integer
   end
 $$;
+
+-- Supabase accorde EXECUTE a anon/authenticated sur toute nouvelle fonction
+-- du schema public (ALTER DEFAULT PRIVILEGES). Un `revoke from public` ne
+-- retire PAS cet octroi nominatif : il faut nommer anon. Le revoke suit
+-- immediatement la creation, car re-creer la fonction re-applique les
+-- privileges par defaut.
+revoke execute on function public.colis_distance_m(
+  double precision, double precision, double precision, double precision
+) from public, anon, authenticated;
 
 -- ── 8. Litiges ─────────────────────────────────────────────────────────────
 -- Une table dédiée en plus du ticket de support : elle sert au comptage par
@@ -977,12 +1007,20 @@ revoke execute on function public.colis_open_dispute(uuid, text, text) from publ
 revoke execute on function public.platform_setting(text) from public, anon;
 
 grant execute on function public.create_colis_order(jsonb, jsonb, text, text, text, text, numeric, numeric, text, text, text, text, timestamptz) to authenticated;
-grant execute on function public.colis_set_declaration(uuid, text, numeric, text, text) to authenticated;
+-- PAS de grant sur colis_set_declaration : aucune app ne l'appelle, le
+-- client cree sa commande et sa declaration d'un seul tenant via
+-- create_colis_order. La fonction reste en place pour amender une
+-- declaration avant la prise en charge ; le jour ou une app s'en sert,
+-- il faudra ajouter le grant ici.
+revoke execute on function public.colis_set_declaration(uuid, text, numeric, text, text) from authenticated;
 grant execute on function public.colis_record_pickup(uuid, text, double precision, double precision, text) to authenticated;
 grant execute on function public.colis_verify_and_deliver(uuid, text, text, double precision, double precision, text) to authenticated;
 grant execute on function public.colis_admin_force_close(uuid, text) to authenticated;
 grant execute on function public.colis_open_dispute(uuid, text, text) to authenticated;
-grant execute on function public.platform_setting(text) to authenticated;
+-- PAS de grant sur platform_setting : elle n'est appelee que depuis des
+-- SECURITY DEFINER, qui l'executent en tant que proprietaire. Le client
+-- lit la TABLE platform_settings, pas cette fonction.
+revoke execute on function public.platform_setting(text) from authenticated;
 
 
 -- ── 14. Déploiement souple ─────────────────────────────────────────────────
@@ -1033,6 +1071,13 @@ begin
   return new;
 end;
 $fn$;
+
+-- Supabase accorde EXECUTE a anon/authenticated sur toute nouvelle fonction
+-- du schema public (ALTER DEFAULT PRIVILEGES). Un `revoke from public` ne
+-- retire PAS cet octroi nominatif : il faut nommer anon. Le revoke suit
+-- immediatement la creation, car re-creer la fonction re-applique les
+-- privileges par defaut.
+revoke execute on function public.colis_enforce_proof() from public, anon, authenticated;
 
 drop trigger if exists trg_colis_enforce_proof on public.orders;
 create trigger trg_colis_enforce_proof
