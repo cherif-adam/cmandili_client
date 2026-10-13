@@ -77,6 +77,29 @@ gitlink points at a commit absent from GitHub.
    photos on every un-updated phone (`package-photos` has been public since
    June and old apps read public URLs).
 
+**Export PDF du bon — livré 2026-10-14** (`cmandili_admin`, `GET
+/api/colis/pdf?order_id=`). Admin uniquement : `requireAdmin()` revérifié dans
+le handler, photos téléchargées côté serveur depuis le bucket privé et
+intégrées (jamais d'URL signée dans le document), streamé en pièce jointe sans
+passer par un bucket, `logAudit` note la présence d'un CIN mais jamais sa
+valeur. Empreinte SHA-256 sur le bon figé seul ; les valeurs de repli (données
+courantes du livreur et de l'expéditeur, quand une ancienne APK n'a rien figé)
+sont étiquetées « (actuel — non figé à la prise en charge) » et listées hors
+empreinte en section 9. Bibliothèque : `jspdf`, déjà dépendance, condition
+d'export `node`, polices WinAnsi — qui ne couvrent ni l'arabe ni les emoji,
+d'où `toWinAnsi()` qui signale le champ au lieu d'écrire des octets faux.
+
+**À FAIRE, pas commencé : statut et résolution des litiges colis.**
+`colis_disputes` n'a aujourd'hui que `id, order_id, user_id, driver_id, kind,
+message, created_at` — ni statut ni résolution. Le bon PDF imprime donc
+« Non enregistré » sur ces deux lignes (section 8), ce qui est honnête mais
+inutile dans un dossier. À faire : migration ajoutant `status` (ouvert /
+en cours / résolu / rejeté) et `resolution` (texte) + `resolved_at` /
+`resolved_by`, RLS admin-only en écriture, et une action « résoudre » dans
+l'admin sur la page Bons colis. Le rendu PDF est déjà prêt : les deux champs
+sont typés dans `ColisDisputeRecord` et s'afficheront dès que les colonnes
+existeront, sans retoucher le PDF.
+
 ### B. Amana Assistant (`ai-chat`) — blocked on provider credits
 
 Multi-catalogue assistant: the 7 shop catalogues (`food`, `grocery`, `bakery`,
