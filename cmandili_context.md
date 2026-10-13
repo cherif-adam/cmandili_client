@@ -1,6 +1,6 @@
 # CMANDILI_CONTEXT.md
 > **Purpose:** AI session bootstrap. Read this file at the start of every session to understand the full project and continue immediately without reading every file.
-> **Last updated:** 2026-07-19 (menu item customization — option groups + variants — built, bulk-seeded, and live-verified on device; stale-clone incident corrected §1; see §7 F23, §8, §10)
+> **Last updated:** 2026-10-13 (Colis handover receipt live, rollout unfinished; Amana Assistant blocked on OpenRouter credits — see the CURRENT WORK section below, which supersedes §7/§8)
 
 ---
 
@@ -33,6 +33,172 @@ Flutter `OrderStatus` enums serialize via `toString().split('.').last` — new l
 ## ⚠️ DISPATCH RULE — PERMANENT
 
 **Orders are ALWAYS dispatched through the automatic waterfall** (`next_eligible_driver` → `offer_order_to_driver` → `rotate_expired_offers` pg_cron / `pass_order_offer`). No manual admin assignment, ever. Waterfall exhausted → partner notified to self-deliver (§4).
+
+---
+
+## ⚠️ CURRENT WORK — 2026-10-13 (read this before §7/§8, which are from July)
+
+Working branch `adam-branch` in all four repos. Two features in flight.
+
+### A. Colis handover receipt — live, rollout unfinished
+
+Photo + GPS + server timestamp at pickup and at delivery, 4-digit code for the
+recipient, disputes, admin force-close.
+
+**Done and verified in production:** migration
+`20261012090000_colis_handover_receipt.sql` applied (6 tables —
+`platform_settings`, `colis_receipts`, `colis_delivery_codes`,
+`driver_identity`, `colis_receipt_identity`, `colis_disputes` — 12 functions,
+RLS, private `colis-proofs` bucket); test harness
+`supabase/tests/colis_handover_receipt_test.sql` passed; edge function
+`push-on-order-status` deployed (delivery photo in the delivered push).
+
+**Git state — NOT everything is pushed:**
+
+| repo | HEAD | pushed? |
+|---|---|---|
+| parent `cmandili_client` | `c842b57` | **no** — `8593032`, `c842b57` pending |
+| `cmandili_admin` | `f06ab09` | **no** — 1 commit pending |
+| `cmandili_driver` | `8970c40` | yes |
+| `cmandili_partner` | `e57259d` | yes |
+
+**Push `cmandili_admin` first, then the parent** — otherwise the parent's
+gitlink points at a commit absent from GitHub.
+
+**Rollout still pending:**
+1. Build and distribute the three apps.
+2. Run the two-phone manual checklist (§C below).
+3. Watch adoption: `select proof_status, count(*) from colis_receipts group by 1;`
+   While `missing` keeps growing, older APKs are still delivering.
+4. When `missing` stops moving:
+   `update platform_settings set value = 'hard' where key = 'colis_proof_enforcement';`
+5. **Only after the new builds are out**, run
+   `20261012093000_package_photos_private.sql`. Run earlier it blanks parcel
+   photos on every un-updated phone (`package-photos` has been public since
+   June and old apps read public URLs).
+
+### B. Amana Assistant (`ai-chat`) — blocked on provider credits
+
+Multi-catalogue assistant: the 7 shop catalogues (`food`, `grocery`, `bakery`,
+`flowers`, `pets`, `gifts`, `electronics`) plus Colis and Facture. Deployed:
+the catalogue widening, retrieval through `vendor_items` + `vendors`, and the
+tiered relaxation when a filter empties a catalogue.
+
+**Committed but NOT deployed: `bb46e68`** — budget handling
+(`max_price`/`min_price`), Derja replies, category bar under the header. The
+prompt half stays inert until
+`supabase functions deploy ai-chat --project-ref hoqlxxtphskgxktqjpfu`.
+
+**Provider problem:** OpenRouter returns **402, balance was negative**, so the
+function always falls through to Gemini, whose free quota is spent (429) —
+there is effectively **one provider, not the redundancy it looks like**. Also,
+the secret is named `OPENROUTER_MODEL` while the code reads
+`OPENROUTER_CHAT_MODEL`, so the variable never applies and the default
+`google/gemini-2.5-flash` (paid route, not `:free`) is always used. Top up,
+deploy, then `bash tool/ai_chat_category_probe.sh prompt`.
+
+**Next task requested:** improve **understanding**, **opening hours**, and
+**tone** — "vous" in French, friendly Derja. *(Recorded from the user's
+end-of-session summary; the full brief was not in that session's context — ask
+for the details before starting.)*
+
+### C. Two-phone manual checklist (A = sender, B = driver)
+
+1. **A** new parcel: empty description → refused; 400 TND → refused (cap);
+   forbidden items unticked → refused. Then 50 TND, **With code**.
+2. **A** tracking shows the 4-digit code; test **Share**.
+3. **B** accept, "Colis récupéré" → proof sheet. **Check no gallery option is
+   offered.** Photograph, confirm.
+4. **B** "Colis remis" → enter a **wrong** code, then **retry with the right
+   one**. The second attempt must go through (duplicate-upload regression).
+5. **A** delivery notification **with the photo**; tracking shows both photos
+   and the plate, the code is gone.
+6. **A** open a dispute (button present for 24 h).
+7. **Admin** *Bons colis*: full receipt, CIN, counters, dispute.
+8. **Blocked** 5 wrong codes → button disabled, red banner on the admin page.
+   Force-close **without reason** → refused; **with reason** → order delivered
+   and settlement fires.
+9. **No-code** parcel, "Gardien de l'école": no code field on B, name shown,
+   photo mandatory.
+
+Steps **4** and **8** deserve the most attention — they are the two paths where
+a driver can get stuck in the field and go unpaid.
+
+### D. Decisions settled — do not reopen
+
+- **The nutrition specialisation is a feature, not a defect.** Prompt RULES 3
+  and 4 stay word for word; any health intent takes the food path
+  (RULE 2-PRECEDENCE).
+- **"Boutique" is out of the assistant's scope**: it is a
+  `partners.partner_type` value with no `vendor_categories` row and no vendor —
+  there is no catalogue to query.
+- **Max declared value 300 TND**, held in `platform_settings`, admin-editable
+  without shipping a build.
+- **Dispute window 24 h** after `delivered_at`, independent of the 3-minute
+  auto-confirmation — an auto-confirmed order stays contestable.
+- **CIN is admin-only.** PostgreSQL has no per-column RLS and a column-level
+  `REVOKE` does not beat a table-level `GRANT`, hence the separate admin-only
+  tables `driver_identity` and `colis_receipt_identity`. The CIN is also kept
+  out of the audit log.
+- **Never apply SQL, deploy a function, or push without explicit approval.**
+  Adam runs the SQL himself in the SQL Editor.
+- **Never force-push.** If a remote has moved: stop, say so, offer a rebase or
+  merge — overwrite nothing.
+- **Push order: submodules first, then the parent.**
+
+### E. Gotchas learned the hard way (2026-10)
+
+- **Supabase grants `EXECUTE` to `anon` on every new function in `public`**
+  (`ALTER DEFAULT PRIVILEGES`). `revoke from public` does **not** remove that
+  named grant. Needs `revoke ... from public, anon, authenticated` **per
+  function** — triggers and helpers included — placed **right after its
+  create**, since re-creating a function reapplies the defaults. This aborted
+  `20261012090000` on its own guard the first time.
+- **A harness that inserts into `orders` MUST disable triggers.**
+  `on_order_insert_push` calls `net.http_post`, and since `20260815120000` an
+  order with `status='ready'` (every parcel) is routed there as
+  `driver_fanout`: **a real job offer would go to real drivers**. Use
+  `set local session_replication_role = replica` around the insert only — not
+  `ALTER TABLE ... DISABLE TRIGGER`, which locks `orders` — then restore it
+  before the immutability tests or they pass vacuously.
+- **Storage is not transactional**: a file written survives a `ROLLBACK`. Never
+  write one from a harness.
+- **`auth.uid()` is NULL under `service_role`.** An RPC that reads it must be
+  called with a session-scoped client (admin side:
+  `createSupabaseServerClient()`), not `supabaseAdmin`. This silently broke the
+  admin force-close.
+- **Strip comments before any source-scanning test**, in Dart and in SQL.
+  `pg_get_functiondef` returns the body with its comments: an absence test
+  fails on its own explanation, a presence test passes wrongly. Both happened.
+- `LIKE '%a%b%'` says nothing about proximity — slice explicitly instead.
+- Under `flutter test` the clock is faked, so **real disk I/O never resolves**:
+  `await file.writeAsBytes(...)` in a fake leaves the Future hanging with no
+  error. Use the `Sync` variants.
+- **Mutate the code to prove a test bites.** A prohibition test that survives
+  mutation proves nothing.
+- **MIUI / Honor**: first install of a *new* package over ADB raises a
+  `SecurityCenter` prompt that must be accepted **on the phone**, else
+  `INSTALL_FAILED_USER_RESTRICTED`. Updating an already-installed package does
+  not. Driver alarm latency up to ~6 min when FCM is throttled and the Realtime
+  fallback takes over; background settings (autostart, battery) must be forced
+  by hand. Verify OEM/push bugs **on a real device** (logcat + dumpsys + DB),
+  never from reading code.
+
+### F. Code landmarks (2026-10 additions)
+
+| what | where |
+|---|---|
+| Catalogue list (single source) | `lib/core/models/service_category.dart` |
+| Venue truth | `vendors` / `vendor_items`; `restaurants`, `supermarkets`, `food_items`, `grocery_items` are **category-filtered views** |
+| Assistant prompt | `supabase/functions/ai-chat/index.ts` (~26 000 chars, ~7 350 tokens per message) |
+| Assistant probes | `tool/ai_chat_category_probe.sh` (`retrieval` / `prompt` / `cards`) |
+| Colis proofs, driver | `cmandili_driver/lib/features/orders/data/colis_proof_repository.dart` |
+| Colis proofs, client | `lib/features/courier/data/colis_repository.dart` |
+| Receipts, admin | `cmandili_admin/app/dashboard/colis/`, `app/api/colis/route.ts` |
+
+`cmandili_admin` is Next.js 16: its `AGENTS.md` requires reading
+`node_modules/next/dist/docs/` **before writing code there**. Mutations go
+through API routes with `requireAdmin()` + `logAudit()`, not Server Actions.
 
 ---
 
