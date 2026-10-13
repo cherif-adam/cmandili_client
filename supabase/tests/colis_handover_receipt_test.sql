@@ -127,7 +127,7 @@ $$;
 -- qu'il est bien attaché en AFTER INSERT sur `orders`, et que sa fonction
 -- écrit le hash dans la bonne table.
 do $$
-declare n integer; v_src text;
+declare n integer; v_src text; v_seg text;
 begin
   select count(*) into n from pg_trigger t
     join pg_class c on c.oid = t.tgrelid
@@ -145,8 +145,49 @@ begin
   if v_src not like '%colis_delivery_codes%' then
     raise exception 'ECHEC 1b : le bootstrap n ecrit pas le code dans colis_delivery_codes';
   end if;
-  if v_src like '%colis_receipts%sha256%' then
-    raise exception 'ECHEC 1c : le bootstrap ecrit un hash dans le recu, lisible par le livreur';
+
+  -- 1c. Le hash ne doit pas atterrir dans le recu.
+  --
+  -- La premiere version testait v_src LIKE '%colis_receipts%sha256%'. C'etait
+  -- faux : LIKE avec % ne dit rien de la proximite, il suffisait que
+  -- 'colis_receipts' apparaisse n'importe ou AVANT 'sha256'. Or la fonction
+  -- insere d'abord dans le recu, puis dans la table des codes ou vit le
+  -- sha256 -- le motif matchait donc toujours, sur une fonction pourtant
+  -- correcte. Faux positif garanti, et il s'est produit.
+  --
+  -- On verifie maintenant deux faits reels et independants.
+
+  -- (i) Structure : aucune colonne de recu ne porte un hash. C'est la
+  -- garantie qui compte vraiment -- le livreur lit cette table.
+  select count(*) into n from information_schema.columns
+   where table_schema = 'public' and table_name = 'colis_receipts'
+     and column_name ilike '%hash%';
+  if n <> 0 then
+    raise exception 'ECHEC 1c-i : % colonne(s) de hash dans colis_receipts, lisible par le livreur', n;
+  end if;
+
+  -- (ii) Comportement : on isole le segment du source qui va de l'insert
+  -- dans colis_receipts jusqu'a l'insert suivant, et on verifie qu'AUCUN
+  -- hash n'y est calcule. Decoupage explicite, plus de LIKE a trous.
+  --
+  -- COMMENTAIRES RETIRES d'abord. pg_get_functiondef rend le corps avec ses
+  -- commentaires, et celui qui separe les deux inserts dit justement « le
+  -- clair ET le hash vont dans la table que le livreur ne voit pas ». Sans ce
+  -- depouillage le test echouerait sur sa propre explication.
+  v_src := regexp_replace(v_src, '--[^' || chr(10) || ']*', '', 'g');
+
+  v_seg := substr(v_src, position('insert into public.colis_receipts' in v_src));
+  if position('insert into public.colis_delivery_codes' in v_seg) > 0 then
+    v_seg := left(v_seg, position('insert into public.colis_delivery_codes' in v_seg) - 1);
+  end if;
+  if v_seg ilike '%sha256%' or v_seg ilike '%hash%' then
+    raise exception 'ECHEC 1c-ii : le bootstrap calcule un hash dans son insert vers colis_receipts';
+  end if;
+
+  -- (iii) Et le hash est bien calcule la ou il doit l'etre.
+  v_seg := substr(v_src, position('insert into public.colis_delivery_codes' in v_src));
+  if v_seg not ilike '%sha256%' then
+    raise exception 'ECHEC 1c-iii : le hash n est pas calcule dans l insert vers colis_delivery_codes';
   end if;
 
   raise notice 'OK 1 — bootstrap branche, hash ecrit dans la bonne table';
@@ -306,6 +347,13 @@ begin
   if v_src is null then
     raise exception 'ECHEC 5a : colis_open_dispute n existe pas';
   end if;
+
+  -- Commentaires retires avant d'asserter : ces deux tests verifient une
+  -- PRESENCE, donc un mot trouve dans un commentaire donnerait un faux
+  -- succes -- la fenetre pourrait avoir disparu du code sans que rien ne le
+  -- signale.
+  v_src := regexp_replace(v_src, '--[^' || chr(10) || ']*', '', 'g');
+
   if v_src not like '%24 hours%' then
     raise exception 'ECHEC 5b : la fenetre de 24 h n est pas appliquee';
   end if;
