@@ -34,6 +34,20 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// The client type, derived from an actual CALL rather than from
+// `ReturnType<typeof createClient>`.
+//
+// Those two are not the same thing. Without explicit type arguments the
+// generics fall back to their declared defaults, which in this version of
+// supabase-js include `never` for the schema parameters — so
+// `ReturnType<typeof createClient>` is a client over a schema with no tables,
+// every query's `data` infers as `never[]`, and passing the real client into a
+// function annotated that way is a type error. `deno check` reported exactly
+// that three times. Inferring from `createClient(url, key)` gives whatever the
+// installed version really returns, and keeps doing so after an upgrade.
+type Db = ReturnType<typeof makeClient>;
+const makeClient = (url: string, key: string) => createClient(url, key);
+
 // .trim() defends against secrets pasted with stray whitespace/newlines.
 const OPENROUTER_API_KEY = (Deno.env.get("OPENROUTER_API_KEY") ?? "").trim();
 const OPENROUTER_MODEL =
@@ -308,7 +322,7 @@ const RELAX_TIERS: RelaxTier[] = [
 ];
 
 function buildCandidateQuery(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Db,
   intent: TextIntent,
   tier: RelaxTier,
 ) {
@@ -336,7 +350,7 @@ function buildCandidateQuery(
   return q.limit(60);
 }
 
-async function handleTextSearch(query: string, supabase: ReturnType<typeof createClient>) {
+async function handleTextSearch(query: string, supabase: Db) {
   if (!query || query.trim().length === 0) {
     return json({ error: "Empty query." }, 400);
   }
@@ -444,7 +458,7 @@ Do not add text outside the JSON object.`;
 async function handleImageSearch(
   imageBase64: string,
   mimeType: string,
-  supabase: ReturnType<typeof createClient>,
+  supabase: Db,
 ) {
   if (!imageBase64 || imageBase64.length === 0) {
     return json({ error: "Empty image." }, 400);
@@ -506,7 +520,14 @@ async function handleImageSearch(
   }
 
   // 3. Re-rank candidates by fit to the identified dish.
-  let results = candidates;
+  //
+  // Annotated rather than inferred: the reranking below rebuilds the list out
+  // of a Map, which hands back `Record<string, unknown>[]`, and that is not
+  // assignable to the exact row shape supabase infers from FOOD_SELECT. The
+  // text-search path has carried this annotation all along; this one did not,
+  // and `deno check` flagged the assignment. Rows are only JSON-serialised
+  // from here on, so the row shape buys nothing past this point.
+  let results: Record<string, unknown>[] = candidates;
   try {
     const slim = candidates.map((c: Record<string, unknown>) => ({
       id: c.id,
@@ -575,7 +596,7 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid JSON body." }, 400);
   }
 
-  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+  const supabase = makeClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
   try {
     if (body.mode === "text") {
