@@ -73,9 +73,17 @@ msg = d.get('message', '')
 # Latin script with digit-letters and its own function words.
 derja = bool(re.search(r'[0-9][a-z]|\b(hani|nchouf|famma|behi|chnoua|taht|a9al|mta3|tw|lek|bech|besh)\b', msg, re.I))
 arabic = bool(re.search(r'[؀-ۿ]', msg))
-lang = 'AR' if arabic else ('TN' if derja else 'fr/en')
+guess = 'ar' if arabic else ('tn' if derja else 'fr/en')
+# What the function SAYS it answered in, next to what the text looks like. The
+# client picks its own empty-result / relaxed-result sentences from the stated
+# value, so a mismatch here is the 'answered in French' bug coming back.
+said = d.get('lang') or '-'
+agree = '' if (said == guess or (said in ('fr', 'en') and guess == 'fr/en')) else '  <<< MISMATCH'
+# French must be vous, always: tu-form here is a register bug (RULE 1B).
+tu = ' <<< TU-FORM' if said == 'fr' and re.search(
+    r'\\b(tu |je te |Essaie |Dis-moi |ton |ta |tes )', msg) else ''
 print(f\"  {label:16} intent={d.get('intent'):<13} svc={str(d.get('service_category')):<12} \"
-      f\"max_price={str(d.get('max_price')):<6} lang~{lang:<5} {msg[:46]}\")
+      f\"max_price={str(d.get('max_price')):<6} lang={said:<3}~{guess:<5} {msg[:40]}{agree}{tu}\")
 " "$1"
 }
 

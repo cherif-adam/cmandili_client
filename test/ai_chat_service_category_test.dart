@@ -138,8 +138,9 @@ void main() {
     test('suggests a neighbouring catalogue without promising stock', () {
       final msg = AiChatService.noResultsMessageFor('flowers');
       expect(msg, contains('magasin de cadeaux'));
-      // Conditional wording only — never "il y en a chez X".
-      expect(msg, contains('si tu veux'));
+      // Conditional wording only — never "il y en a chez X". Was "si tu veux"
+      // until French went to "vous" throughout (see ai_chat_tone_lang_test).
+      expect(msg, contains('si vous voulez'));
     });
 
     test('never fabricates a shop name, product or price', () {
