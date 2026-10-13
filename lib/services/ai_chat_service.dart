@@ -363,6 +363,19 @@ class AiChatService {
         '$phrase a en rayon 👇';
   }
 
+  /// Said when the dish search had to give up a filter: the cards are what is
+  /// available now, not matches for what was asked. Same contract as
+  /// [relaxedNoticeFor] on the shop side — claim nothing about them beyond
+  /// where they come from, and never name a dish, venue or price.
+  static String relaxedFoodNotice() =>
+      'Je n\'ai pas trouvé exactement ça — voici ce qui est disponible en ce '
+      'moment dans les restaurants ouverts 👇';
+
+  /// Same, for a venue search.
+  static String relaxedRestaurantNotice() =>
+      'Je n\'ai pas trouvé exactement ça — voici les restaurants ouverts en ce '
+      'moment 👇';
+
   /// Honest empty state. Names the catalogue that was actually searched and
   /// offers the nearest sibling — without claiming the sibling has anything,
   /// and without ever inventing a shop, a product or a price.
@@ -456,15 +469,23 @@ class AiChatService {
     try {
       switch (resolved.intentRaw) {
         case 'search_food':
-          products = await _queryFoodItems(resolved);
+          final foodResult = await _queryFoodItems(resolved);
+          products = foodResult.items;
           if (products.isEmpty) {
             finalText = noResultsMessageFor('food',
                 maxPrice: resolved.maxPrice, minPrice: resolved.minPrice);
+          } else if (foodResult.relaxed) {
+            finalText = '${resolved.message}\n\n${relaxedFoodNotice()}';
           }
           break;
         case 'restaurant_search':
-          products = await _queryRestaurants(resolved);
-          if (products.isEmpty) finalText = noResultsMessageFor('food');
+          final venueResult = await _queryRestaurants(resolved);
+          products = venueResult.items;
+          if (products.isEmpty) {
+            finalText = noResultsMessageFor('food');
+          } else if (venueResult.relaxed) {
+            finalText = '${resolved.message}\n\n${relaxedRestaurantNotice()}';
+          }
           break;
         case 'shop_search':
           final shopResult = await _queryShopItems(resolved);
@@ -703,13 +724,63 @@ class AiChatService {
         _ => null,
       };
 
-  Future<List<ProductResult>> _queryFoodItems(_AiIntent intent) async {
+  /// Dish search, tiered like the shop search.
+  ///
+  /// Tier 1 asks for exactly what the model wanted; each later tier drops one
+  /// layer of PREFERENCE (the keyword, then the category). What no tier may
+  /// drop: the budget, the vegetarian flag and the spicy flag. A budget is the
+  /// user's own constraint and over-budget cards are worse than none;
+  /// `vegetarian` is a dietary requirement, not a hint, and showing a
+  /// vegetarian meat dishes to fill the screen would be a bug, not a
+  /// relaxation. [relaxed] is true when the cards are the nearest thing
+  /// available rather than matches — the caller says so out loud.
+  Future<({List<ProductResult> items, bool relaxed})> _queryFoodItems(
+    _AiIntent intent,
+  ) async {
+    final patterns = expandFoodConcept(intent.category);
+    // The health-goal terms ride the keyword layer: they are a widening of
+    // what to look for, so a tier that drops the keyword drops them too.
+    final hasKeyword = (intent.keyword?.isNotEmpty ?? false) ||
+        _healthGoalKeyword(intent.healthGoal) != null;
+
+    final attempts = relaxationPlan(
+      hasKeyword: hasKeyword,
+      hasCategory: patterns.isNotEmpty,
+    );
+
+    for (var i = 0; i < attempts.length; i++) {
+      final rows = await _fetchFoodRows(
+        intent,
+        patterns,
+        useKeyword: attempts[i].keyword,
+        useCategory: attempts[i].category,
+      );
+      if (rows.isNotEmpty) return (items: rows, relaxed: i > 0);
+    }
+    return (items: const <ProductResult>[], relaxed: false);
+  }
+
+  Future<List<ProductResult>> _fetchFoodRows(
+    _AiIntent intent,
+    List<String> conceptPatterns, {
+    required bool useKeyword,
+    required bool useCategory,
+  }) async {
     try {
+      // `restaurants!inner` + the embedded is_open filter, NOT a post-filter
+      // in Dart. The closed-venue check used to run here after `.limit(20)`
+      // had already been applied server-side, so the 20 cheapest matching
+      // dishes were picked across open AND closed restaurants and only then
+      // thinned — a search could come back empty while open restaurants held
+      // matching dishes. Invisible today (all 12 restaurants are open) and
+      // guaranteed to bite the first evening a few close. With the tiers above
+      // it got worse than that: an all-closed page of rows would look like
+      // "this tier found nothing" and relax a search that had in fact matched.
       var query = _supabase.from('food_items').select('''
         id, name, description, price, discount_price, image_url,
         category, is_spicy, is_vegetarian, preparation_time, restaurant_id,
-        restaurants (id, name, image_url, rating, delivery_time_min, delivery_fee, is_open)
-      ''').eq('is_available', true);
+        restaurants!inner (id, name, image_url, rating, delivery_time_min, delivery_fee, is_open)
+      ''').eq('is_available', true).eq('restaurants.is_open', true);
 
       if (intent.spicy == true) query = query.eq('is_spicy', true);
       // Force vegetarian filter for vegetarian health goal or explicit flag
@@ -719,8 +790,15 @@ class AiChatService {
       if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
       if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
       if (intent.deliveryFast) query = query.lte('preparation_time', 20);
-      if (intent.category != null && intent.category!.isNotEmpty) {
-        query = query.ilike('category', '%${intent.category}%');
+      if (useCategory && conceptPatterns.isNotEmpty) {
+        // One OR over the concept's real words instead of one ilike on the
+        // model's free text. "fast food" matched 0 of 403 items as a literal;
+        // its stems match 124. Each pattern is tried against `category` AND
+        // `name`, because a concept member is sometimes a dish name rather
+        // than a category ('tacos' is no category here, it is a dish).
+        query = query.or(conceptPatterns
+            .map((p) => 'category.ilike.%$p%,name.ilike.%$p%')
+            .join(','));
       }
 
       // Build OR filter: explicit keyword + health-goal semantic terms.
@@ -746,15 +824,17 @@ class AiChatService {
         keywordParts.add('description.ilike.%$t%');
       }
 
-      if (intent.keyword != null && intent.keyword!.isNotEmpty) {
-        for (final term in intent.keyword!.split(',')) {
-          addKeywordTerm(term);
+      if (useKeyword) {
+        if (intent.keyword != null && intent.keyword!.isNotEmpty) {
+          for (final term in intent.keyword!.split(',')) {
+            addKeywordTerm(term);
+          }
         }
-      }
-      final goalTerms = _healthGoalKeyword(intent.healthGoal);
-      if (goalTerms != null) {
-        for (final term in goalTerms.split(',')) {
-          addKeywordTerm(term);
+        final goalTerms = _healthGoalKeyword(intent.healthGoal);
+        if (goalTerms != null) {
+          for (final term in goalTerms.split(',')) {
+            addKeywordTerm(term);
+          }
         }
       }
       if (keywordParts.isNotEmpty) {
@@ -765,16 +845,10 @@ class AiChatService {
           as List<dynamic>;
 
       return rows
-          // Drop closed restaurants entirely — is_open was already fetched
-          // above but never checked, so a currently-closed place could be
-          // recommended with no indication the user couldn't actually order
-          // from it right now. Filtering (vs. showing a "closed" badge) keeps
-          // every card the assistant returns immediately actionable; the
-          // regular restaurant list elsewhere already handles browsing
-          // closed places by opening hours.
-          .where((r) =>
-              r['restaurants'] != null &&
-              (r['restaurants'] as Map<String, dynamic>)['is_open'] == true)
+          // The embedded `restaurants.is_open` filter above already guarantees
+          // this; the null guard stays because a left-embed shape change would
+          // otherwise crash the cast below rather than drop a row.
+          .where((r) => r['restaurants'] != null)
           .map<ProductResult>((r) {
         final restaurant = r['restaurants'] as Map<String, dynamic>;
         return ProductResult(
@@ -811,7 +885,247 @@ class AiChatService {
   // back as individual dish cards, which is what it looked like it was doing
   // wrong. `restaurants` is publicly readable (RLS: SELECT USING true), so this
   // is a plain client read like the food/shop queries.
-  Future<List<ProductResult>> _queryRestaurants(_AiIntent intent) async {
+  /// Venue search, tiered, matching on WHAT A RESTAURANT SELLS.
+  ///
+  /// It used to match the concept against the venue's `name` and its
+  /// `categories` tag array only. Both are nearly useless here: 11 of 12 rows
+  /// have an empty `categories`, and a name match is an accident of branding —
+  /// "fast food" reached no venue at all, while 9 open restaurants sell
+  /// burgers, sandwiches, chapati or makloub. So the question asked is now
+  /// "which open restaurant has an available item matching this concept",
+  /// which is what a user means by a venue type.
+  ///
+  /// Measured live 2026-10-13: "pizzeria" goes from 2 venues (the two with
+  /// "pizza" in their name) to 6 — Piccolo Mondo and Titanic food sell 8 pizzas
+  /// each and were invisible. "fast food" goes from 0 to 9.
+  Future<({List<ProductResult> items, bool relaxed})> _queryRestaurants(
+    _AiIntent intent,
+  ) async {
+    final patterns = expandFoodConcept(intent.category);
+    final hasKeyword = intent.keyword?.trim().isNotEmpty ?? false;
+
+    final attempts = relaxationPlan(
+      hasKeyword: hasKeyword,
+      hasCategory: patterns.isNotEmpty,
+    );
+
+    for (var i = 0; i < attempts.length; i++) {
+      final useKeyword = attempts[i].keyword;
+      final useCategory = attempts[i].category;
+      // The widest tier has no concept and no keyword left to match items on,
+      // so there is nothing to look up in the menus: fall back to the venue
+      // list itself, best-rated first.
+      final rows = (!useKeyword && !useCategory)
+          ? await _fetchOpenRestaurants()
+          : await _fetchRestaurantsSelling(
+              intent,
+              patterns,
+              useKeyword: useKeyword,
+              useCategory: useCategory,
+            );
+      if (rows.isNotEmpty) return (items: rows, relaxed: i > 0);
+    }
+    return (items: const <ProductResult>[], relaxed: false);
+  }
+
+  /// Folds matching `food_items` rows into one card per restaurant, carrying a
+  /// short hint of WHAT matched — "Burgers, Sandwiches" — so the card says why
+  /// it is on screen. Without it a venue search for "fast food" returns a
+  /// plain list of restaurant names with no visible connection to the request.
+  ///
+  /// Ordered by how many items matched, then rating: the closest match first.
+  /// Most rows are unrated (rating 0), so rating is a tie-breaker in practice,
+  /// and the hint is built from `category` rather than dish names because a
+  /// category generalises ("Burgers" reads better than "Burger Chicken BBQ").
+  ///
+  /// Pure and static so it can be tested without a database — the query half
+  /// needs a live PostgREST and lives in `tool/ai_chat_category_probe.sh`.
+  /// [matchedTerms] are the patterns the query matched on. They decide whether
+  /// a row's hint should name its category or its dish: a row reached the
+  /// result set through `category` OR through `name`, and naming the category
+  /// of a row that matched by name is actively misleading. Live example — the
+  /// concept "pizza" pulls a dish called "Pizza …" that is filed under
+  /// `Pâtes`, and the card then claimed "Pâtes" was why it matched. Pass the
+  /// patterns and it says "Pizza …" instead. Empty list ⇒ category first,
+  /// which is right for the tiers that match on nothing in particular.
+  @visibleForTesting
+  static List<ProductResult> restaurantCardsFromItemRows(
+    List<Map<String, dynamic>> rows, {
+    List<String> matchedTerms = const [],
+    String? Function(dynamic)? resolveImage,
+    int maxCards = 15,
+    int maxHintParts = 3,
+  }) {
+    // Insertion-ordered, so venues with an equal match count and equal rating
+    // keep the order the database returned instead of shuffling per call.
+    final byId = <String, ({Map<String, dynamic> venue, List<String> hints, int n})>{};
+
+    for (final row in rows) {
+      final venue = row['restaurants'];
+      if (venue is! Map<String, dynamic>) continue;
+      final id = (venue['id'] ?? '').toString();
+      if (id.isEmpty) continue;
+
+      final label = _matchHintFor(row, matchedTerms);
+
+      final existing = byId[id];
+      if (existing == null) {
+        byId[id] = (
+          venue: venue,
+          hints: label == null ? <String>[] : <String>[label],
+          n: 1,
+        );
+      } else {
+        if (label != null &&
+            existing.hints.length < maxHintParts &&
+            !_hintAlreadyCovered(existing.hints, label)) {
+          existing.hints.add(label);
+        }
+        byId[id] = (
+          venue: existing.venue,
+          hints: existing.hints,
+          n: existing.n + 1,
+        );
+      }
+    }
+
+    final ranked = byId.values.toList()
+      ..sort((a, b) {
+        final byCount = b.n.compareTo(a.n);
+        if (byCount != 0) return byCount;
+        final ra = (a.venue['rating'] as num?)?.toDouble() ?? 0;
+        final rb = (b.venue['rating'] as num?)?.toDouble() ?? 0;
+        return rb.compareTo(ra);
+      });
+
+    return ranked.take(maxCards).map((e) {
+      final v = e.venue;
+      return ProductResult(
+        type: 'restaurant',
+        id: (v['id'] ?? '').toString(),
+        name: (v['name'] ?? '') as String,
+        // The hint REPLACES the venue's own description on purpose: the card
+        // has one line for it, and "why am I seeing this" is more useful there
+        // than generic venue blurb. Falls back to the description when nothing
+        // identifiable matched.
+        description: e.hints.isEmpty
+            ? v['description'] as String?
+            : e.hints.join(', '),
+        price: 0.0,
+        currency: 'TND',
+        imageUrl: resolveImage == null
+            ? v['image_url'] as String?
+            : resolveImage(v['image_url']),
+        sourceName: (v['name'] ?? '') as String,
+        sourceId: (v['id'] ?? '').toString(),
+        rating: (v['rating'] as num?)?.toDouble(),
+        deliveryTime: (v['delivery_time_min'] as num?)?.toInt(),
+        deliveryFee: (v['delivery_fee'] as num?)?.toDouble(),
+      );
+    }).toList();
+  }
+
+  /// Trimmed, non-empty display label, or null.
+  static String? _hintLabel(dynamic raw) {
+    if (raw == null) return null;
+    final s = raw.toString().trim();
+    return s.isEmpty ? null : s;
+  }
+
+  /// What to show as the reason this row matched: its category when the
+  /// category is what matched, otherwise the dish itself. Falls back to
+  /// whichever of the two is present.
+  static String? _matchHintFor(
+    Map<String, dynamic> row,
+    List<String> matchedTerms,
+  ) {
+    final category = _hintLabel(row['category']);
+    final dish = _hintLabel(row['name']);
+    if (matchedTerms.isEmpty) return category ?? dish;
+
+    bool hits(String? value) {
+      if (value == null) return false;
+      final folded = _foldAccents(value);
+      return matchedTerms.any((t) => folded.contains(_foldAccents(t)));
+    }
+
+    if (hits(category)) return category;
+    if (hits(dish)) return dish;
+    return category ?? dish;
+  }
+
+  /// True when an existing hint already says this, allowing for the
+  /// catalogue's singular/plural pairs — "Sandwich" next to "Sandwiches" on
+  /// one card is noise, not information.
+  static bool _hintAlreadyCovered(List<String> hints, String candidate) {
+    final c = _foldAccents(candidate);
+    return hints.any((h) {
+      final existing = _foldAccents(h);
+      return existing == c ||
+          existing.contains(c) ||
+          c.contains(existing);
+    });
+  }
+
+  /// Restaurants that have at least one available item matching the concept.
+  ///
+  /// Reads `food_items` rather than `restaurants` because the match lives in
+  /// the menu, and aggregates to one card per venue. The row limit is high on
+  /// purpose: a venue search needs enough of the menu to see every restaurant
+  /// that qualifies, not the first page of dishes (403 items are available in
+  /// total, so this reads at most most of them, once, per tier).
+  Future<List<ProductResult>> _fetchRestaurantsSelling(
+    _AiIntent intent,
+    List<String> conceptPatterns, {
+    required bool useKeyword,
+    required bool useCategory,
+  }) async {
+    try {
+      var query = _supabase.from('food_items').select('''
+        name, category, price, discount_price, restaurant_id,
+        restaurants!inner (id, name, description, image_url, rating,
+                           review_count, delivery_time_min, delivery_fee, is_open)
+      ''').eq('is_available', true).eq('restaurants.is_open', true);
+
+      // The budget belongs to the user, so it filters here too: a restaurant
+      // only qualifies if what matched is actually within what they can spend.
+      // No tier drops it.
+      if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
+      if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
+
+      final orParts = <String>[];
+      if (useCategory) {
+        for (final p in conceptPatterns) {
+          orParts.add('category.ilike.%$p%');
+          orParts.add('name.ilike.%$p%');
+        }
+      }
+      if (useKeyword) {
+        final kw = intent.keyword!.trim();
+        orParts.add('category.ilike.%$kw%');
+        orParts.add('name.ilike.%$kw%');
+      }
+      // One OR clause: repeated .or() calls AND together in PostgREST, and
+      // here every alternative is a way of matching the same request.
+      if (orParts.isNotEmpty) query = query.or(orParts.join(','));
+
+      final rows = await query.limit(400) as List<dynamic>;
+      return restaurantCardsFromItemRows(
+        rows.cast<Map<String, dynamic>>(),
+        matchedTerms: [
+          if (useCategory) ...conceptPatterns,
+          if (useKeyword) intent.keyword!.trim(),
+        ],
+        resolveImage: _resolveImageUrl,
+      );
+    } catch (e) {
+      debugPrint('AiChatService – restaurants-selling query error: $e');
+      throw _QueryFailure('restaurant', e);
+    }
+  }
+
+  /// Widest tier: the open venues themselves, nothing matched against.
+  Future<List<ProductResult>> _fetchOpenRestaurants() async {
     try {
       // No blocked-venue filter here, deliberately. This query used to carry
       // `.not('is_blocked', 'is', true)`, written 2026-09-10 against the old
@@ -831,24 +1145,14 @@ class AiChatService {
         delivery_time_min, delivery_fee, is_open, categories
       ''').eq('is_open', true);
 
-      // Single OR clause (repeated .or() calls AND together in PostgREST, which
-      // isn't what we want) — mirrors _queryFoodItems' keyword handling.
-      // `category` is matched against the text[] `categories` AND the name, so a
-      // cuisine word still finds an obviously-named place even when the row was
-      // never tagged (all rows are currently untagged).
-      final orParts = <String>[];
-      final cat = intent.category?.trim();
-      if (cat != null && cat.isNotEmpty) {
-        orParts.add('categories.cs.{$cat}');
-        orParts.add('name.ilike.%$cat%');
-      }
-      final kw = intent.keyword?.trim();
-      if (kw != null && kw.isNotEmpty) {
-        orParts.add('name.ilike.%$kw%');
-        orParts.add('description.ilike.%$kw%');
-      }
-      if (orParts.isNotEmpty) query = query.or(orParts.join(','));
-
+      // Nothing is matched against here on purpose. The concept and the
+      // keyword are matched against the MENUS, in _fetchRestaurantsSelling —
+      // this tier is reached only once both have been given up, so there is
+      // nothing left to filter on. (The old `categories.cs.{…}` tag match
+      // lived here and was dead weight twice over: array containment is
+      // case-sensitive, so `cs.{pizza}` missed the one tagged row, which
+      // holds `["Pizza"]`, and 11 of the 12 rows have an empty array.)
+      //
       // Best-first: rating, then review count. Most rows are unrated (rating 0)
       // right now, so this quietly degrades to insertion order — the assistant's
       // message is written NOT to over-promise "top rated" (SYSTEM_PROMPT RULE 2D).

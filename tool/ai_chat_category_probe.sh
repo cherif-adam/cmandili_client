@@ -121,6 +121,24 @@ probe_prompt() {
   echo
 }
 
+probe_venues() {
+  echo "=== VENUES — a kind of place reaches the restaurants that sell it ==="
+  echo "(matching a venue's NAME or its `categories` tags found almost"
+  echo " nothing: 11 of 12 rows have an empty tag array, so \"fast food\""
+  echo " reached no venue while 9 open restaurants sell its items)"
+  echo
+  python -I "$(dirname "$0")/ai_chat_venue_check.py" "$URL" "$KEY" || return 1
+  echo
+  echo "-- routing: a kind of PLACE vs a thing to EAT (RULE 2B) --"
+  echo "(3 LLM calls; only meaningful once the new prompt is deployed)"
+  ask "pizzeria"   "une pizzaria"
+  ask "fast food"  "fast food"
+  ask "un burger"  "un burger"
+  echo
+  echo "Expected: the first two intent=restaurant_search with category"
+  echo "pizza / fast food; the third intent=search_food (a dish, not a place)."
+}
+
 probe_cards() {
   echo "=== CARDS — does each catalogue actually render cards? ==="
   echo "(replays the client's tiered query with the model's real keyword;"
@@ -133,6 +151,7 @@ case "$MODE" in
   retrieval) probe_retrieval ;;
   prompt)    probe_prompt ;;
   cards)     probe_cards ;;
-  all)       probe_retrieval; probe_prompt; probe_cards ;;
-  *) echo "usage: $0 [retrieval|prompt|cards|all]" >&2; exit 2 ;;
+  venues)    probe_venues ;;
+  all)       probe_retrieval; probe_prompt; probe_cards; probe_venues ;;
+  *) echo "usage: $0 [retrieval|prompt|cards|venues|all]" >&2; exit 2 ;;
 esac
