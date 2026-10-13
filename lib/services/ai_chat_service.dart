@@ -186,6 +186,139 @@ class AiChatService {
     return buf.toString();
   }
 
+  // ── Food vocabulary: concepts → the words the data actually uses ──────────
+  //
+  // The model emits FREE TEXT in `category`, and the food query turned that
+  // straight into `category ilike '%<text>%'` as an AND filter. So a perfectly
+  // reasonable word that simply isn't a value in the data emptied the whole
+  // search: "fast food" matched 0 of 403 available items, even though
+  // Burgers (13), Sandwiches (28), Chapati (34), Malfouf (22) and Makloub
+  // (14) are sitting right there. Measured live 2026-10-13.
+  //
+  // The fix is a map here rather than the real vocabulary in the prompt. Those
+  // 59 distinct `food_items.category` values are not a taxonomy — the same
+  // thing is spelled three ways (Pizza / Pizzas / Nos Pizza, Sandwich /
+  // Sandwiches / Sandwichs, Makloub / Makloubs / Nos Makloubs) next to
+  // per-restaurant junk like "VIP" and "The Classic Coffee". Feeding that to
+  // the model teaches it noise and costs ~1k tokens on every message of a
+  // prompt already around 7.3k. Resolving concepts here is deterministic,
+  // free, and testable without a deploy.
+  //
+  // Values are ilike SUBSTRINGS, so a stem covers the spelling variants:
+  // 'sandwich' reaches Sandwich/Sandwiches/Sandwichs/Club sandwich, 'makloub'
+  // reaches all three Makloub spellings, 'salad' reaches Salades and Salads.
+  // Accents are NOT folded by ilike, so an accented value needs both forms
+  // ('pate' will not match 'Pâtes'). No commas, apostrophes, slashes or
+  // parentheses: these go into a PostgREST `or=(…)` list, where a comma would
+  // split the term and the rest would be parsed as a filter. A test enforces
+  // that.
+  static const Map<String, List<String>> _kFoodConcepts = {
+    // Umbrella concepts — any member is a legitimate answer to the concept.
+    'fast food': [
+      'burger', 'sandwich', 'chapati', 'makloub', 'malfouf',
+      'mlewi', 'mlawi', 'tabouna', 'cornet', 'baguette farcie', 'tacos',
+    ],
+    'junk food': ['burger', 'sandwich', 'chapati', 'tacos', 'cornet'],
+    'makla tounsia': [
+      'makloub', 'malfouf', 'mlewi', 'mlawi', 'tabouna', 'chapati',
+      'baguette farcie', 'cornet', 'lablabi',
+    ],
+    'tunisien': [
+      'makloub', 'malfouf', 'mlewi', 'mlawi', 'tabouna', 'chapati',
+      'baguette farcie', 'cornet', 'lablabi',
+    ],
+    'leger': ['salad', 'soup', 'entree', 'entrée', 'starter', 'oeuvre'],
+    'grillade': ['grill', 'viande', 'volaille', 'poulet'],
+    'fruits de mer': ['poisson', 'seafood', 'paella'],
+    'petit dejeuner': ['breakfast', 'dejeuner', 'déjeuner', 'boisson chaude'],
+    // Spelling and language variants of one thing.
+    'pizza': ['pizza'],
+    'calzone': ['calzone'],
+    'burger': ['burger'],
+    'sandwich': ['sandwich', 'baguette farcie', 'club sandwich'],
+    'salade': ['salad'],
+    'soupe': ['soup'],
+    'poisson': ['poisson', 'seafood'],
+    'poulet': ['poulet', 'volaille'],
+    'viande': ['viande', 'grill'],
+    'pates': ['pasta', 'pâtes', 'lasagne', 'gratin'],
+    'dessert': ['dessert', 'gaufre'],
+    'boisson': ['boisson', 'drink', 'mojito', 'smoothie', 'coffee', 'cafe'],
+    'cafe': ['coffee', 'cafe', 'boisson chaude'],
+  };
+
+  /// English / Derja / Arabic ways of naming the concepts above. Kept apart
+  /// from the map itself so one concept's word list is edited in one place.
+  static const Map<String, String> _kFoodConceptAliases = {
+    'fastfood': 'fast food',
+    'street food': 'fast food',
+    'snack': 'fast food',
+    'tunisian': 'tunisien',
+    'tunisienne': 'tunisien',
+    'tounsi': 'tunisien',
+    'makla': 'makla tounsia',
+    'light': 'leger',
+    'healthy': 'leger',
+    'sain': 'leger',
+    'grill': 'grillade',
+    'grille': 'grillade',
+    'mechwi': 'grillade',
+    'mchwi': 'grillade',
+    'seafood': 'fruits de mer',
+    'breakfast': 'petit dejeuner',
+    'ftour': 'petit dejeuner',
+    'pasta': 'pates',
+    'salad': 'salade',
+    'soup': 'soupe',
+    'chicken': 'poulet',
+    'meat': 'viande',
+    'fish': 'poisson',
+    'drink': 'boisson',
+    'boissons': 'boisson',
+    'coffee': 'cafe',
+    'sweet': 'dessert',
+    'sucre': 'dessert',
+  };
+
+  /// The two maps above, for the integrity tests — a pattern containing a
+  /// comma or an alias pointing nowhere is only ever caught by reading them.
+  @visibleForTesting
+  static Map<String, List<String>> get foodConceptsForTest => _kFoodConcepts;
+
+  @visibleForTesting
+  static Map<String, String> get foodConceptAliasesForTest =>
+      _kFoodConceptAliases;
+
+  /// Turns the model's free-text food category into the words the catalogue
+  /// really uses.
+  ///
+  /// Returns `[raw]` unchanged when the term isn't a known concept — an
+  /// unrecognised word must still be searched, exactly as before, not
+  /// dropped. Returns `[]` for null/blank so callers can skip the filter.
+  @visibleForTesting
+  static List<String> expandFoodConcept(String? raw) {
+    final term = raw?.trim() ?? '';
+    if (term.isEmpty) return const [];
+
+    // Separators to spaces so "fast-food" and "fast_food" land on "fast food".
+    final key = _foldAccents(term)
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' ');
+    if (key.isEmpty) return [term];
+
+    final canonical = _kFoodConceptAliases[key] ?? key;
+    final hit = _kFoodConcepts[canonical] ??
+        // "pizzas" → "pizza", "burgers" → "burger". The model usually emits
+        // the singular, but it is not contractually bound to.
+        (key.endsWith('s')
+            ? _kFoodConcepts[_kFoodConceptAliases[
+                    key.substring(0, key.length - 1)] ??
+                key.substring(0, key.length - 1)]
+            : null);
+    return hit ?? [term];
+  }
+
   /// Backward-compatibility fallback (plan risk R5).
   ///
   /// A deployment where the edge function predates `service_category` still
