@@ -1454,10 +1454,22 @@ class AiChatService {
     required bool useCategory,
   }) async {
     try {
+      // `vendors.is_open` filtered HERE, server-side, not in Dart after the
+      // fact. The closed-shop check used to run below, on rows that
+      // `.limit(20)` had already trimmed: the 20 cheapest matching items were
+      // picked across open AND closed shops and only then thinned, so a
+      // catalogue search could come back empty while an open shop held
+      // matching items. Same defect the food query had, and worse here
+      // because of the relaxation tiers above — an all-closed page of rows
+      // reads as "this tier found nothing" and relaxes a search that did in
+      // fact match, then tells the user so.
       var query = _supabase.from('vendor_items').select('''
         id, name, description, price, discount_price, image_url, category,
         vendors!inner (id, name, image_url, rating, is_open, category)
-      ''').eq('is_available', true).eq('vendors.category', slug);
+      ''')
+          .eq('is_available', true)
+          .eq('vendors.category', slug)
+          .eq('vendors.is_open', true);
 
       if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
       if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
@@ -1474,10 +1486,10 @@ class AiChatService {
           as List<dynamic>;
 
       return rows
-          // Same reasoning as the restaurant query above — drop closed shops.
-          .where((r) =>
-              r['vendors'] != null &&
-              (r['vendors'] as Map<String, dynamic>)['is_open'] == true)
+          // The embedded `vendors.is_open` filter above already guarantees
+          // this; the null guard stays so an embed shape change drops a row
+          // rather than crashing the cast below.
+          .where((r) => r['vendors'] != null)
           .map<ProductResult>((r) {
         final shop = r['vendors'] as Map<String, dynamic>;
         return ProductResult(
