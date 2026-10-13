@@ -283,7 +283,15 @@ List at most 20 ids, best first. Do not add text outside the JSON.`;
 //   2. drop is_spicy / is_vegetarian — these columns are sparsely populated, so
 //      they are the most likely reason a reasonable query returns nothing
 //   3. drop category / keyword, keep the budget — respect what they can spend
-//   4. no filters at all — guarantees we never hand back zero results
+//
+// THE BUDGET IS NOT A TIER. There used to be a fourth tier with no filters at
+// all, justified as "guarantees we never hand back zero results" — but what it
+// actually guaranteed was handing back results the user cannot afford, with no
+// way for them to tell. A budget is the user's own constraint, not a search
+// hint, and an empty answer is the correct answer to "nothing under 10 TND".
+// The chat assistant's two ladders (AiChatService.relaxationPlan and the
+// venue search) carry the same rule, structurally: their tier record has no
+// price field to drop. Keep all three consistent.
 //
 // Any tier past the first means we did NOT match what was asked for, so the
 // response is flagged and the client says so rather than passing these off as
@@ -291,14 +299,12 @@ List at most 20 ids, best first. Do not add text outside the JSON.`;
 interface RelaxTier {
   attributes: boolean; // is_spicy / is_vegetarian
   taxonomy: boolean; // category / keyword
-  price: boolean; // min_price / max_price
 }
 
 const RELAX_TIERS: RelaxTier[] = [
-  { attributes: true, taxonomy: true, price: true },
-  { attributes: false, taxonomy: true, price: true },
-  { attributes: false, taxonomy: false, price: true },
-  { attributes: false, taxonomy: false, price: false },
+  { attributes: true, taxonomy: true },
+  { attributes: false, taxonomy: true },
+  { attributes: false, taxonomy: false },
 ];
 
 function buildCandidateQuery(
@@ -313,8 +319,9 @@ function buildCandidateQuery(
   }
   if (tier.attributes && intent.spicy === true) q = q.eq("is_spicy", true);
   if (tier.attributes && intent.vegetarian === true) q = q.eq("is_vegetarian", true);
-  if (tier.price && intent.max_price != null) q = q.lte("price", intent.max_price);
-  if (tier.price && intent.min_price != null) q = q.gte("price", intent.min_price);
+  // Unconditional, at every tier: see RELAX_TIERS above.
+  if (intent.max_price != null) q = q.lte("price", intent.max_price);
+  if (intent.min_price != null) q = q.gte("price", intent.min_price);
   if (tier.taxonomy && intent.keyword) {
     q = q.or(`name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%`);
   }
@@ -322,7 +329,7 @@ function buildCandidateQuery(
   // The widest tier has no user signal to sort by, so lead with the cheapest
   // dishes. We deliberately do NOT filter on restaurants.is_open here — that
   // could re-introduce the empty result this tier exists to prevent.
-  if (!tier.attributes && !tier.taxonomy && !tier.price) {
+  if (!tier.attributes && !tier.taxonomy) {
     q = q.order("price", { ascending: true });
   }
 
