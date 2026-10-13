@@ -48,6 +48,21 @@ class AiChatService {
   static const String _kNoResultsMessage =
       'Aucun résultat trouvé pour cette recherche, essayez autre chose 🔍';
 
+  // ── Catalogue unreachable ─────────────────────────────────────────────────
+  // Said when the query itself FAILED, which is a different thing from the
+  // catalogue having nothing: we don't know what it has. Keeping the two
+  // apart is the whole point — a PostgREST 400 used to be reported with
+  // _kNoResultsMessage above, which reads as a fact about the catalogue and
+  // sent everyone looking for missing data instead of a broken query.
+  // Deliberately says nothing about what was or wasn't found.
+  static const String _kQueryFailedMessage =
+      'Je n\'ai pas pu interroger le catalogue — réessayez dans un instant 🔧';
+
+  /// The message shown when a catalogue query fails, as opposed to coming
+  /// back empty. Exposed so a test can assert the two never collapse into
+  /// one another again.
+  static String queryFailedMessage() => _kQueryFailedMessage;
+
   // ── Shop catalogues ───────────────────────────────────────────────────────
   // The 7 `vendors.category` slugs, mirroring `vendor_categories.id` and
   // ServiceTypeX.vendorCategory. The edge function sends one in
@@ -305,57 +320,65 @@ class AiChatService {
 
     String finalText = resolved.message;
     List<ProductResult> products = [];
-    switch (resolved.intentRaw) {
-      case 'search_food':
-        products = await _queryFoodItems(resolved);
-        if (products.isEmpty) {
-          finalText = noResultsMessageFor('food',
-              maxPrice: resolved.maxPrice, minPrice: resolved.minPrice);
-        }
-        break;
-      case 'restaurant_search':
-        products = await _queryRestaurants(resolved);
-        if (products.isEmpty) finalText = noResultsMessageFor('food');
-        break;
-      case 'shop_search':
-        final shopResult = await _queryShopItems(resolved);
-        products = shopResult.items;
-        if (products.isEmpty) {
-          finalText = noResultsMessageFor(
-            resolved.serviceCategory,
-            maxPrice: resolved.maxPrice,
-            minPrice: resolved.minPrice,
-          );
-        } else if (shopResult.relaxed) {
-          // The cards below are the shop's catalogue, not matches for what
-          // was asked. Say so rather than letting the lead-in ("Je regarde
-          // côté électronique") imply these are the chargers they wanted.
-          finalText =
-              '${resolved.message}\n\n${relaxedNoticeFor(resolved.serviceCategory)}';
-        }
-        break;
-      case 'delivery_request':
-        finalText = await _appendRecipientHint(resolved.message);
-        products = [_buildDeliveryCard()];
-        break;
-      case 'track_order':
-        finalText = await _buildOrderStatusReply(resolved.message);
-        break;
-      default:
-        // 'general' is also where Facture questions land (SYSTEM_PROMPT RULE
-        // 2 routes them here — there's no dedicated intent for it, deliberately
-        // not building one: see the restaurant_search vs facture/colis
-        // investigation). Only touch the message when the raw text actually
-        // looks facture-shaped, so off-topic redirects / disambiguation
-        // questions / every other 'general' reply is left untouched.
-        if (resolved.intentRaw == 'general' &&
-            _looksLikeFactureQuestion(userText)) {
-          finalText = await _appendBillTypeHint(resolved.message);
-          // The explanation used to be text-only, leaving the user to find
-          // the Facture section themselves. The card below opens it.
-          products = [_buildFactureCard()];
-        }
-        break;
+    try {
+      switch (resolved.intentRaw) {
+        case 'search_food':
+          products = await _queryFoodItems(resolved);
+          if (products.isEmpty) {
+            finalText = noResultsMessageFor('food',
+                maxPrice: resolved.maxPrice, minPrice: resolved.minPrice);
+          }
+          break;
+        case 'restaurant_search':
+          products = await _queryRestaurants(resolved);
+          if (products.isEmpty) finalText = noResultsMessageFor('food');
+          break;
+        case 'shop_search':
+          final shopResult = await _queryShopItems(resolved);
+          products = shopResult.items;
+          if (products.isEmpty) {
+            finalText = noResultsMessageFor(
+              resolved.serviceCategory,
+              maxPrice: resolved.maxPrice,
+              minPrice: resolved.minPrice,
+            );
+          } else if (shopResult.relaxed) {
+            // The cards below are the shop's catalogue, not matches for what
+            // was asked. Say so rather than letting the lead-in ("Je regarde
+            // côté électronique") imply these are the chargers they wanted.
+            finalText =
+                '${resolved.message}\n\n${relaxedNoticeFor(resolved.serviceCategory)}';
+          }
+          break;
+        case 'delivery_request':
+          finalText = await _appendRecipientHint(resolved.message);
+          products = [_buildDeliveryCard()];
+          break;
+        case 'track_order':
+          finalText = await _buildOrderStatusReply(resolved.message);
+          break;
+        default:
+          // 'general' is also where Facture questions land (SYSTEM_PROMPT RULE
+          // 2 routes them here — there's no dedicated intent for it, deliberately
+          // not building one: see the restaurant_search vs facture/colis
+          // investigation). Only touch the message when the raw text actually
+          // looks facture-shaped, so off-topic redirects / disambiguation
+          // questions / every other 'general' reply is left untouched.
+          if (resolved.intentRaw == 'general' &&
+              _looksLikeFactureQuestion(userText)) {
+            finalText = await _appendBillTypeHint(resolved.message);
+            // The explanation used to be text-only, leaving the user to find
+            // the Facture section themselves. The card below opens it.
+            products = [_buildFactureCard()];
+          }
+          break;
+      }
+    } on _QueryFailure catch (e) {
+      debugPrint('AiChatService – $e');
+      // The catalogue could not be read, so we do not know whether it has
+      // matches. Say that, show no cards, and persist nothing: reporting an
+      // empty result here is what hid the is_blocked 400 (see _QueryFailure).
+      return ChatMessage(text: queryFailedMessage(), isUser: false);
     }
 
     // Persist AFTER finalText is resolved so history restoration (chat re-open)
@@ -640,7 +663,12 @@ class AiChatService {
       }).toList();
     } catch (e) {
       debugPrint('AiChatService – food query error: $e');
-      return [];
+      // NOT `return []`. An empty list means "the catalogue genuinely has
+      // nothing matching", and the caller says exactly that to the user. A
+      // failed query means we don't know, and claiming nothing was found
+      // hides the bug — that is how the is_blocked 400 above stayed invisible
+      // for three weeks. Fail loudly instead; sendMessage shows an error.
+      throw _QueryFailure('food', e);
     }
   }
 
@@ -652,10 +680,23 @@ class AiChatService {
   // is a plain client read like the food/shop queries.
   Future<List<ProductResult>> _queryRestaurants(_AiIntent intent) async {
     try {
+      // No blocked-venue filter here, deliberately. This query used to carry
+      // `.not('is_blocked', 'is', true)`, written 2026-09-10 against the old
+      // `restaurants` TABLE. Migration 20260922010000 replaced that table with
+      // a VIEW over `vendors` and — in its own words — "deliberately NOT
+      // mirrored" is_blocked, which survives only on `restaurants_legacy`
+      // until its phase 2 moves the column onto `vendors`. PostgREST answered
+      // every request with 400 "column restaurants.is_blocked does not exist",
+      // the catch below turned that into an empty list, and the caller showed
+      // it as "nothing found": restaurant search returned zero rows for every
+      // query, for three weeks, with no visible error. Dropping the filter
+      // also makes this consistent with the rest of the app — no other venue
+      // listing in the client filters on it. Re-add it (here and in the other
+      // listings) once the column lives on `vendors`.
       var query = _supabase.from('restaurants').select('''
         id, name, description, image_url, rating, review_count,
         delivery_time_min, delivery_fee, is_open, categories
-      ''').eq('is_open', true).not('is_blocked', 'is', true);
+      ''').eq('is_open', true);
 
       // Single OR clause (repeated .or() calls AND together in PostgREST, which
       // isn't what we want) — mirrors _queryFoodItems' keyword handling.
@@ -701,7 +742,8 @@ class AiChatService {
       }).toList();
     } catch (e) {
       debugPrint('AiChatService – restaurant query error: $e');
-      return [];
+      // See _queryFoodItems: a failure is not an empty catalogue.
+      throw _QueryFailure('restaurant', e);
     }
   }
 
@@ -820,7 +862,11 @@ class AiChatService {
       }).toList();
     } catch (e) {
       debugPrint('AiChatService – shop query error: $e');
-      return [];
+      // Propagates out of the relaxation loop in _queryShopItems on purpose:
+      // a broken query is not a tier that "found nothing", so retrying the
+      // next tier would just repeat the same failure and end up reporting an
+      // empty shop. See _queryFoodItems.
+      throw _QueryFailure('shop', e);
     }
   }
 
@@ -1071,6 +1117,20 @@ class _ChatFailure implements Exception {
   const _ChatFailure(this.kind, this.detail);
   @override
   String toString() => 'ChatFailure(${kind.name}): $detail';
+}
+
+/// Thrown by the catalogue queries when the request itself failed — a bad
+/// column, a dropped connection, an RLS refusal. Deliberately distinct from
+/// "the query ran and matched nothing": the two used to be indistinguishable
+/// (every catch returned an empty list), so a hard PostgREST 400 reached the
+/// user as "Je ne trouve rien qui corresponde…". Never conflate them again.
+class _QueryFailure implements Exception {
+  /// Which catalogue was being read — 'food', 'restaurant' or 'shop'.
+  final String what;
+  final Object cause;
+  const _QueryFailure(this.what, this.cause);
+  @override
+  String toString() => 'QueryFailure($what): $cause';
 }
 
 // ── Internal intent model ─────────────────────────────────────────────────────
