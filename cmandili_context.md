@@ -1,6 +1,6 @@
 # CMANDILI_CONTEXT.md
 > **Purpose:** AI session bootstrap. Read this file at the start of every session to understand the full project and continue immediately without reading every file.
-> **Last updated:** 2026-10-13 (Colis handover receipt live, rollout unfinished; Amana Assistant blocked on OpenRouter credits — see the CURRENT WORK section below, which supersedes §7/§8)
+> **Last updated:** 2026-10-15 (driver verification built, not applied — see CURRENT WORK; Colis receipt live; Amana Assistant blocked on OpenRouter credits)
 
 ---
 
@@ -168,6 +168,47 @@ a driver can get stuck in the field and go unpaid.
 - **Never force-push.** If a remote has moved: stop, say so, offer a rebase or
   merge — overwrite nothing.
 - **Push order: submodules first, then the parent.**
+
+### D-bis. Driver verification (2026-10-15) — security model
+
+**A wallet-based guarantee was considered and REJECTED.** The idea was to let a
+driver take a valuable parcel only if his prepaid balance covered the declared
+value. In practice drivers top up around 100 TND at most, given local
+purchasing power and daily income: almost no driver could have taken a valuable
+parcel, customers would have waited with no driver, and recruiting would have
+got harder. **Do not implement any wallet hold or balance check for parcels.**
+
+Security rests on three layers instead:
+
+1. **The electronic handover receipt** (`colis_receipts`, live): driver name,
+   CIN, plate, pickup and delivery photos, GPS, server timestamps, delivery
+   code or no-code acceptance, immutable records, admin PDF export. If a parcel
+   disappears we know who took it and have a complete file for a complaint.
+2. **The 300 TND cap** per parcel (`platform_settings`), which bounds the
+   maximum possible loss.
+3. **Driver verification before working**: an admin meets the driver in person
+   and records their CIN and a contract signed and legalized at the baladiya.
+   Until both are recorded the driver receives nothing, accepts nothing, and
+   cannot even go online.
+
+**Why verification does not live on `drivers`:** `drivers_update_own` has
+`USING (user_id = auth.uid())` with **no `WITH CHECK`**, and no REVOKE or
+column guard covered the table — a driver could write any column of his own
+row. Not theoretical: `20261011120000` had to add `protect_driver_rating()` to
+stop drivers rating themselves. A flag there would be self-granted. The record
+lives in `driver_identity`, admin-only, which the driver cannot even see.
+
+`20261015090000_driver_verification.sql` also adds a **deny-by-default column
+guard** on `drivers` (allowed to the app: `is_online`, `current_lat`,
+`current_lng`, `last_location_update`, the five `vehicle_*`; everything else
+refused for `authenticated`, including future columns), and closes three
+pre-existing holes where a **blocked** driver still got through:
+`nearby_online_drivers` ignored `is_blocked`, `orders_driver_claim` checked
+only that a drivers row existed, and nothing stopped a driver going online.
+
+Rollout: `platform_settings.driver_verification_required` starts at `off`, so
+existing drivers keep working. The admin drivers page shows how many are still
+pending; fill their records, then switch it to `on`.
 
 ### E. Gotchas learned the hard way (2026-10)
 
