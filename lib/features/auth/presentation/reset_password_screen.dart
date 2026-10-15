@@ -1,10 +1,14 @@
-﻿import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
+import 'widgets/otp_code_field.dart';
+import 'widgets/password_glass_card.dart';
+import 'widgets/password_page_background.dart';
+import 'widgets/password_page_icon.dart';
+import 'widgets/password_submit_button.dart';
+import 'widgets/password_text_field.dart';
 
 /// Second step of the OTP-based password-reset flow.
 ///
@@ -12,6 +16,8 @@ import '../providers/auth_provider.dart';
 /// pass it to `verifyOtp`.  The screen collects:
 ///   1. The 8-digit code from the email.
 ///   2. The new password (+ confirmation).
+/// "Saisissez le code": the 8-digit code from the e-mail (OtpCodeField),
+/// the new password twice, then "Réinitialiser le mot de passe".
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String email;
 
@@ -171,39 +177,16 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
     );
   }
 
-  // â”€â”€ Build â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
     final sh = MediaQuery.of(context).size.height;
+    final l = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Gradient background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF059669), Color(0xFF0D9488), Color(0xFF0F766E)],
-              ),
-            ),
-          ),
-
-          // Decorative circles
-          Positioned(
-            top: -sh * 0.12,
-            right: -sw * 0.2,
-            child: _circle(sw * 0.6, Colors.white.withValues(alpha: 0.12)),
-          ),
-          Positioned(
-            bottom: -sh * 0.08,
-            left: -sw * 0.15,
-            child: _circle(sw * 0.5, Colors.white.withValues(alpha: 0.10)),
-          ),
-
+          const PasswordPageBackground(),
           SafeArea(
             child: Column(
               children: [
@@ -216,7 +199,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
@@ -227,20 +209,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                           position: _slideAnim,
                           child: Column(
                             children: [
-                              // Icon
-                              Container(
-                                padding: EdgeInsets.all(sw * 0.05),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.shield_rounded,
-                                    size: sw * 0.14, color: Colors.white),
-                              ),
+                              const PasswordPageIcon(icon: Icons.shield_rounded),
                               SizedBox(height: sh * 0.02),
-
                               Text(
-                                AppLocalizations.of(context)!.enterResetCode,
+                                l.enterResetCode,
                                 style: TextStyle(
                                   fontSize: sw * 0.065,
                                   fontWeight: FontWeight.bold,
@@ -248,143 +220,64 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                 ),
                               ),
                               SizedBox(height: sh * 0.008),
-                              // Show masked email for confirmation
+                              // Masked e-mail, for confirmation
                               Text(
-                                AppLocalizations.of(context)!.codeSentTo(_maskEmail(widget.email)),
+                                l.codeSentTo(_maskEmail(widget.email)),
                                 style: TextStyle(
                                   fontSize: sw * 0.036,
                                   color: Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
-
                               SizedBox(height: sh * 0.035),
-
-                              // â”€â”€ Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(sw * 0.07),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(
-                                      sigmaX: 15, sigmaY: 15),
-                                  child: Container(
-                                    padding: EdgeInsets.all(sw * 0.06),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.92),
-                                      borderRadius:
-                                          BorderRadius.circular(sw * 0.07),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.3),
-                                        width: 1.5,
+                              PasswordGlassCard(
+                                child: Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      OtpCodeField(controller: _otpController),
+                                      SizedBox(height: sh * 0.02),
+                                      PasswordTextField(
+                                        controller: _passwordController,
+                                        label: l.pwdNew,
+                                        icon: Icons.lock_outline_rounded,
+                                        isPassword: true,
+                                        isObscure: _obscurePassword,
+                                        onToggle: () => setState(
+                                            () => _obscurePassword = !_obscurePassword),
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return l.pleaseEnterPassword;
+                                          }
+                                          if (v.length < 8) {
+                                            return l.passwordLength;
+                                          }
+                                          return null;
+                                        },
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.12),
-                                          blurRadius: sw * 0.07,
-                                          offset: Offset(0, sh * 0.012),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Form(
-                                      key: _formKey,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          // â”€â”€ 8-digit OTP field â”€â”€â”€â”€â”€â”€â”€â”€
-                                          _buildOtpField(sw, sh),
-
-                                          SizedBox(height: sh * 0.02),
-
-                                          // â”€â”€ New password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                                          _buildField(
-                                            controller: _passwordController,
-                                            label: AppLocalizations.of(context)!.pwdNew,
-                                            icon: Icons.lock_outline_rounded,
-                                            isPassword: true,
-                                            isObscure: _obscurePassword,
-                                            onToggle: () => setState(() =>
-                                                _obscurePassword =
-                                                    !_obscurePassword),
-                                            sw: sw,
-                                            sh: sh,
-                                            validator: (v) {
-                                              if (v == null || v.isEmpty) {
-                                                return AppLocalizations.of(context)!.pleaseEnterPassword;
-                                              }
-                                              if (v.length < 8) {
-                                                return AppLocalizations.of(context)!.passwordLength;
-                                              }
-                                              return null;
-                                            },
-                                          ),
-
-                                          SizedBox(height: sh * 0.02),
-
-                                          // â”€â”€ Confirm password â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                                          _buildField(
-                                            controller: _confirmController,
-                                            label: AppLocalizations.of(context)!.confirmPasswordShort,
-                                            icon: Icons.lock_outline_rounded,
-                                            isPassword: true,
-                                            isObscure: _obscureConfirm,
-                                            onToggle: () => setState(() =>
-                                                _obscureConfirm =
-                                                    !_obscureConfirm),
-                                            sw: sw,
-                                            sh: sh,
-                                            validator: (v) {
-                                              if (v != _passwordController.text) {
-                                                return AppLocalizations.of(context)!.pwdErrorMismatch;
-                                              }
-                                              return null;
-                                            },
-                                          ),
-
-                                          SizedBox(height: sh * 0.03),
-
-                                          // â”€â”€ Submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                                          SizedBox(
-                                            height: sh * 0.065,
-                                            child: ElevatedButton(
-                                              onPressed: _isLoading
-                                                  ? null
-                                                  : _resetPassword,
-                                              style:
-                                                  ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    AppColors.primary,
-                                                foregroundColor: Colors.white,
-                                                elevation: 8,
-                                                shadowColor: AppColors.primary
-                                                    .withValues(alpha: 0.4),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          sw * 0.04),
-                                                ),
-                                              ),
-                                              child: _isLoading
-                                                  ? const SizedBox(
-                                                      height: 22,
-                                                      width: 22,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                        color: Colors.white,
-                                                        strokeWidth: 2.5,
-                                                      ),
-                                                    )
-                                                  : Text(
-                                                      AppLocalizations.of(context)!.resetPasswordButton,
-                                                      style: TextStyle(
-                                                        fontSize: sw * 0.042,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                            ),
-                                          ),
-                                        ],
+                                      SizedBox(height: sh * 0.02),
+                                      PasswordTextField(
+                                        controller: _confirmController,
+                                        label: l.confirmPasswordShort,
+                                        icon: Icons.lock_outline_rounded,
+                                        isPassword: true,
+                                        isObscure: _obscureConfirm,
+                                        onToggle: () => setState(
+                                            () => _obscureConfirm = !_obscureConfirm),
+                                        validator: (v) {
+                                          if (v != _passwordController.text) {
+                                            return l.pwdErrorMismatch;
+                                          }
+                                          return null;
+                                        },
                                       ),
-                                    ),
+                                      SizedBox(height: sh * 0.03),
+                                      PasswordSubmitButton(
+                                        isLoading: _isLoading,
+                                        label: l.resetPasswordButton,
+                                        onPressed: _resetPassword,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -402,151 +295,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
       ),
     );
   }
-
-  // â”€â”€ Sub-widgets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  /// Large, centered OTP input field styled to look like a code entry.
-  Widget _buildOtpField(double sw, double sh) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppLocalizations.of(context)!.eightDigitCode,
-          style: TextStyle(
-            fontSize: sw * 0.035,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        SizedBox(height: sh * 0.008),
-        TextFormField(
-          controller: _otpController,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          maxLength: 8,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          style: TextStyle(
-            fontSize: sw * 0.07,
-            fontWeight: FontWeight.bold,
-            letterSpacing: sw * 0.06,
-            color: AppColors.primary,
-          ),
-          decoration: InputDecoration(
-            counterText: '', // hide the "0/6" counter
-            filled: true,
-            fillColor: AppColors.primary.withValues(alpha: 0.05),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(sw * 0.04),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(sw * 0.04),
-              borderSide: BorderSide(
-                  color: AppColors.primary.withValues(alpha: 0.25), width: 1.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(sw * 0.04),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 2.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(sw * 0.04),
-              borderSide:
-                  const BorderSide(color: AppColors.error, width: 1.5),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(sw * 0.04),
-              borderSide:
-                  const BorderSide(color: AppColors.error, width: 2),
-            ),
-            contentPadding:
-                EdgeInsets.symmetric(vertical: sh * 0.022),
-          ),
-          validator: (v) {
-            if (v == null || v.trim().length != 8) {
-              return AppLocalizations.of(context)!.enterEightDigitCode;
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required double sw,
-    required double sh,
-    bool isPassword = false,
-    bool isObscure = false,
-    VoidCallback? onToggle,
-    String? Function(String?)? validator,
-    TextInputType? keyboardType,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isObscure,
-      keyboardType: keyboardType,
-      style: TextStyle(
-        fontWeight: FontWeight.w500,
-        color: AppColors.textPrimary,
-        fontSize: sw * 0.04,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(
-            color: AppColors.textSecondary.withValues(alpha: 0.8),
-            fontSize: sw * 0.038),
-        prefixIcon: Icon(icon,
-            color: AppColors.primary.withValues(alpha: 0.7), size: sw * 0.06),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  isObscure
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondary.withValues(alpha: 0.5),
-                  size: sw * 0.055,
-                ),
-                onPressed: onToggle,
-              )
-            : null,
-        filled: true,
-        fillColor: AppColors.background,
-        border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(sw * 0.04),
-            borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: BorderSide(
-              color: AppColors.textLight.withValues(alpha: 0.1), width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
-        ),
-        contentPadding: EdgeInsets.symmetric(
-            horizontal: sw * 0.05, vertical: sh * 0.02),
-      ),
-      validator: validator,
-    );
-  }
-
-  Widget _circle(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      );
 
   /// Shows a masked email like  u****@gmail.com
   String _maskEmail(String email) {

@@ -162,7 +162,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             ),
             const SizedBox(height: 24),
 
-            _field(
+            _PasswordField(
               controller: _currentCtrl,
               label: l.pwdCurrent,
               obscure: !_showCurrent,
@@ -172,7 +172,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             ),
             const SizedBox(height: 16),
 
-            _field(
+            _PasswordField(
               controller: _newCtrl,
               label: l.pwdNew,
               obscure: !_showNew,
@@ -191,7 +191,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             ),
             const SizedBox(height: 16),
 
-            _field(
+            _PasswordField(
               controller: _confirmCtrl,
               label: l.pwdConfirm,
               obscure: !_showConfirm,
@@ -251,14 +251,26 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       ),
     );
   }
+}
 
-  Widget _field({
-    required TextEditingController controller,
-    required String label,
-    required bool obscure,
-    required VoidCallback onToggle,
-    required String? Function(String?) validator,
-  }) {
+/// A password field with an 👁 button to show / hide what is typed.
+class _PasswordField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final bool obscure;
+  final VoidCallback onToggle;
+  final String? Function(String?) validator;
+
+  const _PasswordField({
+    required this.controller,
+    required this.label,
+    required this.obscure,
+    required this.onToggle,
+    required this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
