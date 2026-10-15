@@ -5,7 +5,11 @@ import '../../../core/theme/app_colors.dart';
 import '../providers/address_provider.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
+import 'widgets/saved_address_tile.dart';
 
+/// The customer's saved delivery addresses: one SavedAddressTile each
+/// (swipe left to delete, "Par défaut" chip or a button to make it the
+/// default). The + in the app bar adds one, picked on the map.
 class SavedAddressesScreen extends ConsumerWidget {
   const SavedAddressesScreen({super.key});
 
@@ -31,54 +35,23 @@ class SavedAddressesScreen extends ConsumerWidget {
               itemCount: addresses.length,
               itemBuilder: (context, index) {
                 final address = addresses[index];
-                return Dismissible(
-                  key: Key(address.id),
-                  direction: DismissDirection.endToStart,
-                  background: _buildDeleteBackground(),
-                  onDismissed: (direction) {
+                return SavedAddressTile(
+                  address: address,
+                  onDelete: () {
                     ref.read(addressProvider.notifier).deleteAddress(address.id);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text(AppLocalizations.of(context)!.addressRemovedSuccess)),
                     );
                   },
-                  child: Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: ListTile(
-                      leading: Icon(
-                        address.isDefault ? Icons.home_filled : Icons.location_on_outlined,
-                        color: AppColors.primary,
-                      ),
-                      title: Text(address.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(address.fullAddress),
-                      trailing: address.isDefault
-                          ? Chip(
-                              label: Text(AppLocalizations.of(context)!.defaultLabel, style: const TextStyle(fontSize: 10, color: Colors.white)),
-                              backgroundColor: AppColors.primary,
-                            )
-                          : TextButton(
-                              onPressed: () {
-                                ref.read(addressProvider.notifier).setDefault(address.id);
-                              },
-                              child: Text(AppLocalizations.of(context)!.setDefault),
-                            ),
-                    ),
-                  ),
+                  onSetDefault: () {
+                    ref.read(addressProvider.notifier).setDefault(address.id);
+                  },
                 );
               },
             ),
     );
   }
 
-  Widget _buildDeleteBackground() {
-    return Container(
-      color: Colors.red,
-      alignment: Alignment.centerRight,
-      padding: const EdgeInsets.only(right: 20),
-      child: const Icon(Icons.delete, color: Colors.white),
-    );
-  }
 
   /// Pick the location on the map, then ask only for a label. The old flow was
   /// two free-text fields with no coordinates at all, so addAddress() fell back

@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
+import 'widgets/contact_option_tile.dart';
 
+/// "Aide & support": a form that opens a support ticket (subject +
+/// message), then the e-mail and phone to reach the team directly
+/// (ContactOptionTile).
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
 
@@ -118,12 +122,12 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                     : Text(AppLocalizations.of(context)!.submitTicket, style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 30),
-              const _ContactOption(
+              const ContactOptionTile(
                 icon: Icons.email_outlined,
                 title: 'Email Us',
                 subtitle: 'support@amana.tn',
               ),
-              _ContactOption(
+              ContactOptionTile(
                 icon: Icons.phone_outlined,
                 title: AppLocalizations.of(context)!.callUs,
                 subtitle: '+216 71 123 456',
@@ -131,57 +135,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ContactOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _ContactOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: AppColors.primary),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
-          ),
-        ],
       ),
     );
   }
