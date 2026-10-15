@@ -21,6 +21,46 @@
 
 begin;
 
+-- ── 0. Préconditions ───────────────────────────────────────────────────────
+-- Le harnais a deja echoue une fois sur un « column does not exist » brut,
+-- illisible : 20261015090000 avait rapporte Success alors que les colonnes de
+-- dossier n'etaient pas en place. Ce bloc transforme ce cas en message clair,
+-- AVANT de toucher a quoi que ce soit.
+do $$
+declare
+  v_missing text[] := '{}';
+  n integer;
+  c text;
+begin
+  foreach c in array array['contract_signed_at', 'contract_legalized_at',
+                           'contract_scan_path', 'verified_at', 'verified_by']
+  loop
+    select count(*) into n from information_schema.columns
+     where table_schema = 'public' and table_name = 'driver_identity'
+       and column_name = c;
+    if n = 0 then v_missing := v_missing || c; end if;
+  end loop;
+
+  if array_length(v_missing, 1) is not null then
+    raise exception
+      'PRECONDITION : driver_identity n a pas les colonnes de dossier (% manquante(s) : %). '
+      'Lancez 20261015103000_driver_verification_repair.sql, puis relancez ce harnais.',
+      array_length(v_missing, 1), array_to_string(v_missing, ', ');
+  end if;
+
+  select count(*) into n from pg_proc p
+    join pg_namespace ns on ns.oid = p.pronamespace
+   where ns.nspname = 'public' and p.proname = 'driver_is_verified';
+  if n = 0 then
+    raise exception
+      'PRECONDITION : driver_is_verified() est absente. 20261015090000 n a pas ete appliquee en entier.';
+  end if;
+
+  raise notice 'OK 0 — preconditions reunies';
+end
+$$;
+
+
 -- ── Triggers coupés pour le jeu d'essai ────────────────────────────────────
 set local session_replication_role = replica;
 
