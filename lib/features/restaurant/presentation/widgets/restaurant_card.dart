@@ -8,9 +8,23 @@ import '../../../../core/utils/cuisine_labels.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/delivery_fee.dart';
 import '../../../../core/utils/venue_hours.dart';
+import '../../../../core/widgets/shop_card/closed_photo_overlay.dart';
+import '../../../../core/widgets/shop_card/photo_pill.dart';
+import '../../../../core/widgets/shop_card/shop_info_item.dart';
 import '../../../home/data/models/restaurant.dart';
 import '../restaurant_detail_screen.dart';
 
+/// A restaurant in the home list (also used by the favourites). Opens the
+/// restaurant's page.
+///
+///   Column
+///   ├─ photo (Stack)
+///   │   ├─ ClosedPhotoOverlay   when closed
+///   │   ├─ top-left:     "🕒 25 min · 640 m"
+///   │   ├─ top-right:    "Nouveau"   (first week)
+///   │   ├─ bottom-left:  cuisine, e.g. "Pizza"
+///   │   └─ bottom-right: "★ 4.6 (214)"
+///   └─ _RestaurantInfo     name · Ouvert, description, fee and minimum
 class RestaurantCard extends ConsumerWidget {
   final Restaurant restaurant;
 
@@ -21,17 +35,9 @@ class RestaurantCard extends ConsumerWidget {
     final distance = ref.watch(shopDistanceLabelProvider(
         (lat: restaurant.latitude, lng: restaurant.longitude)));
     final l = AppLocalizations.of(context)!;
-    // Card and text follow the theme (identical to before in light mode);
-    // the pills over the photo stay white with dark text in both themes.
-    final cardColor = Theme.of(context).cardColor;
-    final onCard = Theme.of(context).colorScheme.onSurface;
-    final placeholder = Theme.of(context).scaffoldBackgroundColor;
     final size = MediaQuery.of(context).size;
     final screenHeight = size.height;
     final screenWidth = size.width;
-    // "Ouvre à HH:MM" hint — null when open or when no hours are configured.
-    final opensAt =
-        restaurant.isOpen ? null : nextOpeningLabel(restaurant.openingTime);
 
     return GestureDetector(
       onTap: () async {
@@ -50,7 +56,9 @@ class RestaurantCard extends ConsumerWidget {
       child: Container(
         margin: EdgeInsets.only(bottom: screenHeight * 0.025),
         decoration: BoxDecoration(
-          color: cardColor,
+          // Card and text follow the theme; the pills over the photo stay
+          // white with dark text in both themes.
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(screenWidth * 0.06),
           boxShadow: [
             BoxShadow(
@@ -63,107 +71,32 @@ class RestaurantCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Restaurant Image with Hero
             Hero(
               tag: 'restaurant_image_${restaurant.id}',
               child: Stack(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(screenWidth * 0.06),
-                      topRight: Radius.circular(screenWidth * 0.06),
-                    ),
-                    child: (restaurant.imageUrl.isNotEmpty && restaurant.imageUrl.startsWith('http'))
-                      ? CachedNetworkImage(
-                          imageUrl: restaurant.imageUrl,
-                          height: screenHeight * 0.25,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => Container(
-                            color: placeholder,
-                            child: const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: placeholder,
-                            child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
-                          ),
-                        )
-                      : Container(
-                          height: screenHeight * 0.25,
-                          width: double.infinity,
-                          color: placeholder,
-                          child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
-                        ),
+                  _RestaurantPhoto(
+                    imageUrl: restaurant.imageUrl,
+                    screenWidth: screenWidth,
+                    screenHeight: screenHeight,
                   ),
 
-                  // Closed state: dim the image + centered "Fermé" pill.
-                  // Closed venues stay tappable — browsing is allowed, ordering
-                  // is blocked in the detail screen (ghost-order fix).
+                  // Placed before the pills so they stay visible above the dim.
                   if (!restaurant.isOpen)
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(screenWidth * 0.06),
-                          topRight: Radius.circular(screenWidth * 0.06),
-                        ),
-                        child: Container(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          alignment: Alignment.center,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: screenWidth * 0.04,
-                              vertical: screenHeight * 0.01,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.65),
-                              borderRadius: BorderRadius.circular(screenWidth * 0.06),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.lock_rounded,
-                                  size: screenWidth * 0.04,
-                                  color: Colors.white,
-                                ),
-                                SizedBox(width: screenWidth * 0.015),
-                                Text(
-                                  l.shopClosed,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: screenWidth * 0.035,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                    ClosedPhotoOverlay(
+                      label: l.shopClosed,
+                      screenWidth: screenWidth,
+                      screenHeight: screenHeight,
                     ),
 
-                  // Status Badge
+                  // Delivery time and distance
                   Positioned(
                     top: screenHeight * 0.02,
                     left: screenWidth * 0.04,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.03,
-                        vertical: screenHeight * 0.008,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(screenWidth * 0.05),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: screenWidth * 0.01,
-                            offset: Offset(0, screenHeight * 0.0025),
-                          ),
-                        ],
-                      ),
+                    child: PhotoPill(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      screenWidth: screenWidth,
+                      screenHeight: screenHeight,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -188,29 +121,15 @@ class RestaurantCard extends ConsumerWidget {
                     ),
                   ),
 
-                  // "Nouveau" badge — venues added within the last 7 days.
-                  // Top-right is the one corner the time/category/rating
-                  // badges don't already occupy.
+                  // "Nouveau" — venues added within the last 7 days.
                   if (restaurant.isNew)
                     Positioned(
                       top: screenHeight * 0.02,
                       right: screenWidth * 0.04,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.03,
-                          vertical: screenHeight * 0.008,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.success,
-                          borderRadius: BorderRadius.circular(screenWidth * 0.05),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: screenWidth * 0.01,
-                              offset: Offset(0, screenHeight * 0.0025),
-                            ),
-                          ],
-                        ),
+                      child: PhotoPill(
+                        color: AppColors.success,
+                        screenWidth: screenWidth,
+                        screenHeight: screenHeight,
                         child: Text(
                           l.newShopBadge,
                           style: TextStyle(
@@ -222,29 +141,15 @@ class RestaurantCard extends ConsumerWidget {
                       ),
                     ),
 
-                  // Category Badge (first category, e.g. "Pâtisseries") —
-                  // placed after the closed-state overlay so it stays visible
-                  // above the dim, like the time and rating badges.
+                  // First cuisine, e.g. "Pâtisseries"
                   if (restaurant.categories.isNotEmpty)
                     Positioned(
                       bottom: screenHeight * 0.02,
                       left: screenWidth * 0.04,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.03,
-                          vertical: screenHeight * 0.008,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(screenWidth * 0.05),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: screenWidth * 0.01,
-                              offset: Offset(0, screenHeight * 0.0025),
-                            ),
-                          ],
-                        ),
+                      child: PhotoPill(
+                        color: Colors.white,
+                        screenWidth: screenWidth,
+                        screenHeight: screenHeight,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -269,26 +174,14 @@ class RestaurantCard extends ConsumerWidget {
                       ),
                     ),
 
-                  // Rating Badge
+                  // Rating
                   Positioned(
                     bottom: screenHeight * 0.02,
                     right: screenWidth * 0.04,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.03,
-                        vertical: screenHeight * 0.008,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(screenWidth * 0.05),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: screenWidth * 0.01,
-                            offset: Offset(0, screenHeight * 0.0025),
-                          ),
-                        ],
-                      ),
+                    child: PhotoPill(
+                      color: Colors.white,
+                      screenWidth: screenWidth,
+                      screenHeight: screenHeight,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -320,147 +213,189 @@ class RestaurantCard extends ConsumerWidget {
                 ],
               ),
             ),
-            
-            // Restaurant Info
-            Padding(
-              padding: EdgeInsets.all(screenWidth * 0.05),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Expanded: a long name ends in "…" instead of pushing
-                      // the "Ouvert" badge off the card.
-                      Expanded(
-                        child: Text(
-                          restaurant.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.05,
-                            fontWeight: FontWeight.bold,
-                            color: onCard,
-                          ),
-                        ),
-                      ),
-                      if (restaurant.isOpen)
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: screenWidth * 0.02,
-                            vertical: screenHeight * 0.005,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                          ),
-                          child: Text(
-                            l.shopOpen,
-                            style: TextStyle(
-                              color: AppColors.success,
-                              fontSize: screenWidth * 0.03,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  if (opensAt != null) ...[
-                    SizedBox(height: screenHeight * 0.006),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.schedule,
-                          size: screenWidth * 0.035,
-                          color: AppColors.error,
-                        ),
-                        SizedBox(width: screenWidth * 0.015),
-                        Text(
-                          opensAt,
-                          style: TextStyle(
-                            color: AppColors.error,
-                            fontSize: screenWidth * 0.032,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  SizedBox(height: screenHeight * 0.01),
-                  Text(
-                    restaurant.description,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: screenWidth * 0.035,
-                    ),
-                  ),
-                  SizedBox(height: screenHeight * 0.02),
-                  
-                  // Delivery Info Row
-                  Row(
-                    children: [
-                      _buildInfoItem(
-                        Icons.delivery_dining_outlined,
-                        // restaurant.deliveryFee is the DB's dead
-                        // restaurants.delivery_fee column (0 for every
-                        // restaurant — checkout prices off a distance-based
-                        // formula instead, see delivery_fee.dart). Show the
-                        // real base fee floor rather than a stale zero.
-                        CurrencyFormatter.formatPrice(kDeliveryBaseFee),
-                        l.deliveryLabel,
-                        screenWidth,
-                        onCard,
-                      ),
-                      SizedBox(width: screenWidth * 0.06),
-                      _buildInfoItem(
-                        Icons.shopping_bag_outlined,
-                        CurrencyFormatter.formatPrice(restaurant.minimumOrder),
-                        l.minOrderLabel,
-                        screenWidth,
-                        onCard,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            _RestaurantInfo(
+              restaurant: restaurant,
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildInfoItem(IconData icon, String value, String label,
-      double screenWidth, Color valueColor) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: screenWidth * 0.05,
-          color: AppColors.foodPrimary,
-        ),
-        SizedBox(width: screenWidth * 0.02),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: screenWidth * 0.035,
-                color: valueColor,
+/// The photo, or a restaurant icon when there is none.
+class _RestaurantPhoto extends StatelessWidget {
+  final String imageUrl;
+  final double screenWidth;
+  final double screenHeight;
+
+  const _RestaurantPhoto({
+    required this.imageUrl,
+    required this.screenWidth,
+    required this.screenHeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final placeholder = Theme.of(context).scaffoldBackgroundColor;
+    return ClipRRect(
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(screenWidth * 0.06),
+        topRight: Radius.circular(screenWidth * 0.06),
+      ),
+      child: (imageUrl.isNotEmpty && imageUrl.startsWith('http'))
+          ? CachedNetworkImage(
+              imageUrl: imageUrl,
+              height: screenHeight * 0.25,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => Container(
+                color: placeholder,
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
               ),
+              errorWidget: (context, url, error) => Container(
+                color: placeholder,
+                child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
+              ),
+            )
+          : Container(
+              height: screenHeight * 0.25,
+              width: double.infinity,
+              color: placeholder,
+              child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
             ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: screenWidth * 0.03,
-                color: AppColors.textSecondary.withValues(alpha: 0.8),
+    );
+  }
+}
+
+/// Under the photo:
+///   name ................. Ouvert
+///   🕒 Ouvre à 18:00   (only when closed)
+///   description
+///   🛵 3,50 DT Livraison   🛍 10,00 DT Commande min.
+class _RestaurantInfo extends StatelessWidget {
+  final Restaurant restaurant;
+  final double screenWidth;
+  final double screenHeight;
+
+  const _RestaurantInfo({
+    required this.restaurant,
+    required this.screenWidth,
+    required this.screenHeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final onCard = Theme.of(context).colorScheme.onSurface;
+    // "Ouvre à HH:MM" hint — null when open or when no hours are configured.
+    final opensAt =
+        restaurant.isOpen ? null : nextOpeningLabel(restaurant.openingTime);
+
+    return Padding(
+      padding: EdgeInsets.all(screenWidth * 0.05),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Expanded: a long name ends in "…" instead of pushing
+              // the "Ouvert" badge off the card.
+              Expanded(
+                child: Text(
+                  restaurant.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.05,
+                    fontWeight: FontWeight.bold,
+                    color: onCard,
+                  ),
+                ),
               ),
+              if (restaurant.isOpen)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.02,
+                    vertical: screenHeight * 0.005,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                  ),
+                  child: Text(
+                    l.shopOpen,
+                    style: TextStyle(
+                      color: AppColors.success,
+                      fontSize: screenWidth * 0.03,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (opensAt != null) ...[
+            SizedBox(height: screenHeight * 0.006),
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule,
+                  size: screenWidth * 0.035,
+                  color: AppColors.error,
+                ),
+                SizedBox(width: screenWidth * 0.015),
+                Text(
+                  opensAt,
+                  style: TextStyle(
+                    color: AppColors.error,
+                    fontSize: screenWidth * 0.032,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+          SizedBox(height: screenHeight * 0.01),
+          Text(
+            restaurant.description,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: screenWidth * 0.035,
+            ),
+          ),
+          SizedBox(height: screenHeight * 0.02),
+          Row(
+            children: [
+              ShopInfoItem(
+                icon: Icons.delivery_dining_outlined,
+                iconColor: AppColors.foodPrimary,
+                // restaurant.deliveryFee is the DB's dead
+                // restaurants.delivery_fee column (0 for every restaurant —
+                // the fee is distance-based, see delivery_fee.dart). Show
+                // the real base fee rather than a stale zero.
+                value: CurrencyFormatter.formatPrice(kDeliveryBaseFee),
+                valueColor: onCard,
+                label: l.deliveryLabel,
+                screenWidth: screenWidth,
+              ),
+              SizedBox(width: screenWidth * 0.06),
+              ShopInfoItem(
+                icon: Icons.shopping_bag_outlined,
+                iconColor: AppColors.foodPrimary,
+                value: CurrencyFormatter.formatPrice(restaurant.minimumOrder),
+                valueColor: onCard,
+                label: l.minOrderLabel,
+                screenWidth: screenWidth,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
