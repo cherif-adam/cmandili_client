@@ -10,7 +10,13 @@ import 'widgets/order_customization_widget.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 class CartScreen extends ConsumerWidget {
-  const CartScreen({super.key});
+  /// Space kept free at the bottom for whatever floats over this screen.
+  /// As the home screen's cart tab, the menu bar (and the active-order pill)
+  /// sit on top of it; without this they covered the total and most of the
+  /// checkout button.
+  final double bottomInset;
+
+  const CartScreen({super.key, this.bottomInset = 0});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -86,7 +92,12 @@ class CartScreen extends ConsumerWidget {
                 
                 // Summary Card
                 Container(
-                  padding: EdgeInsets.all(screenWidth * 0.06),
+                  padding: EdgeInsets.fromLTRB(
+                    screenWidth * 0.06,
+                    screenWidth * 0.06,
+                    screenWidth * 0.06,
+                    screenWidth * 0.06 + bottomInset,
+                  ),
                   decoration: BoxDecoration(
                     color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.vertical(
@@ -115,8 +126,19 @@ class CartScreen extends ConsumerWidget {
                           value: CurrencyFormatter.formatPrice(deliveryFee),
                           screenWidth: screenWidth,
                         ),
-                        SizedBox(height: screenHeight * 0.025),
-                        // Checkout Button BEFORE total
+                        // The total is read before the button that charges it.
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
+                          child: const Divider(),
+                        ),
+                        _SummaryRow(
+                          label: AppLocalizations.of(context)!.total,
+                          value: CurrencyFormatter.formatPrice(total),
+                          isBold: true,
+                          valueColor: AppColors.primary,
+                          screenWidth: screenWidth,
+                        ),
+                        SizedBox(height: screenHeight * 0.02),
                         SizedBox(
                           width: double.infinity,
                           height: screenHeight * 0.07,
@@ -150,17 +172,6 @@ class CartScreen extends ConsumerWidget {
                               ),
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
-                          child: const Divider(),
-                        ),
-                        _SummaryRow(
-                          label: AppLocalizations.of(context)!.total,
-                          value: CurrencyFormatter.formatPrice(total),
-                          isBold: true,
-                          valueColor: AppColors.primary,
-                          screenWidth: screenWidth,
                         ),
                       ],
                     ),

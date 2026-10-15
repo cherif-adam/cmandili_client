@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../providers/order_provider.dart';
 import '../data/models/order.dart';
+import 'order_labels.dart';
 import 'order_tracking_screen.dart';
 import 'package:intl/intl.dart';
 import '../../cart/presentation/cart_screen.dart';
@@ -318,7 +319,7 @@ class _OrderCard extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    _buildStatusBadge(),
+                    _buildStatusBadge(AppLocalizations.of(context)!),
                   ],
                 ),
 
@@ -494,7 +495,7 @@ class _OrderCard extends ConsumerWidget {
     }
   }
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(AppLocalizations l) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: sw * 0.025,
@@ -509,7 +510,7 @@ class _OrderCard extends ConsumerWidget {
         ),
       ),
       child: Text(
-        order.getStatusText(),
+        orderStatusLabel(l, order.status),
         style: TextStyle(
           color: _getStatusColor(),
           fontSize: sw * 0.028,

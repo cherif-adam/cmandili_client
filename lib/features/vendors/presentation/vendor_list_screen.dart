@@ -2,7 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/models/vendor.dart';
+import '../../../core/providers/nearby_provider.dart';
 import '../../../core/providers/vendor_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/delivery_fee.dart';
@@ -33,7 +35,7 @@ class VendorListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final vendorsAsync = ref.watch(vendorsByCategoryProvider(category));
+    final vendorsAsync = ref.watch(nearbyVendorsByCategoryProvider(category));
 
     return vendorsAsync.when(
       loading: () => const SliverToBoxAdapter(
@@ -50,16 +52,16 @@ class VendorListScreen extends ConsumerWidget {
               const Icon(Icons.cloud_off_rounded,
                   size: 40, color: AppColors.textLight),
               const SizedBox(height: 10),
-              const Text(
-                'Impossible de charger les boutiques',
-                style: TextStyle(color: AppColors.textSecondary),
+              Text(
+                AppLocalizations.of(context)!.couldNotLoadShops,
+                style: const TextStyle(color: AppColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: () =>
                     ref.invalidate(vendorsByCategoryProvider(category)),
-                child: const Text('Réessayer'),
+                child: Text(AppLocalizations.of(context)!.retry),
               ),
             ],
           ),
@@ -84,10 +86,10 @@ class VendorListScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Revenez bientôt — de nouvelles boutiques arrivent.',
+                  Text(
+                    AppLocalizations.of(context)!.newShopsSoon,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                         color: AppColors.textLight, fontSize: 13),
                   ),
                 ],
@@ -111,13 +113,15 @@ class VendorListScreen extends ConsumerWidget {
 
 /// One shop in the list. Deliberately the same shape for every category so a
 /// customer moving between flowers and pet supplies is not relearning the UI.
-class _VendorCard extends StatelessWidget {
+class _VendorCard extends ConsumerWidget {
   final Vendor vendor;
 
   const _VendorCard({required this.vendor});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final distance = ref.watch(shopDistanceLabelProvider(
+        (lat: vendor.latitude, lng: vendor.longitude)));
     // A closed shop still shows, greyed, with the time it opens — hiding it
     // makes the category look empty in the early morning.
     final opensAt = vendor.isOpen ? null : nextOpeningLabel(vendor.openingTime);
@@ -268,6 +272,17 @@ class _VendorCard extends StatelessWidget {
                         style: const TextStyle(
                             fontSize: 12.5, color: AppColors.textSecondary),
                       ),
+                      if (distance != null) ...[
+                        const SizedBox(width: 12),
+                        const Icon(Icons.near_me_rounded,
+                            size: 14, color: AppColors.textLight),
+                        const SizedBox(width: 4),
+                        Text(
+                          distance,
+                          style: const TextStyle(
+                              fontSize: 12.5, color: AppColors.textSecondary),
+                        ),
+                      ],
                     ],
                   ),
                 ],

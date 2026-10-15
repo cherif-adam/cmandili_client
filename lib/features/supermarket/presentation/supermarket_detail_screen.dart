@@ -69,12 +69,12 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
                           imageUrl: widget.supermarket.imageUrl,
                           fit: BoxFit.cover,
                           errorWidget: (context, url, error) => Container(
-                            color: AppColors.background,
+                            color: Theme.of(context).scaffoldBackgroundColor,
                             child: const Icon(Icons.storefront, size: 50, color: Colors.grey),
                           ),
                         )
                       : Container(
-                          color: AppColors.background,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           child: const Icon(Icons.storefront, size: 50, color: Colors.grey),
                         ),
                 ),
@@ -84,7 +84,7 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
               SliverToBoxAdapter(
                 child: Container(
                   padding: const EdgeInsets.all(20),
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -145,12 +145,18 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
                     itemCount: GroceryCategory.values.length + 1,
                     itemBuilder: (context, index) {
                       if (index == 0) {
-                        return _buildCategoryChip(null, 'All', '🛒');
+                        return _buildCategoryChip(
+                            null, AppLocalizations.of(context)!.filterAll, '🛒');
                       }
                       final category = GroceryCategory.values[index - 1];
+                      final lang = Localizations.localeOf(context).languageCode;
                       return _buildCategoryChip(
                         category,
-                        category.nameEn,
+                        lang == 'fr'
+                            ? category.nameFr
+                            : lang == 'ar'
+                                ? category.nameAr
+                                : category.nameEn,
                         category.icon,
                       );
                     },
@@ -254,16 +260,19 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
             Text(label),
           ],
         ),
+        showCheckmark: false,
         selected: isSelected,
         onSelected: (selected) {
           setState(() {
             _selectedCategory = selected ? category : null;
           });
         },
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).cardColor,
         selectedColor: const Color(0xFF4CAF50),
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black,
+          color: isSelected
+              ? Colors.white
+              : Theme.of(context).colorScheme.onSurface,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -282,7 +291,7 @@ class _ProductCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -307,14 +316,14 @@ class _ProductCard extends ConsumerWidget {
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) => Container(
-                          color: AppColors.background,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           child: const Icon(Icons.shopping_basket, size: 40, color: Colors.grey),
                         ),
                       )
                     : Container(
                         height: 120,
                         width: double.infinity,
-                        color: AppColors.background,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         child: const Icon(Icons.shopping_basket, size: 40, color: Colors.grey),
                       ),
               ),
@@ -481,7 +490,7 @@ class _ProductCard extends ConsumerWidget {
     if (!context.mounted) return;
     final picked = await showModalBottomSheet<ItemVariant>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),

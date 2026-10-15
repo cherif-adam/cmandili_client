@@ -1,19 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
+import '../../../../core/providers/nearby_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/cuisine_labels.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/delivery_fee.dart';
 import '../../../../core/utils/venue_hours.dart';
 import '../../../home/data/models/restaurant.dart';
 import '../restaurant_detail_screen.dart';
 
-class RestaurantCard extends StatelessWidget {
+class RestaurantCard extends ConsumerWidget {
   final Restaurant restaurant;
 
   const RestaurantCard({super.key, required this.restaurant});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final distance = ref.watch(shopDistanceLabelProvider(
+        (lat: restaurant.latitude, lng: restaurant.longitude)));
+    final l = AppLocalizations.of(context)!;
+    // Card and text follow the theme (identical to before in light mode);
+    // the pills over the photo stay white with dark text in both themes.
+    final cardColor = Theme.of(context).cardColor;
+    final onCard = Theme.of(context).colorScheme.onSurface;
+    final placeholder = Theme.of(context).scaffoldBackgroundColor;
     final size = MediaQuery.of(context).size;
     final screenHeight = size.height;
     final screenWidth = size.width;
@@ -38,7 +50,7 @@ class RestaurantCard extends StatelessWidget {
       child: Container(
         margin: EdgeInsets.only(bottom: screenHeight * 0.025),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(screenWidth * 0.06),
           boxShadow: [
             BoxShadow(
@@ -68,20 +80,20 @@ class RestaurantCard extends StatelessWidget {
                           width: double.infinity,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Container(
-                            color: AppColors.background,
+                            color: placeholder,
                             child: const Center(
                               child: CircularProgressIndicator(),
                             ),
                           ),
                           errorWidget: (context, url, error) => Container(
-                            color: AppColors.background,
+                            color: placeholder,
                             child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
                           ),
                         )
                       : Container(
                           height: screenHeight * 0.25,
                           width: double.infinity,
-                          color: AppColors.background,
+                          color: placeholder,
                           child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
                         ),
                   ),
@@ -118,7 +130,7 @@ class RestaurantCard extends StatelessWidget {
                                 ),
                                 SizedBox(width: screenWidth * 0.015),
                                 Text(
-                                  'Fermé',
+                                  l.shopClosed,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: screenWidth * 0.035,
@@ -162,8 +174,11 @@ class RestaurantCard extends StatelessWidget {
                           ),
                           SizedBox(width: screenWidth * 0.01),
                           Text(
-                            '${restaurant.deliveryTime} min',
+                            distance == null
+                                ? '${restaurant.deliveryTime} min'
+                                : '${restaurant.deliveryTime} min · $distance',
                             style: TextStyle(
+                              color: AppColors.textPrimary,
                               fontSize: screenWidth * 0.03,
                               fontWeight: FontWeight.bold,
                             ),
@@ -197,7 +212,7 @@ class RestaurantCard extends StatelessWidget {
                           ],
                         ),
                         child: Text(
-                          'Nouveau',
+                          l.newShopBadge,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: screenWidth * 0.03,
@@ -242,8 +257,9 @@ class RestaurantCard extends StatelessWidget {
                             ),
                             SizedBox(width: screenWidth * 0.01),
                             Text(
-                              restaurant.categories.first,
+                              cuisineLabel(l, restaurant.categories.first),
                               style: TextStyle(
+                                color: AppColors.textPrimary,
                                 fontSize: screenWidth * 0.03,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -285,6 +301,7 @@ class RestaurantCard extends StatelessWidget {
                           Text(
                             '${restaurant.rating}',
                             style: TextStyle(
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: screenWidth * 0.03,
                             ),
@@ -313,12 +330,18 @@ class RestaurantCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        restaurant.name,
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.05,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                      // Expanded: a long name ends in "…" instead of pushing
+                      // the "Ouvert" badge off the card.
+                      Expanded(
+                        child: Text(
+                          restaurant.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.05,
+                            fontWeight: FontWeight.bold,
+                            color: onCard,
+                          ),
                         ),
                       ),
                       if (restaurant.isOpen)
@@ -332,7 +355,7 @@ class RestaurantCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(screenWidth * 0.02),
                           ),
                           child: Text(
-                            'Open',
+                            l.shopOpen,
                             style: TextStyle(
                               color: AppColors.success,
                               fontSize: screenWidth * 0.03,
@@ -384,15 +407,17 @@ class RestaurantCard extends StatelessWidget {
                         // formula instead, see delivery_fee.dart). Show the
                         // real base fee floor rather than a stale zero.
                         CurrencyFormatter.formatPrice(kDeliveryBaseFee),
-                        'Delivery',
+                        l.deliveryLabel,
                         screenWidth,
+                        onCard,
                       ),
                       SizedBox(width: screenWidth * 0.06),
                       _buildInfoItem(
                         Icons.shopping_bag_outlined,
                         CurrencyFormatter.formatPrice(restaurant.minimumOrder),
-                        'Min. Order',
+                        l.minOrderLabel,
                         screenWidth,
+                        onCard,
                       ),
                     ],
                   ),
@@ -405,7 +430,8 @@ class RestaurantCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String value, String label, double screenWidth) {
+  Widget _buildInfoItem(IconData icon, String value, String label,
+      double screenWidth, Color valueColor) {
     return Row(
       children: [
         Icon(
@@ -422,7 +448,7 @@ class RestaurantCard extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: screenWidth * 0.035,
-                color: AppColors.textPrimary,
+                color: valueColor,
               ),
             ),
             Text(

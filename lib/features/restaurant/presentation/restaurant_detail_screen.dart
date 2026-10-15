@@ -49,7 +49,7 @@ class _RestaurantDetailScreenState
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(
         appBar: AppBar(),
-        body: Center(child: Text('Error loading menu: $e')),
+        body: Center(child: Text(AppLocalizations.of(context)!.errorLoadingMenu)),
       ),
       data: (menuItems) => _buildScaffold(context, menuItems),
     );
@@ -150,7 +150,7 @@ class _RestaurantDetailScreenState
                           fit: BoxFit.cover,
                         )
                       : Container(
-                          color: AppColors.background,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           child: const Icon(Icons.restaurant, size: 50, color: Colors.grey),
                         ),
                     Container(
@@ -175,9 +175,9 @@ class _RestaurantDetailScreenState
           SliverToBoxAdapter(
             child: Container(
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(32),
                   topRight: Radius.circular(32),
                 ),
@@ -195,10 +195,10 @@ class _RestaurantDetailScreenState
                           children: [
                             Text(
                               widget.restaurant.name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -221,7 +221,7 @@ class _RestaurantDetailScreenState
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -237,14 +237,15 @@ class _RestaurantDetailScreenState
                         _buildStat(
                           Icons.star_rounded,
                           '${widget.restaurant.rating}',
-                          '${widget.restaurant.reviewCount} reviews',
+                          AppLocalizations.of(context)!
+                              .reviewsCount(widget.restaurant.reviewCount),
                           AppColors.star,
                         ),
                         _buildDivider(),
                         _buildStat(
                           Icons.access_time_filled,
                           '${widget.restaurant.deliveryTime} min',
-                          'Delivery time',
+                          AppLocalizations.of(context)!.deliveryTimeLabel,
                           AppColors.foodPrimary,
                         ),
                         _buildDivider(),
@@ -257,7 +258,7 @@ class _RestaurantDetailScreenState
                           // is 0 for every restaurant. Show the real base
                           // fee floor instead of a stale zero.
                           CurrencyFormatter.formatPrice(kDeliveryBaseFee),
-                          'Delivery fee',
+                          AppLocalizations.of(context)!.deliveryFee,
                           AppColors.secondary,
                         ),
                       ],
@@ -274,7 +275,7 @@ class _RestaurantDetailScreenState
             delegate: _StickyHeaderDelegate(
               child: Container(
                 height: 60,
-                color: AppColors.background,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -288,17 +289,22 @@ class _RestaurantDetailScreenState
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         child: FilterChip(
-                          label: Text(category),
+                          label: Text(category == 'All'
+                              ? AppLocalizations.of(context)!.filterAll
+                              : category),
+                          showCheckmark: false,
                           selected: isSelected,
                           onSelected: (selected) {
                             setState(() {
                               _selectedCategory = category;
                             });
                           },
-                          backgroundColor: Colors.white,
+                          backgroundColor: Theme.of(context).cardColor,
                           selectedColor: AppColors.foodPrimary,
                           labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : AppColors.textPrimary,
+                            color: isSelected
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w600,
                           ),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -379,9 +385,9 @@ class _RestaurantDetailScreenState
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Text(
-                    'View Cart',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.viewCart,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -470,7 +476,7 @@ class _FoodItemCard extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -499,18 +505,18 @@ class _FoodItemCard extends ConsumerWidget {
                         height: 110,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          color: AppColors.background,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           child: const Center(child: CircularProgressIndicator()),
                         ),
                         errorWidget: (context, url, error) => Container(
-                          color: AppColors.background,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           child: const Icon(Icons.fastfood, color: Colors.grey),
                         ),
                       )
                     : Container(
                         width: 110,
                         height: 110,
-                        color: AppColors.background,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         child: const Icon(Icons.fastfood, color: Colors.grey),
                       ),
                 ),

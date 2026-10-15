@@ -350,6 +350,137 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noRestaurantsFound => 'No restaurants found';
 
   @override
+  String get confirmPasswordShort => 'Confirm password';
+
+  @override
+  String get pleaseEnterEmail => 'Please enter your email';
+
+  @override
+  String get sendResetCode => 'Send the code';
+
+  @override
+  String get haveCodeEnterIt => 'Already have a code? Enter it →';
+
+  @override
+  String get resetCodeInvalid =>
+      'The code is invalid or has expired. Request a new one.';
+
+  @override
+  String get passwordUpdatedBody =>
+      'Your password has been changed. Sign in with your new password.';
+
+  @override
+  String get backToSignIn => 'Back to sign in';
+
+  @override
+  String get enterResetCode => 'Enter the code';
+
+  @override
+  String get pleaseEnterPassword => 'Please enter a password';
+
+  @override
+  String get resetPasswordButton => 'Reset password';
+
+  @override
+  String get eightDigitCode => '8-digit code';
+
+  @override
+  String get enterEightDigitCode => 'Enter the 8-digit code from your email';
+
+  @override
+  String get callUs => 'Call us';
+
+  @override
+  String get somethingWentWrong => 'Something went wrong. Please try again.';
+
+  @override
+  String codeSentTo(String email) {
+    return 'Code sent to $email';
+  }
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get cuisinePastry => 'Pastries';
+
+  @override
+  String get cuisinePizza => 'Pizza';
+
+  @override
+  String get cuisineBurgers => 'Burgers';
+
+  @override
+  String get cuisineSushi => 'Sushi';
+
+  @override
+  String get cuisineMexican => 'Mexican';
+
+  @override
+  String get cuisineItalian => 'Italian';
+
+  @override
+  String get cuisineFastFood => 'Fast food';
+
+  @override
+  String get shopOpen => 'Open';
+
+  @override
+  String get shopClosed => 'Closed';
+
+  @override
+  String get newShopBadge => 'New';
+
+  @override
+  String get deliveryLabel => 'Delivery';
+
+  @override
+  String get minOrderLabel => 'Min. order';
+
+  @override
+  String get deliveryTimeLabel => 'Delivery time';
+
+  @override
+  String get couldNotLoadShops => 'Could not load shops';
+
+  @override
+  String get newShopsSoon => 'Check back soon — new shops are on the way.';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get timeJustNow => 'Just now';
+
+  @override
+  String reviewsCount(int count) {
+    return '$count reviews';
+  }
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return '$minutes min ago';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return '$hours h ago';
+  }
+
+  @override
+  String noRestaurantsNearby(int km) {
+    return 'No restaurant within $km km of you yet.';
+  }
+
+  @override
+  String noSupermarketsNearby(int km) {
+    return 'No supermarket within $km km of you yet.';
+  }
+
+  @override
   String get couldNotLoadSupermarkets => 'Could not load supermarkets';
 
   @override

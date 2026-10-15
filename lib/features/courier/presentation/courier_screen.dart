@@ -680,8 +680,13 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
                 ),
                 child: (_isSubmitting || _isUploadingPhoto)
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                    // scaleDown: label + price filled a 411-wide phone to the
+                    // last pixel and overflowed on narrower ones or with a
+                    // longer price. It now shrinks slightly instead.
+                    : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.send_rounded),
                           SizedBox(width: w * 0.02),
@@ -704,6 +709,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
                           ],
                         ],
                       ),
+                    ),
               ),
             ),
           ],

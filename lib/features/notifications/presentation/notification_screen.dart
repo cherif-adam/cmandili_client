@@ -17,7 +17,7 @@ class NotificationScreen extends ConsumerWidget {
     final notifications = ref.watch(notificationProvider);
 
     // Group notifications by date
-    final groupedNotifications = _groupNotificationsByDate(notifications);
+    final groupedNotifications = _groupNotificationsByDate(context, notifications);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -107,22 +107,25 @@ class NotificationScreen extends ConsumerWidget {
   }
 
   Map<String, List<AppNotification>> _groupNotificationsByDate(
-      List<AppNotification> notifications) {
+      BuildContext context, List<AppNotification> notifications) {
     final Map<String, List<AppNotification>> grouped = {};
     final now = DateTime.now();
+    final l = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).toString();
 
     for (final notification in notifications) {
       String dateLabel;
       final difference = now.difference(notification.timestamp);
 
       if (difference.inDays == 0) {
-        dateLabel = 'Today';
+        dateLabel = l.today;
       } else if (difference.inDays == 1) {
-        dateLabel = 'Yesterday';
+        dateLabel = l.yesterday;
       } else if (difference.inDays < 7) {
-        dateLabel = DateFormat('EEEE').format(notification.timestamp);
+        dateLabel = DateFormat('EEEE', locale).format(notification.timestamp);
       } else {
-        dateLabel = DateFormat('MMM dd, yyyy').format(notification.timestamp);
+        dateLabel =
+            DateFormat('d MMM yyyy', locale).format(notification.timestamp);
       }
 
       if (!grouped.containsKey(dateLabel)) {
@@ -318,7 +321,7 @@ class _NotificationCard extends StatelessWidget {
                     ),
                     SizedBox(height: screenHeight * 0.008),
                     Text(
-                      _formatTime(notification.timestamp),
+                      _formatTime(context, notification.timestamp),
                       style: TextStyle(
                         fontSize: screenWidth * 0.032,
                         color: AppColors.textLight,
@@ -334,14 +337,17 @@ class _NotificationCard extends StatelessWidget {
     );
   }
 
-  String _formatTime(DateTime timestamp) {
+  String _formatTime(BuildContext context, DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
+    final l = AppLocalizations.of(context)!;
 
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+    if (difference.inMinutes < 1) {
+      return l.timeJustNow;
+    } else if (difference.inMinutes < 60) {
+      return l.timeMinutesAgo(difference.inMinutes);
     } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return l.timeHoursAgo(difference.inHours);
     } else {
       return DateFormat('HH:mm').format(timestamp);
     }

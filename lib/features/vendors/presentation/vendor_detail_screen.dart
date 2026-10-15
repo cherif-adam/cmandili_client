@@ -29,18 +29,18 @@ class VendorDetailScreen extends ConsumerWidget {
     final itemsAsync = ref.watch(vendorItemsProvider(vendor.id));
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 210,
             pinned: true,
-            backgroundColor: Colors.white,
-            foregroundColor: AppColors.textPrimary,
+            backgroundColor: Theme.of(context).cardColor,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
             flexibleSpace: FlexibleSpaceBar(
               background: vendor.imageUrl.isEmpty
                   ? Container(
-                      color: AppColors.background,
+                      color: Theme.of(context).scaffoldBackgroundColor,
                       child: const Icon(Icons.storefront_rounded,
                           size: 56, color: AppColors.textLight),
                     )
@@ -48,7 +48,7 @@ class VendorDetailScreen extends ConsumerWidget {
                       imageUrl: vendor.imageUrl,
                       fit: BoxFit.cover,
                       errorWidget: (_, __, ___) => Container(
-                        color: AppColors.background,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         child: const Icon(Icons.storefront_rounded,
                             size: 56, color: AppColors.textLight),
                       ),
@@ -59,7 +59,7 @@ class VendorDetailScreen extends ConsumerWidget {
           // Shop header
           SliverToBoxAdapter(
             child: Container(
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,7 +303,7 @@ class _ItemRow extends ConsumerWidget {
     return Opacity(
       opacity: enabled ? 1 : 0.55,
       child: Material(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.all(10),
@@ -317,7 +317,7 @@ class _ItemRow extends ConsumerWidget {
                   height: 74,
                   child: item.imageUrl.isEmpty
                       ? Container(
-                          color: AppColors.background,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           child: const Icon(Icons.image_outlined,
                               color: AppColors.textLight),
                         )
@@ -325,7 +325,7 @@ class _ItemRow extends ConsumerWidget {
                           imageUrl: item.imageUrl,
                           fit: BoxFit.cover,
                           errorWidget: (_, __, ___) => Container(
-                            color: AppColors.background,
+                            color: Theme.of(context).scaffoldBackgroundColor,
                             child: const Icon(Icons.image_outlined,
                                 color: AppColors.textLight),
                           ),

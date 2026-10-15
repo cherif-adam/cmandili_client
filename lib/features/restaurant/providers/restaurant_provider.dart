@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/nearby_provider.dart';
 import '../data/restaurant_repository.dart';
 import '../../home/data/models/restaurant.dart';
 import '../../menu/data/models/item_variant.dart';
@@ -13,6 +14,16 @@ final restaurantRepositoryProvider = Provider((ref) => RestaurantRepository());
 final restaurantsProvider = StreamProvider<List<Restaurant>>((ref) {
   final repository = ref.watch(restaurantRepositoryProvider);
   return repository.watchRestaurants();
+});
+
+/// The restaurants within [kShopRadiusKm] of the customer: what the home
+/// screen lists. Refresh through [restaurantsProvider].
+final nearbyRestaurantsProvider = Provider<AsyncValue<List<Restaurant>>>((ref) {
+  return keepNearby(
+    ref.watch(customerPositionProvider),
+    ref.watch(restaurantsProvider),
+    (r) => (lat: r.latitude, lng: r.longitude),
+  );
 });
 
 // Fetch food items for a specific restaurant from Supabase

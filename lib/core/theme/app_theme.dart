@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 class AppTheme {
+  /// White thumb, brand-green track when on, soft grey track when off — no
+  /// outline. Material 3's default drew a black ring around an off switch.
+  static SwitchThemeData _switchTheme(Color offTrack) => SwitchThemeData(
+        thumbColor: WidgetStateProperty.all(Colors.white),
+        trackColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? AppColors.primary
+                : offTrack),
+        trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+      );
+
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     colorScheme: const ColorScheme.light(
@@ -12,7 +23,12 @@ class AppTheme {
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: AppColors.textPrimary,
+      // Left unset these default to black: every switch, tab bar underline
+      // and outlined border drew a hard black line.
+      outline: Color(0xFFC3CBCF),
+      outlineVariant: Color(0xFFE6EAEC),
     ),
+    switchTheme: _switchTheme(const Color(0xFFD5DBDF)),
     scaffoldBackgroundColor: AppColors.background,
     
     // AppBar Theme
@@ -116,7 +132,10 @@ class AppTheme {
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: Colors.white,
+      outline: Color(0xFF4A5256),
+      outlineVariant: Color(0xFF2C3134),
     ),
+    switchTheme: _switchTheme(const Color(0xFF3A4246)),
     scaffoldBackgroundColor: AppColors.backgroundDark,
     
     appBarTheme: const AppBarTheme(

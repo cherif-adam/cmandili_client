@@ -4,6 +4,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/models/service_category.dart';
 import '../../../core/providers/service_provider.dart';
 import '../../../core/providers/location_provider.dart';
+import '../../../core/providers/nearby_provider.dart';
+import '../../../core/utils/cuisine_labels.dart';
 // import '../data/models/restaurant.dart'; // Removed unused import
 import '../../profile/presentation/profile_screen.dart';
 import '../../profile/presentation/saved_addresses_screen.dart';
@@ -73,8 +75,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final screenWidth = size.width;
     final cartItemCount = ref.watch(cartItemCountProvider);
 
+    // The cart tab ends in its own summary and checkout button: keep them
+    // clear of the menu bar, and of the active-order pill when it shows.
+    final pillShowing =
+        ref.watch(receiptPendingOrderProvider).valueOrNull != null ||
+            ref.watch(activeOrderProvider).valueOrNull != null;
+    final cartInset = screenHeight * (0.125 + (pillShowing ? 0.075 : 0));
+
     return Scaffold(
-      floatingActionButton: Padding(
+      // The assistant belongs to browsing. On the other tabs it sat on top
+      // of the cart's checkout button and the profile list.
+      floatingActionButton: _selectedIndex != 0 ? null : Padding(
         padding: EdgeInsets.only(bottom: screenHeight * 0.1),
         child: FloatingActionButton(
           heroTag: 'ai_chat_fab',
@@ -96,7 +107,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _buildHomeContent(screenHeight, screenWidth),
               const FavoritesScreen(),
               const OrderHistoryScreen(),
-              const CartScreen(),
+              CartScreen(bottomInset: cartInset),
               const ProfileScreen(),
             ],
           ),
@@ -141,11 +152,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildHomeContent(double screenHeight, double screenWidth) {
-    final restaurants = ref.watch(restaurantsProvider);
+    final restaurants = ref.watch(nearbyRestaurantsProvider);
     final selectedService = ref.watch(selectedServiceProvider);
     
     return RefreshIndicator(
       onRefresh: () async {
+        ref.read(customerPositionProvider.notifier).refresh();
+        ref.invalidate(shopPositionsProvider);
         ref.invalidate(restaurantsProvider);
         ref.invalidate(happyHourRestaurantsProvider);
         ref.invalidate(happyHourSupermarketsProvider);
@@ -492,7 +505,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       child: FilterChip(
-                        label: Text(category),
+                        label: Text(
+                            cuisineLabel(AppLocalizations.of(context)!, category)),
+                        showCheckmark: false,
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
@@ -536,12 +551,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    AppLocalizations.of(context)!.popularRestaurants,
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.05,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
+                  // Expanded: "Restaurants populaires" + "Voir tout" were
+                  // 14 px wider than a 411-wide phone.
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(context)!.popularRestaurants,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.05,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                      ),
                     ),
                   ),
                   TextButton(
@@ -602,7 +623,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             Icon(Icons.search_off, size: screenWidth * 0.12, color: Colors.grey[400]),
                             SizedBox(height: screenHeight * 0.02),
                             Text(
-                              AppLocalizations.of(context)!.noRestaurantsFound,
+                              // Nothing typed or picked: the list is empty
+                              // because of the distance, so say that.
+                              _searchQuery.isEmpty && _selectedCategory == 'All'
+                                  ? AppLocalizations.of(context)!
+                                      .noRestaurantsNearby(kShopRadiusKm.round())
+                                  : AppLocalizations.of(context)!.noRestaurantsFound,
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: screenWidth * 0.04,
                                 color: Colors.grey[500],
@@ -640,7 +667,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Error loading restaurants: $error'),
+                        Text(
+                          AppLocalizations.of(context)!.errorLoadingRestaurants,
+                          textAlign: TextAlign.center,
+                        ),
                         SizedBox(height: screenHeight * 0.02),
                         ElevatedButton.icon(
                           onPressed: () => ref.invalidate(restaurantsProvider),

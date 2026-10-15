@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/vendor_repository.dart';
 import '../models/vendor.dart';
+import 'nearby_provider.dart';
 
 final vendorRepositoryProvider =
     Provider<VendorRepository>((ref) => VendorRepository());
@@ -17,6 +18,17 @@ final vendorCategoriesProvider = FutureProvider<List<VendorCategory>>((ref) {
 final vendorsByCategoryProvider =
     StreamProvider.family<List<Vendor>, String>((ref, category) {
   return ref.watch(vendorRepositoryProvider).watchVendors(category);
+});
+
+/// The shops of one category within [kShopRadiusKm] of the customer.
+/// Refresh through [vendorsByCategoryProvider].
+final nearbyVendorsByCategoryProvider =
+    Provider.family<AsyncValue<List<Vendor>>, String>((ref, category) {
+  return keepNearby(
+    ref.watch(customerPositionProvider),
+    ref.watch(vendorsByCategoryProvider(category)),
+    (v) => (lat: v.latitude, lng: v.longitude),
+  );
 });
 
 /// Items belonging to one shop.

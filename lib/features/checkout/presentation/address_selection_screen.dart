@@ -70,7 +70,7 @@ class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.somethingWentWrong)),
         );
       }
     } finally {

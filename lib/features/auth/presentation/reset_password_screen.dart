@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 
@@ -94,10 +95,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
   /// Maps raw Supabase error strings to human-readable messages.
   String _friendlyError(String raw) {
     if (raw.contains('Token has expired') || raw.contains('invalid')) {
-      return 'The code is invalid or has expired. Request a new one.';
+      return AppLocalizations.of(context)!.resetCodeInvalid;
     }
     if (raw.contains('Password should be')) {
-      return 'Password must be at least 6 characters.';
+      return AppLocalizations.of(context)!.passwordLength;
     }
     return raw;
   }
@@ -134,15 +135,15 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                   color: Colors.green, size: 48),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Password Updated!',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.pwdChangedTitle,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Your password has been changed successfully. Please sign in with your new password.',
+            Text(
+              AppLocalizations.of(context)!.passwordUpdatedBody,
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+              style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
             ),
           ],
         ),
@@ -161,8 +162,8 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                 // back to the AuthScreen (the route that predates them).
                 Navigator.of(context).popUntil((route) => route.isFirst);
               },
-              child: const Text('Back to Sign In',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              child: Text(AppLocalizations.of(context)!.backToSignIn,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -239,7 +240,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                               SizedBox(height: sh * 0.02),
 
                               Text(
-                                'Enter Reset Code',
+                                AppLocalizations.of(context)!.enterResetCode,
                                 style: TextStyle(
                                   fontSize: sw * 0.065,
                                   fontWeight: FontWeight.bold,
@@ -249,7 +250,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                               SizedBox(height: sh * 0.008),
                               // Show masked email for confirmation
                               Text(
-                                'Code sent to  ${_maskEmail(widget.email)}',
+                                AppLocalizations.of(context)!.codeSentTo(_maskEmail(widget.email)),
                                 style: TextStyle(
                                   fontSize: sw * 0.036,
                                   color: Colors.white.withValues(alpha: 0.9),
@@ -296,7 +297,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                           // â”€â”€ New password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                                           _buildField(
                                             controller: _passwordController,
-                                            label: 'New password',
+                                            label: AppLocalizations.of(context)!.pwdNew,
                                             icon: Icons.lock_outline_rounded,
                                             isPassword: true,
                                             isObscure: _obscurePassword,
@@ -307,10 +308,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                             sh: sh,
                                             validator: (v) {
                                               if (v == null || v.isEmpty) {
-                                                return 'Please enter a password';
+                                                return AppLocalizations.of(context)!.pleaseEnterPassword;
                                               }
                                               if (v.length < 8) {
-                                                return 'Must be at least 6 characters';
+                                                return AppLocalizations.of(context)!.passwordLength;
                                               }
                                               return null;
                                             },
@@ -321,7 +322,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                           // â”€â”€ Confirm password â”€â”€â”€â”€â”€â”€â”€â”€â”€
                                           _buildField(
                                             controller: _confirmController,
-                                            label: 'Confirm password',
+                                            label: AppLocalizations.of(context)!.confirmPasswordShort,
                                             icon: Icons.lock_outline_rounded,
                                             isPassword: true,
                                             isObscure: _obscureConfirm,
@@ -332,7 +333,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                             sh: sh,
                                             validator: (v) {
                                               if (v != _passwordController.text) {
-                                                return 'Passwords do not match';
+                                                return AppLocalizations.of(context)!.pwdErrorMismatch;
                                               }
                                               return null;
                                             },
@@ -372,7 +373,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
                                                       ),
                                                     )
                                                   : Text(
-                                                      'Reset Password',
+                                                      AppLocalizations.of(context)!.resetPasswordButton,
                                                       style: TextStyle(
                                                         fontSize: sw * 0.042,
                                                         fontWeight:
@@ -410,7 +411,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '8-digit code',
+          AppLocalizations.of(context)!.eightDigitCode,
           style: TextStyle(
             fontSize: sw * 0.035,
             fontWeight: FontWeight.w600,
@@ -463,7 +464,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen>
           ),
           validator: (v) {
             if (v == null || v.trim().length != 8) {
-              return 'Enter the 8-digit code from your email';
+              return AppLocalizations.of(context)!.enterEightDigitCode;
             }
             return null;
           },

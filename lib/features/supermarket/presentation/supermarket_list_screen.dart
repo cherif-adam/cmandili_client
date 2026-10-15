@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
+import '../../../core/providers/nearby_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/delivery_fee.dart';
 import '../../../core/utils/currency_formatter.dart';
@@ -65,7 +66,7 @@ class SupermarketListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final supermarketsAsync = ref.watch(supermarketsProvider);
+    final supermarketsAsync = ref.watch(nearbySupermarketsProvider);
 
     return SliverMainAxisGroup(
       slivers: [
@@ -76,7 +77,29 @@ class SupermarketListScreen extends ConsumerWidget {
           ),
         ),
         supermarketsAsync.when(
-          data: (supermarkets) => SliverPadding(
+          data: (supermarkets) => supermarkets.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(screenHeight * 0.05),
+                    child: Column(
+                      children: [
+                        Icon(Icons.storefront_outlined,
+                            size: screenWidth * 0.12, color: Colors.grey[400]),
+                        SizedBox(height: screenHeight * 0.02),
+                        Text(
+                          AppLocalizations.of(context)!
+                              .noSupermarketsNearby(kShopRadiusKm.round()),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.04,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SliverPadding(
             padding: EdgeInsets.fromLTRB(
               screenWidth * 0.05,
               0,
@@ -132,7 +155,7 @@ class SupermarketListScreen extends ConsumerWidget {
   }
 }
 
-class _SupermarketCard extends StatelessWidget {
+class _SupermarketCard extends ConsumerWidget {
   final Supermarket supermarket;
   final double screenWidth;
   final double screenHeight;
@@ -144,7 +167,15 @@ class _SupermarketCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final distance = ref.watch(shopDistanceLabelProvider(
+        (lat: supermarket.latitude, lng: supermarket.longitude)));
+    final l = AppLocalizations.of(context)!;
+    // Same rules as RestaurantCard: theme colours for the card, white pills
+    // with dark text over the photo.
+    final cardColor = Theme.of(context).cardColor;
+    final onCard = Theme.of(context).colorScheme.onSurface;
+    final placeholder = Theme.of(context).scaffoldBackgroundColor;
     // "Ouvre à HH:MM" hint — null when open or when no hours are configured.
     final opensAt =
         supermarket.isOpen ? null : nextOpeningLabel(supermarket.openingTime);
@@ -161,7 +192,7 @@ class _SupermarketCard extends StatelessWidget {
       child: Container(
         margin: EdgeInsets.only(bottom: screenHeight * 0.025),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(screenWidth * 0.06),
           boxShadow: [
             BoxShadow(
@@ -188,13 +219,13 @@ class _SupermarketCard extends StatelessWidget {
                     width: double.infinity,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      color: AppColors.background,
+                      color: placeholder,
                       child: const Center(
                         child: CircularProgressIndicator(),
                       ),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      color: AppColors.background,
+                      color: placeholder,
                       child: const Icon(Icons.store),
                     ),
                   ),
@@ -232,7 +263,7 @@ class _SupermarketCard extends StatelessWidget {
                               ),
                               SizedBox(width: screenWidth * 0.015),
                               Text(
-                                'Fermé',
+                                l.shopClosed,
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: screenWidth * 0.035,
@@ -256,7 +287,9 @@ class _SupermarketCard extends StatelessWidget {
                       vertical: screenHeight * 0.008,
                     ),
                     decoration: BoxDecoration(
-                      color: Color.lerp(Colors.white, Colors.transparent, 0.1)!, // Replaced withOpacity
+                      // Same white pill as the restaurant card (a lerp to
+                      // transparent black had turned it grey).
+                      color: Colors.white.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(screenWidth * 0.05),
                       boxShadow: [
                         BoxShadow(
@@ -276,8 +309,11 @@ class _SupermarketCard extends StatelessWidget {
                         ),
                         SizedBox(width: screenWidth * 0.01),
                         Text(
-                          '${supermarket.deliveryTime} min',
+                          distance == null
+                              ? '${supermarket.deliveryTime} min'
+                              : '${supermarket.deliveryTime} min · $distance',
                           style: TextStyle(
+                            color: AppColors.textPrimary,
                             fontSize: screenWidth * 0.03,
                             fontWeight: FontWeight.bold,
                           ),
@@ -319,6 +355,7 @@ class _SupermarketCard extends StatelessWidget {
                         Text(
                           '${supermarket.rating}',
                           style: TextStyle(
+                            color: AppColors.textPrimary,
                             fontWeight: FontWeight.bold,
                             fontSize: screenWidth * 0.03,
                           ),
@@ -349,10 +386,12 @@ class _SupermarketCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           supermarket.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: screenWidth * 0.05,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                            color: onCard,
                           ),
                         ),
                       ),
@@ -367,7 +406,7 @@ class _SupermarketCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(screenWidth * 0.02),
                           ),
                           child: Text(
-                            'Open',
+                            l.shopOpen,
                             style: TextStyle(
                               color: const Color(0xFF4CAF50),
                               fontSize: screenWidth * 0.03,
@@ -415,15 +454,17 @@ class _SupermarketCard extends StatelessWidget {
                         Icons.delivery_dining_outlined,
                         // Platform flat rate — see supermarket_detail_screen.
                         CurrencyFormatter.formatPrice(kFlatDeliveryFee),
-                        'Delivery',
+                        l.deliveryLabel,
                         screenWidth,
+                        onCard,
                       ),
                       SizedBox(width: screenWidth * 0.06),
                       _buildInfoItem(
                         Icons.shopping_bag_outlined,
                         CurrencyFormatter.formatPrice(supermarket.minimumOrder),
-                        'Min. Order',
+                        l.minOrderLabel,
                         screenWidth,
+                        onCard,
                       ),
                     ],
                   ),
@@ -436,7 +477,8 @@ class _SupermarketCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String value, String label, double screenWidth) {
+  Widget _buildInfoItem(IconData icon, String value, String label,
+      double screenWidth, Color valueColor) {
     return Row(
       children: [
         Icon(
@@ -453,7 +495,7 @@ class _SupermarketCard extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: screenWidth * 0.035,
-                color: AppColors.textPrimary,
+                color: valueColor,
               ),
             ),
             Text(

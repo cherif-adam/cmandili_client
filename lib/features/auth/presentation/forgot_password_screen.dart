@@ -1,6 +1,7 @@
 ﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 import 'reset_password_screen.dart';
@@ -156,7 +157,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                               SizedBox(height: sh * 0.025),
 
                               Text(
-                                'Forgot Password?',
+                                AppLocalizations.of(context)!.forgotPassword,
                                 style: TextStyle(
                                   fontSize: sw * 0.07,
                                   fontWeight: FontWeight.bold,
@@ -209,7 +210,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                         children: [
                                           _buildField(
                                             controller: _emailController,
-                                            label: 'Email address',
+                                            label: AppLocalizations.of(context)!.email,
                                             icon: Icons.email_outlined,
                                             keyboardType:
                                                 TextInputType.emailAddress,
@@ -217,10 +218,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                             sh: sh,
                                             validator: (v) {
                                               if (v == null || v.isEmpty) {
-                                                return 'Please enter your email';
+                                                return AppLocalizations.of(context)!.pleaseEnterEmail;
                                               }
                                               if (!v.contains('@')) {
-                                                return 'Enter a valid email';
+                                                return AppLocalizations.of(context)!.validEmail;
                                               }
                                               return null;
                                             },
@@ -256,7 +257,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                                       ),
                                                     )
                                                   : Text(
-                                                      'Send Reset Code',
+                                                      AppLocalizations.of(context)!.sendResetCode,
                                                       style: TextStyle(
                                                         fontSize: sw * 0.042,
                                                         fontWeight:
@@ -284,7 +285,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                   ),
                                 ),
                                 child: Text(
-                                  'Already have a code? Enter it â†’',
+                                  AppLocalizations.of(context)!.haveCodeEnterIt,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,

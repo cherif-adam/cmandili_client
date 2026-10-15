@@ -123,9 +123,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 title: 'Email Us',
                 subtitle: 'support@amana.tn',
               ),
-              const _ContactOption(
+              _ContactOption(
                 icon: Icons.phone_outlined,
-                title: 'Call Us',
+                title: AppLocalizations.of(context)!.callUs,
                 subtitle: '+216 71 123 456',
               ),
             ],
