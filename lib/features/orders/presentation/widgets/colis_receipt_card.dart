@@ -177,25 +177,25 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
           const SizedBox(height: 14),
 
           // ── Le code, tant que le colis n'est pas remis ───────────────────
-          if (_code != null && r['delivery_at'] == null) _codeBlock(),
+          if (_code != null && r['delivery_at'] == null) _DeliveryCodeBlock(code: _code!, onShare: _shareCode),
 
-          _line('Contenu déclaré', (r['description'] ?? '—').toString()),
-          _line(
+          _ReceiptLine('Contenu déclaré', (r['description'] ?? '—').toString()),
+          _ReceiptLine(
             'Valeur déclarée',
             r['declared_value'] == null
                 ? '—'
                 : '${(r['declared_value'] as num).toStringAsFixed(3)} TND',
           ),
           if (r['delivery_mode'] == 'no_code')
-            _line('Remise à', (r['receiver_label'] ?? '—').toString()),
+            _ReceiptLine('Remise à', (r['receiver_label'] ?? '—').toString()),
           if (r['driver_name'] != null)
-            _line('Livreur', r['driver_name'].toString()),
+            _ReceiptLine('Livreur', r['driver_name'].toString()),
           // La plaque est figée à la prise en charge : un livreur qui la
           // modifie ensuite ne réécrit pas une preuve passée.
           if (r['driver_plate'] != null)
-            _line('Plaque', r['driver_plate'].toString()),
+            _ReceiptLine('Plaque', r['driver_plate'].toString()),
           if (r['delivery_distance_m'] != null)
-            _line('Distance à l\'adresse',
+            _ReceiptLine('Distance à l\'adresse',
                 '${r['delivery_distance_m']} m'),
 
           if (_pickupUrl != null || _deliveryUrl != null) ...[
@@ -203,11 +203,11 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
             Row(
               children: [
                 if (_pickupUrl != null)
-                  Expanded(child: _photo('Prise en charge', _pickupUrl!)),
+                  Expanded(child: _ProofPhoto('Prise en charge', _pickupUrl!)),
                 if (_pickupUrl != null && _deliveryUrl != null)
                   const SizedBox(width: 10),
                 if (_deliveryUrl != null)
-                  Expanded(child: _photo('Remise', _deliveryUrl!)),
+                  Expanded(child: _ProofPhoto('Remise', _deliveryUrl!)),
               ],
             ),
           ],
@@ -254,8 +254,17 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
 
   bool get _disputeEligible =>
       ColisRepository.canDispute(widget.deliveredAt);
+}
 
-  Widget _codeBlock() {
+/// The 4-digit hand-over code in big letters, with Copy and Share.
+class _DeliveryCodeBlock extends StatelessWidget {
+  final String code;
+  final VoidCallback onShare;
+
+  const _DeliveryCodeBlock({required this.code, required this.onShare});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
@@ -274,7 +283,7 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
             children: [
               Expanded(
                 child: Text(
-                  _code!,
+                  code,
                   style: const TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w900,
@@ -285,7 +294,7 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
                 tooltip: 'Copier',
                 icon: const Icon(Icons.copy_rounded, size: 20),
                 onPressed: () {
-                  Clipboard.setData(ClipboardData(text: _code!));
+                  Clipboard.setData(ClipboardData(text: code));
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Code copié')),
                   );
@@ -294,7 +303,7 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
               IconButton(
                 tooltip: 'Partager',
                 icon: const Icon(Icons.share_rounded, size: 20),
-                onPressed: _shareCode,
+                onPressed: onShare,
               ),
             ],
           ),
@@ -307,8 +316,17 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
       ),
     );
   }
+}
 
-  Widget _line(String label, String value) {
+/// One "label    value" line of the receipt.
+class _ReceiptLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ReceiptLine(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
       child: Row(
@@ -328,8 +346,17 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
       ),
     );
   }
+}
 
-  Widget _photo(String caption, String url) {
+/// A proof photo (pickup / hand-over) with its caption.
+class _ProofPhoto extends StatelessWidget {
+  final String caption;
+  final String url;
+
+  const _ProofPhoto(this.caption, this.url);
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -170,7 +170,14 @@ class _ReceiptConfirmationCardState
     }
     final l = AppLocalizations.of(context)!;
 
-    if (order.awaitsReceiptConfirmation) return _question(l);
+    if (order.awaitsReceiptConfirmation) {
+      return _ReceiptQuestion(
+        isParcel: _isParcel,
+        remaining: _remaining,
+        saving: _saving,
+        onAnswer: _answer,
+      );
+    }
 
     final hasDriver = order.driverId != null && order.driverId!.isNotEmpty;
     final canRate = hasDriver &&
@@ -179,13 +186,13 @@ class _ReceiptConfirmationCardState
 
     switch (order.clientConfirmation) {
       case 'not_received':
-        return _notice(
+        return _ReceiptNotice(
           icon: Icons.support_agent_rounded,
           color: AppColors.warning,
           text: l.receiptReported,
         );
       case 'auto_confirmed':
-        return _notice(
+        return _ReceiptNotice(
           icon: Icons.check_circle_outline_rounded,
           color: AppColors.success,
           text: l.receiptAutoConfirmed,
@@ -211,7 +218,7 @@ class _ReceiptConfirmationCardState
         );
       default: // 'confirmed'
         if (!canRate) return const SizedBox.shrink();
-        return _notice(
+        return _ReceiptNotice(
           icon: Icons.check_circle_rounded,
           color: AppColors.success,
           text: l.receiptConfirmed,
@@ -225,9 +232,27 @@ class _ReceiptConfirmationCardState
         );
     }
   }
+}
 
-  Widget _question(AppLocalizations l) {
-    final left = _remaining;
+/// The open question: "Avez-vous reçu votre commande ?", a bar and
+/// "auto-confirmed in 2:41", then No / Yes (a spinner while saving).
+class _ReceiptQuestion extends StatelessWidget {
+  final bool isParcel;
+  final Duration remaining;
+  final bool saving;
+  final ValueChanged<bool> onAnswer;
+
+  const _ReceiptQuestion({
+    required this.isParcel,
+    required this.remaining,
+    required this.saving,
+    required this.onAnswer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final left = remaining;
     String two(int n) => n.toString().padLeft(2, '0');
     final time = '${left.inMinutes}:${two(left.inSeconds % 60)}';
     final fraction =
@@ -250,7 +275,7 @@ class _ReceiptConfirmationCardState
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  _isParcel ? l.receiptQuestionParcel : l.receiptQuestion,
+                  isParcel ? l.receiptQuestionParcel : l.receiptQuestion,
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w700),
                 ),
@@ -277,7 +302,7 @@ class _ReceiptConfirmationCardState
             ),
           ),
           const SizedBox(height: 14),
-          if (_saving)
+          if (saving)
             const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -293,7 +318,7 @@ class _ReceiptConfirmationCardState
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => _answer(false),
+                    onPressed: () => onAnswer(false),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error),
@@ -301,7 +326,7 @@ class _ReceiptConfirmationCardState
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text(_isParcel ? l.receiptNoParcel : l.receiptNo,
+                    child: Text(isParcel ? l.receiptNoParcel : l.receiptNo,
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.w600)),
                   ),
@@ -309,7 +334,7 @@ class _ReceiptConfirmationCardState
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _answer(true),
+                    onPressed: () => onAnswer(true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
                       foregroundColor: Colors.white,
@@ -317,7 +342,7 @@ class _ReceiptConfirmationCardState
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text(_isParcel ? l.receiptYesParcel : l.receiptYes,
+                    child: Text(isParcel ? l.receiptYesParcel : l.receiptYes,
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.w700)),
                   ),
@@ -328,13 +353,25 @@ class _ReceiptConfirmationCardState
       ),
     );
   }
+}
 
-  Widget _notice({
-    required IconData icon,
-    required Color color,
-    required String text,
-    List<Widget> actions = const [],
-  }) {
+/// A colored box with an icon and a sentence (reported / confirmed),
+/// and optional buttons under it.
+class _ReceiptNotice extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+  final List<Widget> actions;
+
+  const _ReceiptNotice({
+    required this.icon,
+    required this.color,
+    required this.text,
+    this.actions = const [],
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
