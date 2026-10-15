@@ -244,12 +244,23 @@ $$;
 
 
 -- ── 7. Le garde-fou refuse réellement une écriture interdite ───────────────
--- On prend le role authenticated, celui que le trigger controle.
+-- On prend le role authenticated ET on usurpe le JWT du livreur de test.
+--
+-- Le role seul ne suffit PAS : la policy drivers_update_own exige
+-- user_id = auth.uid(). Sans claims, auth.uid() vaut NULL, l'UPDATE touche
+-- zero ligne, le trigger ne se declenche jamais et le test passerait a cote
+-- de ce qu'il croit mesurer. C'est le motif documente dans CMANDILI_CONTEXT
+-- (set_config('request.jwt.claims', ...) + SET LOCAL ROLE).
 do $$
 declare
   v_d1 uuid := '00000000-dead-beef-0000-0000000000d1';
+  v_uid uuid;
   v_caught boolean;
 begin
+  select user_id into v_uid from public.drivers where id = v_d1;
+  perform set_config('request.jwt.claims',
+                     json_build_object('sub', v_uid, 'role', 'authenticated')::text,
+                     true);
   set local role authenticated;
 
   -- 7a. Se debloquer soi-meme.
@@ -276,6 +287,110 @@ begin
 
   reset role;
   raise notice 'OK 7 — is_blocked et rating sont refuses a authenticated';
+exception when others then
+  reset role;
+  raise;
+end
+$$;
+
+
+-- ── 7bis. Les écritures légitimes de l'app passent toujours ────────────────
+-- C'est le risque symetrique : un garde-fou trop serre casserait la
+-- connexion, la position ou le profil vehicule. Ces cas sont exactement ceux
+-- de l'app livreur, releves un par un dans son code.
+do $$
+declare
+  v_d1  uuid := '00000000-dead-beef-0000-0000000000d1';
+  v_uid uuid;
+  v_new uuid := '00000000-dead-beef-0000-0000000000d9';
+  n integer;
+begin
+  select user_id into v_uid from public.drivers where id = v_d1;
+  perform set_config('request.jwt.claims',
+                     json_build_object('sub', v_uid, 'role', 'authenticated')::text,
+                     true);
+  set local role authenticated;
+
+  -- 7bis-a. _ensureDriverRow a la connexion : upsert qui REECRIT user_id a
+  -- l'identique. user_id n'est PAS dans la liste blanche, et c'est voulu --
+  -- mais le garde compare les VALEURS, pas les colonnes touchees, donc une
+  -- reecriture identique passe. Si ce test casse, chaque connexion d'un
+  -- livreur existant echoue.
+  update public.drivers
+     set user_id = v_uid, is_online = false
+   where id = v_d1;
+  get diagnostics n = row_count;
+  if n <> 1 then
+    raise exception 'ECHEC 7bis-a : l upsert de connexion n a pas abouti (% lignes)', n;
+  end if;
+
+  -- 7bis-b. La position, ecrite en continu par le suivi et l'isolate de fond.
+  update public.drivers
+     set current_lat = 35.68, current_lng = 10.10, last_location_update = now()
+   where id = v_d1;
+  get diagnostics n = row_count;
+  if n <> 1 then
+    raise exception 'ECHEC 7bis-b : l ecriture de position a ete refusee';
+  end if;
+
+  -- 7bis-c. Le profil vehicule, upsert lui aussi avec user_id.
+  update public.drivers
+     set user_id = v_uid, vehicle_type = 'motorcycle', vehicle_make = 'Test',
+         vehicle_model = 'T', vehicle_plate = 'TN-0000', vehicle_color = 'noir'
+   where id = v_d1;
+  get diagnostics n = row_count;
+  if n <> 1 then
+    raise exception 'ECHEC 7bis-c : la mise a jour du profil vehicule a ete refusee';
+  end if;
+
+  reset role;
+
+  -- 7bis-d. L'INSERT d'un nouveau livreur a l'inscription. Le trigger est
+  -- BEFORE UPDATE seulement, donc il ne doit pas s'en meler.
+  insert into public.drivers (id, user_id, is_online)
+  values (v_new, gen_random_uuid(), false);
+  get diagnostics n = row_count;
+  if n <> 1 then
+    raise exception 'ECHEC 7bis-d : l inscription d un nouveau livreur a ete refusee';
+  end if;
+
+  raise notice 'OK 7bis — connexion, position, vehicule et inscription passent';
+exception when others then
+  reset role;
+  raise;
+end
+$$;
+
+
+-- ── 7ter. Le passage en ligne d'un non vérifié est refusé ──────────────────
+do $$
+declare
+  v_d2  uuid := '00000000-dead-beef-0000-0000000000d2';
+  v_uid uuid;
+  v_caught boolean := false;
+begin
+  update public.platform_settings set value = 'on'
+   where key = 'driver_verification_required';
+  update public.drivers set is_online = false where id = v_d2;
+
+  select user_id into v_uid from public.drivers where id = v_d2;
+  perform set_config('request.jwt.claims',
+                     json_build_object('sub', v_uid, 'role', 'authenticated')::text,
+                     true);
+  set local role authenticated;
+
+  begin
+    update public.drivers set is_online = true where id = v_d2;
+  exception when others then
+    v_caught := true;
+  end;
+
+  reset role;
+  if not v_caught then
+    raise exception 'ECHEC 7ter : un livreur NON verifie a pu passer en ligne';
+  end if;
+
+  raise notice 'OK 7ter — le passage en ligne exige la verification';
 exception when others then
   reset role;
   raise;
