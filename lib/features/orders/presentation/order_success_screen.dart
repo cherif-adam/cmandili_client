@@ -3,7 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import 'order_tracking_screen.dart';
+import 'widgets/animated_checkmark.dart';
 
+/// Photo, then at the bottom: AnimatedCheckmark, title, "Réf. …",
+/// "Suivre ma commande" and "Retour à l'accueil".
+///
 /// Shown right after a colis/supermarket/facture order is successfully
 /// created — between the form (or checkout) and the tracking screen. Purely
 /// a UI hand-off: the loyalty bottom sheet still lives on
@@ -146,7 +150,7 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _AnimatedCheckmark(progress: _checkProgress, size: size.width * 0.2),
+                        AnimatedCheckmark(progress: _checkProgress, size: size.width * 0.2),
                         SizedBox(height: size.height * 0.025),
                         Text(
                           widget.title,
@@ -168,32 +172,9 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
                           ),
                         ),
                         SizedBox(height: size.height * 0.035),
-                        SizedBox(
-                          width: double.infinity,
-                          height: size.height * 0.065,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: AppColors.orderSuccessButtonGradient,
-                              borderRadius: BorderRadius.circular(size.width * 0.04),
-                            ),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(size.width * 0.04),
-                                onTap: _goToTracking,
-                                child: Center(
-                                  child: Text(
-                                    widget.trackButtonLabel,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: size.width * 0.042,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        _TrackButton(
+                          label: widget.trackButtonLabel,
+                          onTap: _goToTracking,
                         ),
                         SizedBox(height: size.height * 0.008),
                         TextButton(
@@ -220,61 +201,42 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen>
   }
 }
 
-/// White-ringed circle with an emerald checkmark that draws itself as
-/// [progress] animates from 0 to 1.
-class _AnimatedCheckmark extends AnimatedWidget {
-  final double size;
+/// The wide green-gradient "Suivre ma commande" button.
+class _TrackButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
 
-  const _AnimatedCheckmark({required Animation<double> progress, required this.size})
-      : super(listenable: progress);
-
-  Animation<double> get _progress => listenable as Animation<double>;
+  const _TrackButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _CheckmarkPainter(progress: _progress.value),
+      width: double.infinity,
+      height: size.height * 0.065,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppColors.orderSuccessButtonGradient,
+          borderRadius: BorderRadius.circular(size.width * 0.04),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(size.width * 0.04),
+            onTap: onTap,
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: size.width * 0.042,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
-}
-
-class _CheckmarkPainter extends CustomPainter {
-  final double progress;
-
-  _CheckmarkPainter({required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final ringPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.06
-      ..strokeCap = StrokeCap.round;
-    canvas.drawCircle(center, size.width / 2 - ringPaint.strokeWidth / 2, ringPaint);
-
-    final path = Path()
-      ..moveTo(size.width * 0.28, size.height * 0.52)
-      ..lineTo(size.width * 0.44, size.height * 0.68)
-      ..lineTo(size.width * 0.74, size.height * 0.34);
-
-    final metrics = path.computeMetrics().first;
-    final drawnPath = metrics.extractPath(0, metrics.length * progress);
-
-    final checkPaint = Paint()
-      ..color = AppColors.primaryLight
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = size.width * 0.07
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-    canvas.drawPath(drawnPath, checkPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _CheckmarkPainter oldDelegate) =>
-      oldDelegate.progress != progress;
 }

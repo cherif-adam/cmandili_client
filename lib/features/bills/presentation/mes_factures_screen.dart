@@ -26,7 +26,7 @@ class MesFacturesScreen extends ConsumerWidget {
       ),
       body: ordersAsync.when(
         data: (orders) {
-          if (orders.isEmpty) return _buildEmptyState(sw, sh);
+          if (orders.isEmpty) return _EmptyFactures(sw: sw, sh: sh);
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(billOrdersProvider),
             color: const Color(0xFFFF9500),
@@ -64,8 +64,17 @@ class MesFacturesScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildEmptyState(double sw, double sh) {
+/// "Aucune facture payée" with an orange receipt icon.
+class _EmptyFactures extends StatelessWidget {
+  final double sw;
+  final double sh;
+
+  const _EmptyFactures({required this.sw, required this.sh});
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
