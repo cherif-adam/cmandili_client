@@ -10,6 +10,7 @@
 // rester utilisable sur une base pas à jour.
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -83,10 +84,13 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
   void _shareCode() {
     final code = _code;
     if (code == null) return;
+    // Le message part au DESTINATAIRE, pas à l'expéditeur : il s'adresse donc
+    // à lui, le salue, et dit quoi faire du code. L'ancienne formulation
+    // (« Votre colis arrive bientôt ») parlait à la mauvaise personne.
+    final l10n = AppLocalizations.of(context)!;
     Share.share(
-      'Votre colis Amana arrive bientôt. Donnez ce code au livreur à la '
-      'remise : $code',
-      subject: 'Code de remise Amana',
+      l10n.colisShareMessage(code),
+      subject: l10n.colisShareSubject,
     );
   }
 
@@ -256,6 +260,10 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
       ColisRepository.canDispute(widget.deliveredAt);
 
   Widget _codeBlock() {
+    // La consigne passe AU-DESSUS du code et des boutons : lue dans cet ordre,
+    // elle dit quoi faire avant de donner la chose à faire. L'ancienne légende
+    // sous les boutons répétait la même idée après coup, elle n'est plus là.
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 14),
@@ -267,8 +275,12 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Code de remise',
-              style: TextStyle(fontSize: 11.5, color: Colors.black54)),
+          Text(l10n.colisCodeHeadline(_code!),
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text(l10n.colisCodeExplain,
+              style: const TextStyle(fontSize: 11.5, color: Colors.black54)),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -297,11 +309,6 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
                 onPressed: _shareCode,
               ),
             ],
-          ),
-          const Text(
-            'Transmettez-le au destinataire. Le livreur le demandera à la '
-            'remise.',
-            style: TextStyle(fontSize: 11.5, color: Colors.black54),
           ),
         ],
       ),

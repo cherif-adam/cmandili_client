@@ -1285,4 +1285,41 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get city => 'القيروان';
+
+  @override
+  String get colisHandoverSectionTitle => 'كيف يسلّم السائق طردك؟';
+
+  @override
+  String get colisModeRecommended => 'موصى به';
+
+  @override
+  String get colisModeCodeTitle => 'مع رمز';
+
+  @override
+  String get colisModeCodeSubtitle =>
+      'الأكثر أماناً لك. تتلقّى رمزاً من 4 أرقام. أرسله إلى الشخص الذي يستلم الطرد. عند الوصول، يعطي هذا الرمز للسائق. بدون الرمز الصحيح، لا يمكن للسائق إتمام التسليم. هكذا تكون واثقاً أن طردك يصل إلى الشخص الصحيح.';
+
+  @override
+  String get colisModeNoCodeTitle => 'التسليم بدون رمز';
+
+  @override
+  String get colisModeNoCodeSubtitle =>
+      'إذا لم يكن للشخص هاتف (طفل في المدرسة، حارس…). يأخذ السائق صورة لحظة التسليم، مع موقعه. هذا أقل أماناً من التسليم برمز.';
+
+  @override
+  String colisCodeHeadline(String code) {
+    return 'رمز التسليم متاعك: $code';
+  }
+
+  @override
+  String get colisCodeExplain =>
+      'أرسل هذا الرمز إلى المستلم. سيعطيه للسائق عند استلام الطرد.';
+
+  @override
+  String colisShareMessage(String code) {
+    return 'مرحباً، طرد أمانة في الطريق إليك. أعط هذا الرمز للسائق عند الاستلام: $code';
+  }
+
+  @override
+  String get colisShareSubject => 'رمز التسليم أمانة';
 }

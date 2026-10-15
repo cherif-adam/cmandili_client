@@ -1314,4 +1314,42 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get city => 'Kairouan';
+
+  @override
+  String get colisHandoverSectionTitle =>
+      'Comment le livreur remet votre colis ?';
+
+  @override
+  String get colisModeRecommended => 'Recommandé';
+
+  @override
+  String get colisModeCodeTitle => 'Avec code';
+
+  @override
+  String get colisModeCodeSubtitle =>
+      'Le plus sûr pour vous. Vous recevez un code à 4 chiffres. Envoyez-le à la personne qui reçoit le colis. À l\'arrivée, elle donne ce code au livreur. Sans le bon code, le livreur ne peut pas terminer la livraison. Vous êtes donc sûr que votre colis arrive à la bonne personne.';
+
+  @override
+  String get colisModeNoCodeTitle => 'Remise sans code';
+
+  @override
+  String get colisModeNoCodeSubtitle =>
+      'Si la personne n\'a pas de téléphone (un enfant à l\'école, un gardien…). Le livreur prend une photo au moment de la remise, avec sa position. C\'est moins sûr qu\'avec un code.';
+
+  @override
+  String colisCodeHeadline(String code) {
+    return 'Votre code de remise : $code';
+  }
+
+  @override
+  String get colisCodeExplain =>
+      'Envoyez ce code au destinataire. Il le donnera au livreur quand il recevra le colis.';
+
+  @override
+  String colisShareMessage(String code) {
+    return 'Bonjour, un colis Amana arrive pour vous. Donnez ce code au livreur à la réception : $code';
+  }
+
+  @override
+  String get colisShareSubject => 'Code de remise Amana';
 }

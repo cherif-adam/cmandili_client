@@ -2457,6 +2457,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Kairouan'**
   String get city;
+
+  /// No description provided for @colisHandoverSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How does the driver hand over your parcel?'**
+  String get colisHandoverSectionTitle;
+
+  /// No description provided for @colisModeRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get colisModeRecommended;
+
+  /// No description provided for @colisModeCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'With a code'**
+  String get colisModeCodeTitle;
+
+  /// No description provided for @colisModeCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The safest option for you. You get a 4-digit code. Send it to the person receiving the parcel. On arrival, they give the code to the driver. Without the right code, the driver cannot complete the delivery. So you know your parcel reaches the right person.'**
+  String get colisModeCodeSubtitle;
+
+  /// No description provided for @colisModeNoCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand over without a code'**
+  String get colisModeNoCodeTitle;
+
+  /// No description provided for @colisModeNoCodeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'For when the person has no phone (a child at school, a caretaker…). The driver takes a photo at the moment of handover, with their location. It is less safe than with a code.'**
+  String get colisModeNoCodeSubtitle;
+
+  /// No description provided for @colisCodeHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Your delivery code: {code}'**
+  String colisCodeHeadline(String code);
+
+  /// No description provided for @colisCodeExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Send this code to the recipient. They will give it to the driver when they receive the parcel.'**
+  String get colisCodeExplain;
+
+  /// No description provided for @colisShareMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, an Amana parcel is on its way to you. Give this code to the driver on arrival: {code}'**
+  String colisShareMessage(String code);
+
+  /// No description provided for @colisShareSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Amana delivery code'**
+  String get colisShareSubject;
 }
 
 class _AppLocalizationsDelegate

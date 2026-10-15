@@ -471,6 +471,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
   Widget build(BuildContext context) {
     final w = widget.screenWidth;
     final h = widget.screenHeight;
+    final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(w * 0.05, h * 0.02, w * 0.05, h * 0.14),
@@ -641,7 +642,10 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             SizedBox(height: h * 0.025),
 
             // ── Mode de remise ───────────────────────────────────────────────
-            _buildSectionHeader('Remise au destinataire',
+            // Le titre pose la question au lieu de nommer un réglage :
+            // « Remise au destinataire » ne dit pas à l'expéditeur ce qu'on
+            // attend de lui.
+            _buildSectionHeader(l10n.colisHandoverSectionTitle,
                 Icons.verified_user_outlined, w, h),
             SizedBox(height: h * 0.015),
             _buildDeliveryModeSelector(w, h),
@@ -1226,11 +1230,14 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
   }
 
   Widget _buildDeliveryModeSelector(double w, double h) {
+    final l10n = AppLocalizations.of(context)!;
+
     Widget option({
       required ColisDeliveryMode mode,
       required String title,
       required String subtitle,
       required IconData icon,
+      String? badge,
     }) {
       final selected = _deliveryMode == mode;
       return InkWell(
@@ -1257,10 +1264,37 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: TextStyle(
-                            fontSize: w * 0.038,
-                            fontWeight: FontWeight.w700)),
+                    Row(
+                      children: [
+                        // Flexible : à l'étroit, c'est le titre qui se coupe,
+                        // jamais le badge — un « Recommandé » tronqué en
+                        // « Recomm… » n'aide personne.
+                        Flexible(
+                          child: Text(title,
+                              style: TextStyle(
+                                  fontSize: w * 0.038,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                        if (badge != null) ...[
+                          SizedBox(width: w * 0.02),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: w * 0.02, vertical: h * 0.003),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              badge,
+                              style: TextStyle(
+                                  fontSize: w * 0.028,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                     SizedBox(height: h * 0.004),
                     Text(subtitle,
                         style: TextStyle(
@@ -1280,20 +1314,19 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
 
     return Column(
       children: [
+        // L'ordre n'est pas neutre : le mode recommandé est aussi celui par
+        // défaut (_deliveryMode) et passe donc en premier.
         option(
           mode: ColisDeliveryMode.code,
-          title: 'Avec code',
-          subtitle:
-              'Un code à 4 chiffres vous sera donné. Le destinataire le '
-              'communique au livreur à la remise.',
-          icon: Icons.pin_outlined,
+          title: l10n.colisModeCodeTitle,
+          subtitle: l10n.colisModeCodeSubtitle,
+          icon: Icons.lock_outline,
+          badge: l10n.colisModeRecommended,
         ),
         option(
           mode: ColisDeliveryMode.noCode,
-          title: 'Remise sans code',
-          subtitle:
-              "Quand le destinataire n'a pas de téléphone — un enfant à "
-              "l'école, un gardien. La preuve sera la photo et la position.",
+          title: l10n.colisModeNoCodeTitle,
+          subtitle: l10n.colisModeNoCodeSubtitle,
           icon: Icons.handshake_outlined,
         ),
         if (_deliveryMode == ColisDeliveryMode.noCode) ...[
@@ -1410,12 +1443,19 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
       children: [
         Icon(icon, color: _purple, size: w * 0.055),
         SizedBox(width: w * 0.02),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: w * 0.042,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+        // Expanded, sinon le titre pousse la Row au-delà de l'écran : sans
+        // contrainte il se dessine à sa largeur naturelle. Plusieurs en-têtes
+        // de cette page débordaient déjà de 37 à 48 px ; « Comment le livreur
+        // remet votre colis ? » est plus long et portait le débordement à
+        // plus de 250 px. Contraint, le titre passe simplement à la ligne.
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: w * 0.042,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
       ],

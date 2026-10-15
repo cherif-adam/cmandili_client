@@ -475,5 +475,17 @@
             "count": { "type": "int" }
         }
     },
-    "city": "Kairouan"
+    "city": "Kairouan",
+    "colisHandoverSectionTitle": "How does the driver hand over your parcel?",
+    "colisModeRecommended": "Recommended",
+    "colisModeCodeTitle": "With a code",
+    "colisModeCodeSubtitle": "The safest option for you. You get a 4-digit code. Send it to the person receiving the parcel. On arrival, they give the code to the driver. Without the right code, the driver cannot complete the delivery. So you know your parcel reaches the right person.",
+    "colisModeNoCodeTitle": "Hand over without a code",
+    "colisModeNoCodeSubtitle": "For when the person has no phone (a child at school, a caretaker…). The driver takes a photo at the moment of handover, with their location. It is less safe than with a code.",
+    "colisCodeHeadline": "Your delivery code: {code}",
+    "@colisCodeHeadline": { "placeholders": { "code": { "type": "String" } } },
+    "colisCodeExplain": "Send this code to the recipient. They will give it to the driver when they receive the parcel.",
+    "colisShareMessage": "Hello, an Amana parcel is on its way to you. Give this code to the driver on arrival: {code}",
+    "@colisShareMessage": { "placeholders": { "code": { "type": "String" } } },
+    "colisShareSubject": "Amana delivery code"
 }

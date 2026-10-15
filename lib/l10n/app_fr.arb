@@ -454,5 +454,15 @@
             "count": { "type": "int" }
         }
     },
-    "city": "Kairouan"
+    "city": "Kairouan",
+    "colisHandoverSectionTitle": "Comment le livreur remet votre colis ?",
+    "colisModeRecommended": "Recommandé",
+    "colisModeCodeTitle": "Avec code",
+    "colisModeCodeSubtitle": "Le plus sûr pour vous. Vous recevez un code à 4 chiffres. Envoyez-le à la personne qui reçoit le colis. À l'arrivée, elle donne ce code au livreur. Sans le bon code, le livreur ne peut pas terminer la livraison. Vous êtes donc sûr que votre colis arrive à la bonne personne.",
+    "colisModeNoCodeTitle": "Remise sans code",
+    "colisModeNoCodeSubtitle": "Si la personne n'a pas de téléphone (un enfant à l'école, un gardien…). Le livreur prend une photo au moment de la remise, avec sa position. C'est moins sûr qu'avec un code.",
+    "colisCodeHeadline": "Votre code de remise : {code}",
+    "colisCodeExplain": "Envoyez ce code au destinataire. Il le donnera au livreur quand il recevra le colis.",
+    "colisShareMessage": "Bonjour, un colis Amana arrive pour vous. Donnez ce code au livreur à la réception : {code}",
+    "colisShareSubject": "Code de remise Amana"
 }

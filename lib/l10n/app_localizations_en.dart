@@ -1289,4 +1289,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get city => 'Kairouan';
+
+  @override
+  String get colisHandoverSectionTitle =>
+      'How does the driver hand over your parcel?';
+
+  @override
+  String get colisModeRecommended => 'Recommended';
+
+  @override
+  String get colisModeCodeTitle => 'With a code';
+
+  @override
+  String get colisModeCodeSubtitle =>
+      'The safest option for you. You get a 4-digit code. Send it to the person receiving the parcel. On arrival, they give the code to the driver. Without the right code, the driver cannot complete the delivery. So you know your parcel reaches the right person.';
+
+  @override
+  String get colisModeNoCodeTitle => 'Hand over without a code';
+
+  @override
+  String get colisModeNoCodeSubtitle =>
+      'For when the person has no phone (a child at school, a caretaker…). The driver takes a photo at the moment of handover, with their location. It is less safe than with a code.';
+
+  @override
+  String colisCodeHeadline(String code) {
+    return 'Your delivery code: $code';
+  }
+
+  @override
+  String get colisCodeExplain =>
+      'Send this code to the recipient. They will give it to the driver when they receive the parcel.';
+
+  @override
+  String colisShareMessage(String code) {
+    return 'Hello, an Amana parcel is on its way to you. Give this code to the driver on arrival: $code';
+  }
+
+  @override
+  String get colisShareSubject => 'Amana delivery code';
 }
