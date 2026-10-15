@@ -7,7 +7,17 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/models/order_customization.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
+import 'customization_type_selector.dart';
+import 'instructions_sheet_header.dart';
+import 'instructions_text_input.dart';
+import 'save_instructions_button.dart';
+import 'voice_recorder_section.dart';
 
+/// Bottom sheet for a cart item's special instructions, top to bottom:
+/// InstructionsSheetHeader, CustomizationTypeSelector (text / voice),
+/// InstructionsTextInput or VoiceRecorderSection, SaveInstructionsButton.
+///
+/// Recording / playback / saving logic stays in the State below.
 class OrderCustomizationWidget extends StatefulWidget {
   final OrderCustomization? initialCustomization;
   final Function(OrderCustomization?) onSave;
@@ -239,325 +249,45 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.specialInstructions,
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.05,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    color: AppColors.textSecondary,
-                  ),
-                ],
-              ),
-              
+              InstructionsSheetHeader(screenWidth: screenWidth),
               SizedBox(height: screenHeight * 0.02),
 
-              // Type Selector
-              Container(
-                padding: EdgeInsets.all(screenWidth * 0.01),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(screenWidth * 0.03),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _TypeButton(
-                        label: AppLocalizations.of(context)!.typeMessage,
-                        icon: Icons.edit_outlined,
-                        isSelected: _selectedType == CustomizationType.text,
-                        onTap: () => setState(() => _selectedType = CustomizationType.text),
-                        screenWidth: screenWidth,
-                      ),
-                    ),
-                    SizedBox(width: screenWidth * 0.02),
-                    Expanded(
-                      child: _TypeButton(
-                        label: AppLocalizations.of(context)!.voiceMessage,
-                        icon: Icons.mic_outlined,
-                        isSelected: _selectedType == CustomizationType.voice,
-                        onTap: () => setState(() => _selectedType = CustomizationType.voice),
-                        screenWidth: screenWidth,
-                      ),
-                    ),
-                  ],
-                ),
+              CustomizationTypeSelector(
+                selectedType: _selectedType,
+                onChanged: (type) => setState(() => _selectedType = type),
+                screenWidth: screenWidth,
               ),
-
               SizedBox(height: screenHeight * 0.03),
 
-              // Content Area
+              // Content: text box or voice recorder
               if (_selectedType == CustomizationType.text)
-                _buildTextInput(screenWidth, screenHeight)
+                InstructionsTextInput(
+                  controller: _textController,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                )
               else
-                _buildVoiceRecorder(screenWidth, screenHeight),
-
+                VoiceRecorderSection(
+                  hasRecording: _audioPath != null,
+                  isRecording: _isRecording,
+                  isPlaying: _isPlaying,
+                  durationLabel: _formatDuration(_recordingDuration),
+                  pulse: _pulseController,
+                  onPlay: _playAudio,
+                  onDelete: _deleteRecording,
+                  onRecordTap: _isRecording ? _stopRecording : _startRecording,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
               SizedBox(height: screenHeight * 0.03),
 
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                height: screenHeight * 0.065,
-                child: ElevatedButton(
-                  onPressed: _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 8,
-                    shadowColor: AppColors.primary.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(screenWidth * 0.04),
-                    ),
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context)!.save,
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.042,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+              SaveInstructionsButton(
+                onPressed: _save,
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextInput(double screenWidth, double screenHeight) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(screenWidth * 0.05),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: screenWidth * 0.025,
-            offset: Offset(0, screenHeight * 0.006),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _textController,
-        maxLines: 4,
-        style: TextStyle(
-          color: Theme.of(context).textTheme.bodyLarge?.color,
-          fontSize: screenWidth * 0.04,
-        ),
-        decoration: InputDecoration(
-          hintText: AppLocalizations.of(context)!.typeInstructionsHint,
-          hintStyle: TextStyle(
-            color: AppColors.textSecondary.withValues(alpha: 0.5),
-            fontSize: screenWidth * 0.038,
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(screenWidth * 0.05),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: EdgeInsets.all(screenWidth * 0.05),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVoiceRecorder(double screenWidth, double screenHeight) {
-    return Column(
-      children: [
-        if (_audioPath != null && !_isRecording)
-          Container(
-            padding: EdgeInsets.all(screenWidth * 0.04),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(screenWidth * 0.05),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: screenWidth * 0.025,
-                  offset: Offset(0, screenHeight * 0.006),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: _playAudio,
-                  icon: Icon(
-                    _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                    color: AppColors.primary,
-                    size: screenWidth * 0.12,
-                  ),
-                ),
-                SizedBox(width: screenWidth * 0.03),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.voiceMessage,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: screenWidth * 0.04,
-                          color: Theme.of(context).textTheme.bodyLarge?.color,
-                        ),
-                      ),
-                      SizedBox(height: screenHeight * 0.005),
-                      Text(
-                        _formatDuration(_recordingDuration),
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: screenWidth * 0.035,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: _deleteRecording,
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: AppColors.error,
-                    size: screenWidth * 0.06,
-                  ),
-                ),
-              ],
-            ),
-          )
-        else
-          Column(
-            children: [
-              GestureDetector(
-                onTap: _isRecording ? _stopRecording : _startRecording,
-                child: AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Container(
-                      width: screenWidth * 0.25,
-                      height: screenWidth * 0.25,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _isRecording
-                            ? AppColors.error
-                            : AppColors.primary,
-                        boxShadow: _isRecording
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.error.withValues(alpha: 0.4 * _pulseController.value),
-                                  blurRadius: 20 + (20 * _pulseController.value),
-                                  spreadRadius: 5 * _pulseController.value,
-                                ),
-                              ]
-                            : [
-                                BoxShadow(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
-                                  blurRadius: 20,
-                                ),
-                              ],
-                      ),
-                      child: Icon(
-                        _isRecording ? Icons.stop : Icons.mic,
-                        color: Colors.white,
-                        size: screenWidth * 0.1,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: screenHeight * 0.02),
-              Text(
-                _isRecording
-                    ? _formatDuration(_recordingDuration)
-                    : AppLocalizations.of(context)!.tapToRecord,
-                style: TextStyle(
-                  fontSize: screenWidth * 0.04,
-                  fontWeight: _isRecording ? FontWeight.bold : FontWeight.normal,
-                  color: _isRecording
-                      ? AppColors.error
-                      : AppColors.textSecondary,
-                ),
-              ),
-              if (_isRecording) ...[
-                SizedBox(height: screenHeight * 0.01),
-                Text(
-                  AppLocalizations.of(context)!.tapAgainToStop,
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.035,
-                    color: AppColors.textLight,
-                  ),
-                ),
-              ],
-            ],
-          ),
-      ],
-    );
-  }
-}
-
-class _TypeButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool isSelected;
-  final VoidCallback onTap;
-  final double screenWidth;
-
-  const _TypeButton({
-    required this.label,
-    required this.icon,
-    required this.isSelected,
-    required this.onTap,
-    required this.screenWidth,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: EdgeInsets.symmetric(
-          vertical: screenWidth * 0.03,
-          horizontal: screenWidth * 0.02,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(screenWidth * 0.025),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? Colors.white
-                  : Theme.of(context).textTheme.bodyLarge?.color,
-              size: screenWidth * 0.05,
-            ),
-            SizedBox(width: screenWidth * 0.02),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isSelected
-                      ? Colors.white
-                      : Theme.of(context).textTheme.bodyLarge?.color,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                  fontSize: screenWidth * 0.035,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
         ),
       ),
     );
