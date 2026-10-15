@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
+
 import '../../../core/theme/app_colors.dart';
 import '../../notifications/data/models/notification.dart';
 import '../../notifications/providers/notification_provider.dart';
-import 'package:cmandili_mobile/l10n/app_localizations.dart';
+import 'widgets/empty_notifications_view.dart';
+import 'widgets/notification_card.dart';
 
+/// The customer's notifications, grouped by day:
+///
+///   AppBar: "Notifications" ......... "Tout marquer comme lu"
+///   "Aujourd'hui"
+///     NotificationCard …
+///   "Hier"
+///     NotificationCard …
+///   or EmptyNotificationsView
+///
+/// Tap a card to mark it read, swipe it left to delete it.
 class NotificationScreen extends ConsumerWidget {
   const NotificationScreen({super.key});
 
@@ -15,9 +28,7 @@ class NotificationScreen extends ConsumerWidget {
     final screenHeight = size.height;
     final screenWidth = size.width;
     final notifications = ref.watch(notificationProvider);
-
-    // Group notifications by date
-    final groupedNotifications = _groupNotificationsByDate(context, notifications);
+    final groupedNotifications = _groupByDate(context, notifications);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -54,34 +65,22 @@ class NotificationScreen extends ConsumerWidget {
         ],
       ),
       body: notifications.isEmpty
-          ? _EmptyNotifications(screenWidth: screenWidth, screenHeight: screenHeight)
+          ? EmptyNotificationsView(screenWidth: screenWidth, screenHeight: screenHeight)
           : ListView.builder(
               padding: EdgeInsets.all(screenWidth * 0.05),
               itemCount: groupedNotifications.length,
               itemBuilder: (context, index) {
                 final entry = groupedNotifications.entries.elementAt(index);
-                final dateLabel = entry.key;
-                final notificationList = entry.value;
-
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: screenHeight * 0.015,
-                        horizontal: screenWidth * 0.02,
-                      ),
-                      child: Text(
-                        dateLabel,
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.038,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
+                    _DayTitle(
+                      label: entry.key,
+                      screenWidth: screenWidth,
+                      screenHeight: screenHeight,
                     ),
-                    ...notificationList.map((notification) {
-                      return _NotificationCard(
+                    for (final notification in entry.value)
+                      NotificationCard(
                         notification: notification,
                         screenWidth: screenWidth,
                         screenHeight: screenHeight,
@@ -97,8 +96,7 @@ class NotificationScreen extends ConsumerWidget {
                               .read(notificationProvider.notifier)
                               .deleteNotification(notification.id);
                         },
-                      );
-                    }),
+                      ),
                   ],
                 );
               },
@@ -106,7 +104,8 @@ class NotificationScreen extends ConsumerWidget {
     );
   }
 
-  Map<String, List<AppNotification>> _groupNotificationsByDate(
+  /// "Aujourd'hui", "Hier", the weekday for this week, else the date.
+  Map<String, List<AppNotification>> _groupByDate(
       BuildContext context, List<AppNotification> notifications) {
     final Map<String, List<AppNotification>> grouped = {};
     final now = DateTime.now();
@@ -128,228 +127,40 @@ class NotificationScreen extends ConsumerWidget {
             DateFormat('d MMM yyyy', locale).format(notification.timestamp);
       }
 
-      if (!grouped.containsKey(dateLabel)) {
-        grouped[dateLabel] = [];
-      }
-      grouped[dateLabel]!.add(notification);
+      grouped.putIfAbsent(dateLabel, () => []).add(notification);
     }
 
     return grouped;
   }
 }
 
-class _EmptyNotifications extends StatelessWidget {
+/// The grey day title above a group of notifications.
+class _DayTitle extends StatelessWidget {
+  final String label;
   final double screenWidth;
   final double screenHeight;
 
-  const _EmptyNotifications({
+  const _DayTitle({
+    required this.label,
     required this.screenWidth,
     required this.screenHeight,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(screenWidth * 0.08),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.notifications_none_outlined,
-              size: screenWidth * 0.2,
-              color: AppColors.primary.withValues(alpha: 0.5),
-            ),
-          ),
-          SizedBox(height: screenHeight * 0.03),
-          Text(
-            AppLocalizations.of(context)!.noNotifications,
-            style: TextStyle(
-              fontSize: screenWidth * 0.06,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-          ),
-          SizedBox(height: screenHeight * 0.01),
-          Text(
-            AppLocalizations.of(context)!.notificationsWillAppearHere,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: screenWidth * 0.04,
-            ),
-          ),
-        ],
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        vertical: screenHeight * 0.015,
+        horizontal: screenWidth * 0.02,
       ),
-    );
-  }
-}
-
-class _NotificationCard extends StatelessWidget {
-  final AppNotification notification;
-  final VoidCallback onTap;
-  final VoidCallback onDismissed;
-  final double screenWidth;
-  final double screenHeight;
-
-  const _NotificationCard({
-    required this.notification,
-    required this.onTap,
-    required this.onDismissed,
-    required this.screenWidth,
-    required this.screenHeight,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final IconData icon;
-    final Color iconColor;
-
-    switch (notification.type) {
-      case NotificationType.orderUpdate:
-        icon = Icons.shopping_bag_outlined;
-        iconColor = AppColors.primary;
-        break;
-      case NotificationType.promotion:
-        icon = Icons.local_offer_outlined;
-        iconColor = AppColors.success;
-        break;
-      case NotificationType.system:
-        icon = Icons.info_outline;
-        iconColor = AppColors.warning;
-        break;
-    }
-
-    return Dismissible(
-      key: Key(notification.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: EdgeInsets.only(right: screenWidth * 0.05),
-        decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(screenWidth * 0.05),
-        ),
-        child: Icon(
-          Icons.delete_outline,
-          color: AppColors.error,
-          size: screenWidth * 0.08,
-        ),
-      ),
-      onDismissed: (direction) => onDismissed(),
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          margin: EdgeInsets.only(bottom: screenHeight * 0.015),
-          padding: EdgeInsets.all(screenWidth * 0.04),
-          decoration: BoxDecoration(
-            color: notification.isRead
-                ? Theme.of(context).cardColor
-                : AppColors.primary.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(screenWidth * 0.05),
-            border: Border.all(
-              color: notification.isRead
-                  ? Colors.transparent
-                  : AppColors.primary.withValues(alpha: 0.2),
-              width: 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: screenWidth * 0.025,
-                offset: Offset(0, screenHeight * 0.006),
-              ),
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: EdgeInsets.all(screenWidth * 0.03),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: screenWidth * 0.06,
-                ),
-              ),
-              SizedBox(width: screenWidth * 0.04),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            notification.title,
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.04,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).textTheme.bodyLarge?.color,
-                            ),
-                          ),
-                        ),
-                        if (!notification.isRead)
-                          Container(
-                            width: screenWidth * 0.025,
-                            height: screenWidth * 0.025,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                      ],
-                    ),
-                    SizedBox(height: screenHeight * 0.008),
-                    Text(
-                      notification.message,
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.036,
-                        color: AppColors.textSecondary,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: screenHeight * 0.008),
-                    Text(
-                      _formatTime(context, notification.timestamp),
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.032,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: screenWidth * 0.038,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textSecondary,
         ),
       ),
     );
-  }
-
-  String _formatTime(BuildContext context, DateTime timestamp) {
-    final now = DateTime.now();
-    final difference = now.difference(timestamp);
-    final l = AppLocalizations.of(context)!;
-
-    if (difference.inMinutes < 1) {
-      return l.timeJustNow;
-    } else if (difference.inMinutes < 60) {
-      return l.timeMinutesAgo(difference.inMinutes);
-    } else if (difference.inHours < 24) {
-      return l.timeHoursAgo(difference.inHours);
-    } else {
-      return DateFormat('HH:mm').format(timestamp);
-    }
   }
 }
