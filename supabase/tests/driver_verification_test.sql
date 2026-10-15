@@ -73,7 +73,43 @@ begin
 end
 $$;
 
+-- ── Comptes auth réels pour le jeu d'essai ─────────────────────────────────
+-- drivers.user_id a une FK vers auth.users. On ne peut PAS la contourner avec
+-- des gen_random_uuid() : session_replication_role = replica desactive aussi
+-- les contraintes (une FK est un trigger systeme), donc l'INSERT passe en
+-- silence, mais le premier UPDATE apres le retablissement des triggers
+-- rejoue la verification et echoue en 23503 sur une ligne creee dans la meme
+-- transaction. C'est exactement ce qui s'est produit.
+--
+-- On emprunte donc 4 comptes existants QUI NE SONT PAS DEJA LIVREURS : les
+-- lignes drivers creees pour eux n'existent que le temps de la transaction et
+-- disparaissent au ROLLBACK. Choisir des comptes sans ligne drivers evite de
+-- toucher au dossier d'un vrai livreur.
+create temp table _t_fixture (slot int primary key, user_id uuid) on commit drop;
+
+do $$
+declare n integer;
+begin
+  insert into _t_fixture (slot, user_id)
+  select row_number() over (order by u.id), u.id
+    from auth.users u
+   where not exists (select 1 from public.drivers d where d.user_id = u.id)
+   limit 4;
+
+  select count(*) into n from _t_fixture;
+  if n < 4 then
+    raise exception
+      'PRECONDITION : il faut 4 comptes auth sans ligne drivers pour le jeu d essai, % trouve(s). '
+      'Creez quelques comptes client de test, ou lancez ce harnais sur une base qui en a.', n;
+  end if;
+
+  raise notice 'Jeu d essai : 4 comptes auth empruntes';
+end
+$$;
+
 -- Trois livreurs de test, aux identifiants reconnaissables.
+-- drivers.id n'a pas de FK, on garde donc des identifiants parlants ; seul
+-- user_id doit etre reel.
 --   dead-beef...01  verifie    : CIN + contrat legalise
 --   dead-beef...02  sans CIN
 --   dead-beef...03  CIN mais contrat manquant
@@ -84,9 +120,9 @@ declare
   v_d3 uuid := '00000000-dead-beef-0000-0000000000d3';
 begin
   insert into public.drivers (id, user_id, is_online, is_blocked, current_lat, current_lng)
-  values (v_d1, gen_random_uuid(), true, false, 35.6781, 10.0963),
-         (v_d2, gen_random_uuid(), true, false, 35.6781, 10.0963),
-         (v_d3, gen_random_uuid(), true, false, 35.6781, 10.0963);
+  values (v_d1, (select user_id from _t_fixture where slot = 1), true, false, 35.6781, 10.0963),
+         (v_d2, (select user_id from _t_fixture where slot = 2), true, false, 35.6781, 10.0963),
+         (v_d3, (select user_id from _t_fixture where slot = 3), true, false, 35.6781, 10.0963);
 
   insert into public.driver_identity (driver_id, cin, contract_legalized_at)
   values (v_d1, 'TEST-CIN-1', current_date);
@@ -303,10 +339,13 @@ begin
                      true);
   set local role authenticated;
 
-  -- 7a. Se debloquer soi-meme.
+  -- 7a. Ecrire is_blocked. On passe a TRUE et non a false : le test 5 a
+  -- remis le livreur a false juste avant, et le garde compare les VALEURS --
+  -- reecrire false sur false n'est pas une modification, il laisserait donc
+  -- passer a juste titre et le test echouerait a tort.
   v_caught := false;
   begin
-    update public.drivers set is_blocked = false where id = v_d1;
+    update public.drivers set is_blocked = true where id = v_d1;
   exception when others then
     v_caught := true;
   end;
@@ -387,8 +426,10 @@ begin
 
   -- 7bis-d. L'INSERT d'un nouveau livreur a l'inscription. Le trigger est
   -- BEFORE UPDATE seulement, donc il ne doit pas s'en meler.
+  -- Compte reel : la FK drivers_user_id_fkey est active ici, les triggers
+  -- ayant ete retablis plus haut.
   insert into public.drivers (id, user_id, is_online)
-  values (v_new, gen_random_uuid(), false);
+  values (v_new, (select user_id from _t_fixture where slot = 4), false);
   get diagnostics n = row_count;
   if n <> 1 then
     raise exception 'ECHEC 7bis-d : l inscription d un nouveau livreur a ete refusee';
