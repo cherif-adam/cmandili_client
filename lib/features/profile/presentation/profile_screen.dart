@@ -3,24 +3,36 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../../../core/theme/app_colors.dart';
-import '../../auth/data/auth_repository.dart' show User;
-import '../../auth/providers/auth_provider.dart';
-import '../data/profile_repository.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
+
 import '../../../core/providers/localization_provider.dart';
 import '../../../core/providers/theme_provider.dart';
-import 'edit_profile_screen.dart';
-import '../../notifications/presentation/notification_screen.dart';
-import '../../orders/presentation/order_history_screen.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../auth/data/auth_repository.dart' show User;
+import '../../auth/presentation/change_password_screen.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../bills/presentation/mes_factures_screen.dart';
 import '../../bills/services/bill_reminder_service.dart';
-import 'saved_addresses_screen.dart';
-import 'payment_methods_screen.dart';
-import '../../auth/presentation/change_password_screen.dart';
+import '../../notifications/presentation/notification_screen.dart';
+import '../../orders/presentation/order_history_screen.dart';
+import '../data/profile_repository.dart';
+import 'edit_profile_screen.dart';
 import 'help_support_screen.dart';
+import 'payment_methods_screen.dart';
+import 'saved_addresses_screen.dart';
+import 'widgets/language_picker_sheet.dart';
+import 'widgets/profile_header.dart';
+import 'widgets/profile_menu_item.dart';
+import 'widgets/profile_section_title.dart';
+import 'widgets/profile_switch_item.dart';
 
+/// The "Profil" tab, top to bottom:
+///
+///   ProfileHeader   green, avatar (tap to change), name, email
+///   "Compte"        orders, bills, edit profile, addresses, payment
+///   "Paramètres"    notifications, bill reminders, language, theme,
+///                   password, help
+///   Déconnexion
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -29,36 +41,9 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  /// Really signs out, then lets main.dart show the login screen.
-  ///
-  /// This used to push a fresh AuthScreen with pushAndRemoveUntil(... false)
-  /// and never call signOut. The session stayed alive, and the route that
-  /// main.dart swaps between login and Home (MaterialApp.home) was removed
-  /// from the stack. So after the next sign-in the app switched to Home
-  /// UNDERNEATH the pushed login screen, which stayed on top: the user was
-  /// signed in but stuck on the login form until they restarted the app.
-  Future<void> _logout() async {
-    // Back to the root route first (drop anything pushed over Home), so the
-    // root is what changes to the login screen when the session ends.
-    Navigator.of(context).popUntil((route) => route.isFirst);
-    try {
-      await ref.read(authRepositoryProvider).signOut();
-    } catch (e) {
-      debugPrint('Logout failed: $e');
-    }
-  }
-
   final _profileRepo = ProfileRepository();
   final _imagePicker = ImagePicker();
   bool _billRemindersEnabled = true;
-
-  @override
-  void initState() {
-    super.initState();
-    BillReminderService.instance.isEnabled().then((v) {
-      if (mounted) setState(() => _billRemindersEnabled = v);
-    });
-  }
 
   /// Tracks whether an upload is in progress so we can show the loading
   /// overlay and prevent double-taps.
@@ -69,7 +54,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   /// feels instant. It falls back gracefully to the remote URL on error.
   File? _localAvatar;
 
-  // ── Avatar pick & upload ──────────────────────────────────────────────────
+  @override
+  void initState() {
+    super.initState();
+    BillReminderService.instance.isEnabled().then((v) {
+      if (mounted) setState(() => _billRemindersEnabled = v);
+    });
+  }
+
+  /// Really signs out, then lets main.dart show the login screen.
+  ///
+  /// This used to push a fresh AuthScreen and never call signOut: after the
+  /// next sign-in the app switched to Home UNDERNEATH the pushed login
+  /// screen, so the user was stuck on the login form.
+  Future<void> _logout() async {
+    // Back to the root route first (drop anything pushed over Home), so the
+    // root is what changes to the login screen when the session ends.
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    try {
+      await ref.read(authRepositoryProvider).signOut();
+    } catch (e) {
+      debugPrint('Logout failed: $e');
+    }
+  }
 
   Future<void> _pickAndUploadAvatar() async {
     final XFile? picked = await _imagePicker.pickImage(
@@ -109,307 +116,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  /// True once the user actually has a picture of their own.
-  bool _hasAvatar(User? authUser) =>
-      _localAvatar != null || (authUser?.photoURL?.isNotEmpty ?? false);
-
   /// Priority: local file (just picked) → remote URL from auth metadata → none.
-  /// Returns null when the user has no picture; the caller draws a person icon
-  /// rather than a stock photo of a stranger pulled off the internet.
-  ImageProvider? _avatarImageProvider(User? authUser) {
+  /// Null when the user has no picture: a person icon is drawn instead.
+  ImageProvider? _avatarImage(User? authUser) {
     if (_localAvatar != null) return FileImage(_localAvatar!);
     final url = authUser?.photoURL;
     if (url != null && url.isNotEmpty) return NetworkImage(url);
     return null;
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final screenHeight = size.height;
-    final screenWidth = size.width;
-
-    final themeMode = ref.watch(themeProvider);
-    final locale = ref.watch(localizationProvider);
-    final authUser = ref.watch(authStateProvider).valueOrNull;
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: screenHeight * 0.25,
-            pinned: true,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                ),
-                child: SafeArea(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildAvatar(authUser, screenWidth),
-                      SizedBox(height: screenHeight * 0.02),
-                      Text(
-                        authUser?.displayName ??
-                            authUser?.email?.split('@').first ??
-                            AppLocalizations.of(context)!.user,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: screenWidth * 0.06,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        authUser?.email ?? '',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: screenWidth * 0.035,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.all(screenWidth * 0.05),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _buildSectionHeader(
-                    context, AppLocalizations.of(context)!.account, screenWidth),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.receipt_long_rounded,
-                  title: AppLocalizations.of(context)!.orderHistory,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const OrderHistoryScreen())),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.electric_bolt_rounded,
-                  title: 'Mes factures',
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const MesFacturesScreen())),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.person_outline_rounded,
-                  title: AppLocalizations.of(context)!.editProfile,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const EditProfileScreen())),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.location_on_outlined,
-                  title: AppLocalizations.of(context)!.savedAddresses,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const SavedAddressesScreen())),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.payment_outlined,
-                  title: AppLocalizations.of(context)!.paymentMethods,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                SizedBox(height: screenHeight * 0.03),
-                _buildSectionHeader(
-                    context, AppLocalizations.of(context)!.settings, screenWidth),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.notifications_outlined,
-                  title: AppLocalizations.of(context)!.notifications,
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const NotificationScreen())),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileSwitch(
-                  context,
-                  icon: Icons.alarm_rounded,
-                  title: 'Rappels de factures',
-                  value: _billRemindersEnabled,
-                  onChanged: (v) async {
-                    setState(() => _billRemindersEnabled = v);
-                    await BillReminderService.instance.setEnabled(v);
-                  },
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.language_outlined,
-                  title: AppLocalizations.of(context)!.language,
-                  trailing: _getLanguageName(locale.languageCode),
-                  onTap: () => _showLanguageBottomSheet(
-                      context, screenWidth, screenHeight),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.brightness_6_outlined,
-                  title: AppLocalizations.of(context)!.theme,
-                  trailing: themeMode == ThemeMode.dark
-                      ? AppLocalizations.of(context)!.darkMode
-                      : AppLocalizations.of(context)!.lightMode,
-                  onTap: () => ref.read(themeProvider.notifier).toggleTheme(),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.lock_outline_rounded,
-                  title: AppLocalizations.of(context)!.changePassword,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const ChangePasswordScreen()),
-                  ),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.help_outline_rounded,
-                  title: 'Help & Support',
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const HelpSupportScreen())),
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                SizedBox(height: screenHeight * 0.03),
-                _buildProfileItem(
-                  context,
-                  icon: Icons.logout_rounded,
-                  title: AppLocalizations.of(context)!.logout,
-                  textColor: AppColors.error,
-                  iconColor: AppColors.error,
-                  showArrow: false,
-                  onTap: _logout,
-                  screenWidth: screenWidth,
-                  screenHeight: screenHeight,
-                ),
-                SizedBox(height: screenHeight * 0.12),
-              ]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Avatar widget ─────────────────────────────────────────────────────────
-
-  Widget _buildAvatar(User? authUser, double screenWidth) {
-    final radius = screenWidth * 0.125;
-    // The badge sits at the bottom-right edge of the circle.
-    final badgeSize = screenWidth * 0.082;
-    // The outer container adds a semi-transparent ring around the circle.
-    final outerSize = radius * 2 + screenWidth * 0.04;
-
-    return GestureDetector(
-      onTap: _isUploading ? null : _pickAndUploadAvatar,
-      child: SizedBox(
-        width: outerSize,
-        height: outerSize,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // ── Outer glow ring ─────────────────────────────────────────────
-            Container(
-              width: outerSize,
-              height: outerSize,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.2),
-              ),
-            ),
-
-            // ── Avatar circle ───────────────────────────────────────────────
-            CircleAvatar(
-              radius: radius,
-              backgroundColor: Colors.white,
-              backgroundImage: _avatarImageProvider(authUser),
-              child: _hasAvatar(authUser)
-                  ? null
-                  : Icon(Icons.person, size: radius, color: Colors.grey.shade400),
-            ),
-
-            // ── Upload loading overlay ──────────────────────────────────────
-            if (_isUploading)
-              Container(
-                width: radius * 2,
-                height: radius * 2,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withValues(alpha: 0.45),
-                ),
-                child: const Center(
-                  child: SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
-                  ),
-                ),
-              ),
-
-            // ── Camera edit badge ───────────────────────────────────────────
-            // Hidden during upload to avoid visual clutter.
-            if (!_isUploading)
-              Positioned(
-                bottom: screenWidth * 0.005,
-                right: screenWidth * 0.005,
-                child: Container(
-                  width: badgeSize,
-                  height: badgeSize,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.camera_alt_rounded,
-                    color: Colors.white,
-                    size: badgeSize * 0.5,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  String _getLanguageName(String code) {
+  static String _languageName(String code) {
     switch (code) {
       case 'ar':
         return 'العربية';
@@ -420,216 +136,142 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
   }
 
-  void _showLanguageBottomSheet(
-      BuildContext context, double screenWidth, double screenHeight) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.all(screenWidth * 0.06),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(screenWidth * 0.08),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              AppLocalizations.of(context)!.language,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: screenWidth * 0.055,
-                  ),
-            ),
-            SizedBox(height: screenHeight * 0.03),
-            _buildLanguageOption(context, 'English', 'en', screenWidth),
-            _buildLanguageOption(context, 'العربية', 'ar', screenWidth),
-            _buildLanguageOption(context, 'Français', 'fr', screenWidth),
-            SizedBox(height: screenHeight * 0.03),
-          ],
-        ),
-      ),
-    );
+  void _open(Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
-  Widget _buildLanguageOption(
-      BuildContext context, String name, String code, double screenWidth) {
-    final isSelected = ref.watch(localizationProvider).languageCode == code;
-    return ListTile(
-      title: Text(name, style: TextStyle(fontSize: screenWidth * 0.04)),
-      trailing: isSelected
-          ? Icon(Icons.check, color: AppColors.primary, size: screenWidth * 0.06)
-          : null,
-      onTap: () {
-        ref.read(localizationProvider.notifier).setLocale(Locale(code));
-        Navigator.pop(context);
-      },
-    );
-  }
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final screenHeight = size.height;
+    final screenWidth = size.width;
+    final l = AppLocalizations.of(context)!;
 
-  Widget _buildProfileSwitch(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-    required double screenWidth,
-    required double screenHeight,
-  }) {
-    return Container(
-      margin: EdgeInsets.only(bottom: screenHeight * 0.02),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(screenWidth * 0.05),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: screenWidth * 0.025,
-            offset: Offset(0, screenHeight * 0.006),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(screenWidth * 0.04),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(screenWidth * 0.025),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: AppColors.primary, size: screenWidth * 0.055),
-            ),
-            SizedBox(width: screenWidth * 0.04),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: screenWidth * 0.04,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-            ),
-            Switch(
-              value: value,
-              onChanged: onChanged,
-              activeColor: AppColors.primary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    final themeMode = ref.watch(themeProvider);
+    final locale = ref.watch(localizationProvider);
+    final authUser = ref.watch(authStateProvider).valueOrNull;
 
-  Widget _buildSectionHeader(
-      BuildContext context, String title, double screenWidth) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: screenWidth * 0.04,
-        left: screenWidth * 0.01,
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: screenWidth * 0.045,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).textTheme.bodyLarge?.color,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    required double screenWidth,
-    required double screenHeight,
-    String? trailing,
-    Color? textColor,
-    Color? iconColor,
-    bool showArrow = true,
-  }) {
-    return Container(
-      margin: EdgeInsets.only(bottom: screenHeight * 0.02),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(screenWidth * 0.05),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: screenWidth * 0.025,
-            offset: Offset(0, screenHeight * 0.006),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+    ProfileMenuItem item({
+      required IconData icon,
+      required String title,
+      required VoidCallback onTap,
+      String? trailing,
+      Color? color,
+      bool showArrow = true,
+    }) =>
+        ProfileMenuItem(
+          icon: icon,
+          title: title,
           onTap: onTap,
-          borderRadius: BorderRadius.circular(screenWidth * 0.05),
-          child: Padding(
-            padding: EdgeInsets.all(screenWidth * 0.04),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(screenWidth * 0.025),
-                  decoration: BoxDecoration(
-                    color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon,
-                    color: iconColor ?? AppColors.primary,
-                    size: screenWidth * 0.055,
-                  ),
+          trailing: trailing,
+          textColor: color,
+          iconColor: color,
+          showArrow: showArrow,
+          screenWidth: screenWidth,
+          screenHeight: screenHeight,
+        );
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: CustomScrollView(
+        slivers: [
+          ProfileHeader(
+            authUser: authUser,
+            avatarImage: _avatarImage(authUser),
+            isUploading: _isUploading,
+            onAvatarTap: _pickAndUploadAvatar,
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
+          ),
+          SliverPadding(
+            padding: EdgeInsets.all(screenWidth * 0.05),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // ── Compte ─────────────────────────────────────────────────
+                ProfileSectionTitle(title: l.account, screenWidth: screenWidth),
+                item(
+                  icon: Icons.receipt_long_rounded,
+                  title: l.orderHistory,
+                  onTap: () => _open(const OrderHistoryScreen()),
                 ),
-                SizedBox(width: screenWidth * 0.04),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.04,
-                      fontWeight: FontWeight.w600,
-                      color: textColor ??
-                          Theme.of(context).textTheme.bodyLarge?.color,
-                    ),
-                  ),
+                item(
+                  icon: Icons.electric_bolt_rounded,
+                  title: 'Mes factures',
+                  onTap: () => _open(const MesFacturesScreen()),
                 ),
-                if (trailing != null)
-                  Text(
-                    trailing,
-                    style: TextStyle(
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color
-                          ?.withValues(alpha: 0.6),
-                      fontSize: screenWidth * 0.035,
-                    ),
-                  ),
-                if (showArrow) ...[
-                  SizedBox(width: screenWidth * 0.02),
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: screenWidth * 0.04,
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color
-                        ?.withValues(alpha: 0.4),
-                  ),
-                ],
-              ],
+                item(
+                  icon: Icons.person_outline_rounded,
+                  title: l.editProfile,
+                  onTap: () => _open(const EditProfileScreen()),
+                ),
+                item(
+                  icon: Icons.location_on_outlined,
+                  title: l.savedAddresses,
+                  onTap: () => _open(const SavedAddressesScreen()),
+                ),
+                item(
+                  icon: Icons.payment_outlined,
+                  title: l.paymentMethods,
+                  onTap: () => _open(const PaymentMethodsScreen()),
+                ),
+                SizedBox(height: screenHeight * 0.03),
+
+                // ── Paramètres ─────────────────────────────────────────────
+                ProfileSectionTitle(title: l.settings, screenWidth: screenWidth),
+                item(
+                  icon: Icons.notifications_outlined,
+                  title: l.notifications,
+                  onTap: () => _open(const NotificationScreen()),
+                ),
+                ProfileSwitchItem(
+                  icon: Icons.alarm_rounded,
+                  title: 'Rappels de factures',
+                  value: _billRemindersEnabled,
+                  onChanged: (v) async {
+                    setState(() => _billRemindersEnabled = v);
+                    await BillReminderService.instance.setEnabled(v);
+                  },
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                ),
+                item(
+                  icon: Icons.language_outlined,
+                  title: l.language,
+                  trailing: _languageName(locale.languageCode),
+                  onTap: () => showLanguagePickerSheet(
+                      context, screenWidth, screenHeight),
+                ),
+                item(
+                  icon: Icons.brightness_6_outlined,
+                  title: l.theme,
+                  trailing: themeMode == ThemeMode.dark ? l.darkMode : l.lightMode,
+                  onTap: () => ref.read(themeProvider.notifier).toggleTheme(),
+                ),
+                item(
+                  icon: Icons.lock_outline_rounded,
+                  title: l.changePassword,
+                  onTap: () => _open(const ChangePasswordScreen()),
+                ),
+                item(
+                  icon: Icons.help_outline_rounded,
+                  title: 'Help & Support',
+                  onTap: () => _open(const HelpSupportScreen()),
+                ),
+                SizedBox(height: screenHeight * 0.03),
+
+                // ── Déconnexion ────────────────────────────────────────────
+                item(
+                  icon: Icons.logout_rounded,
+                  title: l.logout,
+                  color: AppColors.error,
+                  showArrow: false,
+                  onTap: _logout,
+                ),
+                SizedBox(height: screenHeight * 0.12),
+              ]),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

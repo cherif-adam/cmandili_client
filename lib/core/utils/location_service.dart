@@ -10,8 +10,17 @@ class LocationService {
     return await Geolocator.isLocationServiceEnabled();
   }
   
-  // Check and request location permissions
-  static Future<bool> checkPermissions() async {
+  static Future<bool>? _permissionInFlight;
+
+  // Check and request location permissions.
+  //
+  // Callers that start together (the home header's address and the shop
+  // radius both want a fix at launch) share one request: a second
+  // requestPermission while the dialog is open throws instead of waiting.
+  static Future<bool> checkPermissions() => _permissionInFlight ??=
+      _checkPermissions().whenComplete(() => _permissionInFlight = null);
+
+  static Future<bool> _checkPermissions() async {
     LocationPermission permission = await Geolocator.checkPermission();
     
     if (permission == LocationPermission.denied) {

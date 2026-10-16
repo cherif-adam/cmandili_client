@@ -760,6 +760,240 @@ abstract class AppLocalizations {
   /// **'No restaurants found'**
   String get noRestaurantsFound;
 
+  /// No description provided for @confirmPasswordShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get confirmPasswordShort;
+
+  /// No description provided for @pleaseEnterEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email'**
+  String get pleaseEnterEmail;
+
+  /// No description provided for @sendResetCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the code'**
+  String get sendResetCode;
+
+  /// No description provided for @haveCodeEnterIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have a code? Enter it →'**
+  String get haveCodeEnterIt;
+
+  /// No description provided for @resetCodeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The code is invalid or has expired. Request a new one.'**
+  String get resetCodeInvalid;
+
+  /// No description provided for @passwordUpdatedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your password has been changed. Sign in with your new password.'**
+  String get passwordUpdatedBody;
+
+  /// No description provided for @backToSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign in'**
+  String get backToSignIn;
+
+  /// No description provided for @enterResetCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code'**
+  String get enterResetCode;
+
+  /// No description provided for @pleaseEnterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a password'**
+  String get pleaseEnterPassword;
+
+  /// No description provided for @resetPasswordButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get resetPasswordButton;
+
+  /// No description provided for @eightDigitCode.
+  ///
+  /// In en, this message translates to:
+  /// **'8-digit code'**
+  String get eightDigitCode;
+
+  /// No description provided for @enterEightDigitCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 8-digit code from your email'**
+  String get enterEightDigitCode;
+
+  /// No description provided for @callUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Call us'**
+  String get callUs;
+
+  /// No description provided for @somethingWentWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get somethingWentWrong;
+
+  /// No description provided for @codeSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent to {email}'**
+  String codeSentTo(String email);
+
+  /// No description provided for @filterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
+  /// No description provided for @cuisinePastry.
+  ///
+  /// In en, this message translates to:
+  /// **'Pastries'**
+  String get cuisinePastry;
+
+  /// No description provided for @cuisinePizza.
+  ///
+  /// In en, this message translates to:
+  /// **'Pizza'**
+  String get cuisinePizza;
+
+  /// No description provided for @cuisineBurgers.
+  ///
+  /// In en, this message translates to:
+  /// **'Burgers'**
+  String get cuisineBurgers;
+
+  /// No description provided for @cuisineSushi.
+  ///
+  /// In en, this message translates to:
+  /// **'Sushi'**
+  String get cuisineSushi;
+
+  /// No description provided for @cuisineMexican.
+  ///
+  /// In en, this message translates to:
+  /// **'Mexican'**
+  String get cuisineMexican;
+
+  /// No description provided for @cuisineItalian.
+  ///
+  /// In en, this message translates to:
+  /// **'Italian'**
+  String get cuisineItalian;
+
+  /// No description provided for @cuisineFastFood.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast food'**
+  String get cuisineFastFood;
+
+  /// No description provided for @shopOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get shopOpen;
+
+  /// No description provided for @shopClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get shopClosed;
+
+  /// No description provided for @newShopBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get newShopBadge;
+
+  /// No description provided for @deliveryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery'**
+  String get deliveryLabel;
+
+  /// No description provided for @minOrderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Min. order'**
+  String get minOrderLabel;
+
+  /// No description provided for @deliveryTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery time'**
+  String get deliveryTimeLabel;
+
+  /// No description provided for @couldNotLoadShops.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load shops'**
+  String get couldNotLoadShops;
+
+  /// No description provided for @newShopsSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Check back soon — new shops are on the way.'**
+  String get newShopsSoon;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @timeJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get timeJustNow;
+
+  /// No description provided for @reviewsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} reviews'**
+  String reviewsCount(int count);
+
+  /// No description provided for @timeMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min ago'**
+  String timeMinutesAgo(int minutes);
+
+  /// No description provided for @timeHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours} h ago'**
+  String timeHoursAgo(int hours);
+
+  /// No description provided for @noRestaurantsNearby.
+  ///
+  /// In en, this message translates to:
+  /// **'No restaurant within {km} km of you yet.'**
+  String noRestaurantsNearby(int km);
+
+  /// No description provided for @noSupermarketsNearby.
+  ///
+  /// In en, this message translates to:
+  /// **'No supermarket within {km} km of you yet.'**
+  String noSupermarketsNearby(int km);
+
   /// No description provided for @couldNotLoadSupermarkets.
   ///
   /// In en, this message translates to:

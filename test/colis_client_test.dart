@@ -37,6 +37,8 @@ String _read(String path) {
 }
 
 const _courierScreen = 'lib/features/courier/presentation/courier_screen.dart';
+const _modeSelector =
+    'lib/features/courier/presentation/widgets/delivery_mode_selector.dart';
 const _repoPath = 'lib/features/courier/data/colis_repository.dart';
 const _cardPath = 'lib/features/orders/presentation/widgets/colis_receipt_card.dart';
 
@@ -179,24 +181,31 @@ void main() {
         isTrue,
         reason: 'le badge « Recommandé » doit porter sur le mode pré-coché',
       );
-      expect(src.contains('badge: l10n.colisModeRecommended'), isTrue);
-      expect(src.contains('icon: Icons.lock_outline'), isTrue,
+      // Les options vivent dans leur propre widget depuis le découpage de
+      // l'écran en un widget par fichier.
+      final selector = _read(_modeSelector);
+      expect(selector.contains('badge: l10n.colisModeRecommended'), isTrue);
+      expect(selector.contains('icon: Icons.lock_outline'), isTrue,
           reason: 'le cadenas signale le mode protégé');
     });
 
     test('plus aucun libellé de mode en dur dans l\'écran', () {
       // Sinon l'anglais et l'arabe afficheraient du français.
-      final src = _read(_courierScreen);
+      final screen = _read(_courierScreen);
+      final selector = _read(_modeSelector);
       for (final literal in [
         "'Avec code'",
         "'Remise sans code'",
         "'Remise au destinataire'",
       ]) {
-        expect(src.contains(literal), isFalse, reason: '$literal est resté en dur');
+        expect(screen.contains(literal), isFalse,
+            reason: '$literal est resté en dur dans l\'écran');
+        expect(selector.contains(literal), isFalse,
+            reason: '$literal est resté en dur dans le sélecteur');
       }
-      expect(src.contains('l10n.colisHandoverSectionTitle'), isTrue);
-      expect(src.contains('l10n.colisModeCodeSubtitle'), isTrue);
-      expect(src.contains('l10n.colisModeNoCodeSubtitle'), isTrue);
+      expect(screen.contains('l10n.colisHandoverSectionTitle'), isTrue);
+      expect(selector.contains('l10n.colisModeCodeSubtitle'), isTrue);
+      expect(selector.contains('l10n.colisModeNoCodeSubtitle'), isTrue);
     });
 
     test('le titre de section pose une question à l\'expéditeur', () async {

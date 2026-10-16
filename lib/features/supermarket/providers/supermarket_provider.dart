@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/nearby_provider.dart';
 import '../data/supermarket_repository.dart';
 import '../data/models/supermarket.dart';
 import '../data/models/grocery_item.dart';
@@ -12,6 +13,17 @@ final supermarketRepositoryProvider = Provider((ref) => SupermarketRepository())
 final supermarketsProvider = StreamProvider<List<Supermarket>>((ref) {
   final repository = ref.watch(supermarketRepositoryProvider);
   return repository.watchSupermarkets();
+});
+
+/// The supermarkets within [kShopRadiusKm] of the customer. Refresh through
+/// [supermarketsProvider].
+final nearbySupermarketsProvider =
+    Provider<AsyncValue<List<Supermarket>>>((ref) {
+  return keepNearby(
+    ref.watch(customerPositionProvider),
+    ref.watch(supermarketsProvider),
+    (s) => (lat: s.latitude, lng: s.longitude),
+  );
 });
 
 // Fetch grocery items for a specific supermarket from Supabase

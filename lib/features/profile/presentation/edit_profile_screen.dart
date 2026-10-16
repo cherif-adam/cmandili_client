@@ -6,7 +6,11 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/profile_repository.dart';
+import 'widgets/editable_avatar.dart';
+import 'widgets/profile_text_field.dart';
 
+/// "Modifier le profil": EditableAvatar, then name, e-mail (read-only),
+/// phone and bio (ProfileTextField), then "Enregistrer".
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -105,60 +109,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Profile Image
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      width: size.width * 0.3,
-                      height: size.width * 0.3,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey[200],
-                        image: _imageFile != null
-                            ? DecorationImage(
-                                image: FileImage(_imageFile!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: _imageFile == null
-                          ? Icon(Icons.person,
-                              size: size.width * 0.15, color: Colors.grey[400])
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _pickImage,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              EditableAvatar(imageFile: _imageFile, onPick: _pickImage),
               SizedBox(height: size.height * 0.04),
               
-              _buildTextField(
+              ProfileTextField(
                 controller: _nameController,
                 label: AppLocalizations.of(context)!.fullName,
                 icon: Icons.person_outline,
@@ -166,7 +120,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               SizedBox(height: size.height * 0.02),
 
-              _buildTextField(
+              ProfileTextField(
                 controller: _emailController,
                 label: AppLocalizations.of(context)!.email,
                 icon: Icons.email_outlined,
@@ -175,7 +129,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               SizedBox(height: size.height * 0.02),
 
-              _buildTextField(
+              ProfileTextField(
                 controller: _phoneController,
                 label: AppLocalizations.of(context)!.phoneNumberLabel,
                 icon: Icons.phone_outlined,
@@ -183,7 +137,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               SizedBox(height: size.height * 0.02),
 
-              _buildTextField(
+              ProfileTextField(
                 controller: _bioController,
                 label: AppLocalizations.of(context)!.bio,
                 icon: Icons.info_outline,
@@ -217,42 +171,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-    bool enabled = true,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      enabled: enabled,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.primary),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        filled: true,
-        fillColor: enabled ? Colors.white : Colors.grey[100],
       ),
     );
   }

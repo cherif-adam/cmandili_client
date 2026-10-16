@@ -1,10 +1,17 @@
-﻿import 'dart:ui';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
 import 'reset_password_screen.dart';
+import 'widgets/password_glass_card.dart';
+import 'widgets/password_page_background.dart';
+import 'widgets/password_page_icon.dart';
+import 'widgets/password_submit_button.dart';
+import 'widgets/password_text_field.dart';
 
+/// "Mot de passe oublié ?": the e-mail field, "Envoyer le code", and a
+/// link for those who already have a code (ResetPasswordScreen).
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -89,34 +96,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
     final sh = MediaQuery.of(context).size.height;
+    final l = AppLocalizations.of(context)!;
 
     return Scaffold(
       body: Stack(
         children: [
-          // â”€â”€ Gradient background (matches AuthScreen) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF059669), Color(0xFF0D9488), Color(0xFF0F766E)],
-              ),
-            ),
-          ),
-
-          // â”€â”€ Decorative circles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          Positioned(
-            top: -sh * 0.12,
-            right: -sw * 0.2,
-            child: _circle(sw * 0.6, Colors.white.withValues(alpha: 0.12)),
-          ),
-          Positioned(
-            bottom: -sh * 0.08,
-            left: -sw * 0.15,
-            child: _circle(sw * 0.5, Colors.white.withValues(alpha: 0.10)),
-          ),
-
-          // â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          const PasswordPageBackground(),
           SafeArea(
             child: Column(
               children: [
@@ -129,7 +114,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
@@ -140,23 +124,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                           position: _slideAnim,
                           child: Column(
                             children: [
-                              // Icon
-                              Container(
-                                padding: EdgeInsets.all(sw * 0.05),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.lock_reset_rounded,
-                                  size: sw * 0.14,
-                                  color: Colors.white,
-                                ),
-                              ),
+                              const PasswordPageIcon(icon: Icons.lock_reset_rounded),
                               SizedBox(height: sh * 0.025),
-
                               Text(
-                                'Forgot Password?',
+                                l.forgotPassword,
                                 style: TextStyle(
                                   fontSize: sw * 0.07,
                                   fontWeight: FontWeight.bold,
@@ -173,105 +144,38 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                   height: 1.5,
                                 ),
                               ),
-
                               SizedBox(height: sh * 0.04),
-
-                              // â”€â”€ Glassmorphic card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                              ClipRRect(
-                                borderRadius:
-                                    BorderRadius.circular(sw * 0.07),
-                                child: BackdropFilter(
-                                  filter:
-                                      ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                                  child: Container(
-                                    padding: EdgeInsets.all(sw * 0.06),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.92),
-                                      borderRadius:
-                                          BorderRadius.circular(sw * 0.07),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.3),
-                                        width: 1.5,
+                              PasswordGlassCard(
+                                child: Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      PasswordTextField(
+                                        controller: _emailController,
+                                        label: l.email,
+                                        icon: Icons.email_outlined,
+                                        keyboardType: TextInputType.emailAddress,
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return l.pleaseEnterEmail;
+                                          }
+                                          if (!v.contains('@')) {
+                                            return l.validEmail;
+                                          }
+                                          return null;
+                                        },
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.12),
-                                          blurRadius: sw * 0.07,
-                                          offset: Offset(0, sh * 0.012),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Form(
-                                      key: _formKey,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          _buildField(
-                                            controller: _emailController,
-                                            label: 'Email address',
-                                            icon: Icons.email_outlined,
-                                            keyboardType:
-                                                TextInputType.emailAddress,
-                                            sw: sw,
-                                            sh: sh,
-                                            validator: (v) {
-                                              if (v == null || v.isEmpty) {
-                                                return 'Please enter your email';
-                                              }
-                                              if (!v.contains('@')) {
-                                                return 'Enter a valid email';
-                                              }
-                                              return null;
-                                            },
-                                          ),
-                                          SizedBox(height: sh * 0.025),
-
-                                          SizedBox(
-                                            height: sh * 0.065,
-                                            child: ElevatedButton(
-                                              onPressed:
-                                                  _isLoading ? null : _sendCode,
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    AppColors.primary,
-                                                foregroundColor: Colors.white,
-                                                elevation: 8,
-                                                shadowColor: AppColors.primary
-                                                    .withValues(alpha: 0.4),
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          sw * 0.04),
-                                                ),
-                                              ),
-                                              child: _isLoading
-                                                  ? const SizedBox(
-                                                      height: 22,
-                                                      width: 22,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                        color: Colors.white,
-                                                        strokeWidth: 2.5,
-                                                      ),
-                                                    )
-                                                  : Text(
-                                                      'Send Reset Code',
-                                                      style: TextStyle(
-                                                        fontSize: sw * 0.042,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                            ),
-                                          ),
-                                        ],
+                                      SizedBox(height: sh * 0.025),
+                                      PasswordSubmitButton(
+                                        isLoading: _isLoading,
+                                        label: l.sendResetCode,
+                                        onPressed: _sendCode,
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ),
                               ),
-
                               SizedBox(height: sh * 0.025),
                               // Already have the code?
                               TextButton(
@@ -279,12 +183,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => ResetPasswordScreen(
-                                        email:
-                                            _emailController.text.trim()),
+                                        email: _emailController.text.trim()),
                                   ),
                                 ),
                                 child: Text(
-                                  'Already have a code? Enter it â†’',
+                                  l.haveCodeEnterIt,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -304,85 +207,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _circle(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      );
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required double sw,
-    required double sh,
-    TextInputType? keyboardType,
-    bool isPassword = false,
-    bool isObscure = false,
-    VoidCallback? onToggle,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: isObscure,
-      keyboardType: keyboardType,
-      style: TextStyle(
-        fontWeight: FontWeight.w500,
-        color: AppColors.textPrimary,
-        fontSize: sw * 0.04,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(
-          color: AppColors.textSecondary.withValues(alpha: 0.8),
-          fontSize: sw * 0.038,
-        ),
-        prefixIcon: Icon(icon,
-            color: AppColors.primary.withValues(alpha: 0.7), size: sw * 0.06),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  isObscure
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondary.withValues(alpha: 0.5),
-                  size: sw * 0.055,
-                ),
-                onPressed: onToggle,
-              )
-            : null,
-        filled: true,
-        fillColor: AppColors.background,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: BorderSide(
-              color: AppColors.textLight.withValues(alpha: 0.1), width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(sw * 0.04),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: sw * 0.05,
-          vertical: sh * 0.02,
-        ),
-      ),
-      validator: validator,
     );
   }
 }

@@ -6,10 +6,13 @@ import '../../restaurant/data/models/food_item.dart';
 import '../../supermarket/data/models/grocery_item.dart';
 import '../../supermarket/data/models/grocery_category.dart';
 import '../../../core/models/vendor.dart';
+import '../../../core/providers/nearby_provider.dart';
 
 // Queries food_items where discount_price is set and discount_end_time is in the future
 final happyHourRestaurantsProvider = FutureProvider<List<FoodItem>>((ref) async {
   final supabase = Supabase.instance.client;
+  // Only the deals of shops the customer can see (15 km), like the lists.
+  final near = ref.watch(nearbyShopIdsProvider);
   // .toUtc() matters even though nothing is written here: this string is
   // compared against a TIMESTAMPTZ column. A LOCAL timestamp serializes
   // without an offset, so Postgres read it as UTC and "now" looked an hour
@@ -41,6 +44,7 @@ final happyHourRestaurantsProvider = FutureProvider<List<FoodItem>>((ref) async 
           'is_happy_hour.is.true');
 
   final rows = (response as List).where((json) {
+    if (near != null && !near.contains(json['restaurant_id'])) return false;
     if (json['discount_price'] != null) return true; // (a), already time-filtered
     return _withinHappyHourWindow(
       json['happy_hour_start'] as String?,
@@ -150,6 +154,7 @@ bool _withinHappyHourWindow(String? start, String? end) {
 // Queries grocery_items where discount_price is set and discount_end_time is in the future
 final happyHourSupermarketsProvider = FutureProvider<List<GroceryItem>>((ref) async {
   final supabase = Supabase.instance.client;
+  final near = ref.watch(nearbyShopIdsProvider); // see happyHourRestaurantsProvider
   // .toUtc() — see happyHourRestaurantsProvider above.
   final now = DateTime.now().toUtc().toIso8601String();
 
@@ -162,7 +167,9 @@ final happyHourSupermarketsProvider = FutureProvider<List<GroceryItem>>((ref) as
       .eq('is_available', true)
       .order('discount_end_time', ascending: true, nullsFirst: false);
 
-  return (response as List).map((json) => GroceryItem(
+  return (response as List)
+      .where((json) => near == null || near.contains(json['supermarket_id']))
+      .map((json) => GroceryItem(
     id: json['id'] ?? '',
     supermarketId: json['supermarket_id'] ?? '',
     name: json['name'] ?? '',
@@ -193,6 +200,7 @@ final happyHourSupermarketsProvider = FutureProvider<List<GroceryItem>>((ref) as
 /// customer at all.
 final happyHourShopsProvider = FutureProvider<List<VendorItem>>((ref) async {
   final supabase = Supabase.instance.client;
+  final near = ref.watch(nearbyShopIdsProvider); // see happyHourRestaurantsProvider
   final now = DateTime.now().toUtc().toIso8601String(); // see above re .toUtc()
 
   final response = await supabase
@@ -206,7 +214,8 @@ final happyHourShopsProvider = FutureProvider<List<VendorItem>>((ref) async {
 
   return (response as List)
       .map((json) => VendorItem.fromDb(json as Map<String, dynamic>))
-      .where((item) => item.hasActiveDiscount)
+      .where((item) =>
+          item.hasActiveDiscount && (near == null || near.contains(item.vendorId)))
       .toList();
 });
 

@@ -76,138 +76,252 @@ class DealsHomeBanner extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // La bannière : photo, badge EN DIRECT, titre, résumé, bouton.
           GestureDetector(
             onTap: () => onOpen(''),
-            child: Container(
+            child: _BannerCard(
               height: sh * 0.17,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: accentColor.withValues(alpha: isLive ? 0.5 : 0.25),
-                    blurRadius: isLive ? 14 : 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Image.asset(
-                        backgroundImage,
-                        fit: BoxFit.cover,
-                        alignment: const Alignment(0, -0.2),
-                        errorBuilder: (context, error, stackTrace) =>
-                            DecoratedBox(
-                          decoration: BoxDecoration(gradient: fallbackGradient),
-                        ),
-                      ),
-                    ),
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(gradient: overlayGradient),
-                      ),
-                    ),
-                    // Sans rien en cours la bannière est assourdie, pour que
-                    // l'état « en direct » soit celui qui ressorte.
-                    if (!isLive)
-                      Positioned.fill(
-                        child: ColoredBox(
-                          color: Colors.black.withValues(alpha: 0.25),
-                        ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 14, 16, 14),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (isLive) ...[
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 4,
-                                    children: [
-                                      _LivePill(label: liveLabel),
-                                      if (soonestEnd != null)
-                                        _CountdownChip(endsAt: soonestEnd),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                ],
-                                Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: sw * 0.055,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  isLive
-                                      ? summary(deals.length, bestPercent)
-                                      : noDealsLabel,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: sw * 0.034,
-                                    fontWeight: isLive
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              ctaLabel,
-                              style: TextStyle(
-                                color: accentColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+              screenWidth: sw,
+              isLive: isLive,
+              accentColor: accentColor,
+              backgroundImage: backgroundImage,
+              fallbackGradient: fallbackGradient,
+              overlayGradient: overlayGradient,
+              liveLabel: liveLabel,
+              soonestEnd: soonestEnd,
+              title: title,
+              subtitle: isLive ? summary(deals.length, bestPercent) : noDealsLabel,
+              ctaLabel: ctaLabel,
+            ),
+          ),
+          // La rangée des offres en cours, seulement en direct.
+          if (isLive) ...[
+            const SizedBox(height: 12),
+            _DealRow(deals: deals, accentColor: accentColor, onOpen: onOpen),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// La carte photo de la bannière : image + dégradé, assourdie hors direct,
+/// le texte à gauche et le bouton blanc à droite.
+class _BannerCard extends StatelessWidget {
+  final double height;
+  final double screenWidth;
+  final bool isLive;
+  final Color accentColor;
+  final String backgroundImage;
+  final Gradient fallbackGradient;
+  final Gradient overlayGradient;
+  final String liveLabel;
+  final DateTime? soonestEnd;
+  final String title;
+  final String subtitle;
+  final String ctaLabel;
+
+  const _BannerCard({
+    required this.height,
+    required this.screenWidth,
+    required this.isLive,
+    required this.accentColor,
+    required this.backgroundImage,
+    required this.fallbackGradient,
+    required this.overlayGradient,
+    required this.liveLabel,
+    required this.soonestEnd,
+    required this.title,
+    required this.subtitle,
+    required this.ctaLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: isLive ? 0.5 : 0.25),
+            blurRadius: isLive ? 14 : 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                backgroundImage,
+                fit: BoxFit.cover,
+                alignment: const Alignment(0, -0.2),
+                errorBuilder: (context, error, stackTrace) =>
+                    DecoratedBox(
+                  decoration: BoxDecoration(gradient: fallbackGradient),
                 ),
               ),
             ),
-          ),
-          if (isLive) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 168,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: deals.length > 10 ? 10 : deals.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, i) => _DealCard(
-                  deal: deals[i],
-                  accentColor: accentColor,
-                  onTap: () => onOpen(deals[i].categoryId),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(gradient: overlayGradient),
+              ),
+            ),
+            // Sans rien en cours la bannière est assourdie, pour que
+            // l'état « en direct » soit celui qui ressorte.
+            if (!isLive)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.25),
                 ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 16, 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _BannerText(
+                      isLive: isLive,
+                      liveLabel: liveLabel,
+                      soonestEnd: soonestEnd,
+                      title: title,
+                      subtitle: subtitle,
+                      screenWidth: screenWidth,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _CtaPill(label: ctaLabel, color: accentColor),
+                ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// EN DIRECT + compte à rebours (en direct seulement), puis le titre et le
+/// résumé.
+class _BannerText extends StatelessWidget {
+  final bool isLive;
+  final String liveLabel;
+  final DateTime? soonestEnd;
+  final String title;
+  final String subtitle;
+  final double screenWidth;
+
+  const _BannerText({
+    required this.isLive,
+    required this.liveLabel,
+    required this.soonestEnd,
+    required this.title,
+    required this.subtitle,
+    required this.screenWidth,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sw = screenWidth;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (isLive) ...[
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              _LivePill(label: liveLabel),
+              if (soonestEnd != null)
+                _CountdownChip(endsAt: soonestEnd!),
+            ],
+          ),
+          const SizedBox(height: 6),
         ],
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: sw * 0.055,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: sw * 0.034,
+            fontWeight: isLive
+                ? FontWeight.w700
+                : FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Le bouton blanc « Voir les offres ».
+class _CtaPill extends StatelessWidget {
+  final String label;
+  final Color color;
+
+  const _CtaPill({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+/// La rangée horizontale des offres (10 au plus).
+class _DealRow extends StatelessWidget {
+  final List<HappyHourDeal> deals;
+  final Color accentColor;
+  final void Function(String categoryId) onOpen;
+
+  const _DealRow({
+    required this.deals,
+    required this.accentColor,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 168,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: deals.length > 10 ? 10 : deals.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, i) => _DealCard(
+          deal: deals[i],
+          accentColor: accentColor,
+          onTap: () => onOpen(deals[i].categoryId),
+        ),
       ),
     );
   }

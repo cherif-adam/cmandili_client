@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
 import '../../../cart/data/models/cart_item.dart';
 import '../../../cart/data/models/order_customization.dart';
 import '../../../cart/data/models/selected_option_group.dart';
@@ -13,6 +11,13 @@ import '../../../menu/data/models/item_variant.dart';
 import '../../../menu/data/models/food_item_option_group.dart';
 import '../../data/models/food_item.dart';
 import '../../providers/restaurant_provider.dart';
+import '../../../../core/widgets/sheet_drag_handle.dart';
+import 'add_to_cart_bar.dart';
+import 'customization_group.dart';
+import 'food_sheet_header.dart';
+import 'option_group_section.dart';
+import 'quantity_selector.dart';
+import 'special_instructions_field.dart';
 
 /// Bottom sheet shown when a customer taps a food item: image/name/price,
 /// then any variants ("Type au choix") and option groups ("Sauce au choix",
@@ -20,6 +25,10 @@ import '../../providers/restaurant_provider.dart';
 /// Items with neither variants nor option groups render the same sheet with
 /// no group sections — the group list is simply empty, so this looks and
 /// behaves exactly like the pre-customization dialog.
+///
+/// Top to bottom: SheetDragHandle, FoodSheetHeader, one
+/// OptionGroupSection per group, SpecialInstructionsField,
+/// QuantitySelector — then the AddToCartBar pinned at the bottom.
 class FoodItemCustomizationSheet extends ConsumerStatefulWidget {
   final FoodItem item;
   final bool isOpen;
@@ -35,47 +44,13 @@ class FoodItemCustomizationSheet extends ConsumerStatefulWidget {
       _FoodItemCustomizationSheetState();
 }
 
-/// One row in the unified group list — either the single "Type au choix"
-/// variants slot (key == _variantGroupKey) or a real option group (key ==
-/// its DB id). Unifying the two here keeps rendering/validation generic;
-/// the data layer keeps variants and option groups as separate lists.
-class _DisplayGroup {
-  final String key;
-  final String title;
-  final int minSelections;
-  final int maxSelections;
-  final bool isRequired;
-  final List<_DisplayOption> options;
-
-  const _DisplayGroup({
-    required this.key,
-    required this.title,
-    required this.minSelections,
-    required this.maxSelections,
-    required this.isRequired,
-    required this.options,
-  });
-}
-
-class _DisplayOption {
-  final String id;
-  final String name;
-  final double price;
-
-  const _DisplayOption({
-    required this.id,
-    required this.name,
-    required this.price,
-  });
-}
-
 const _variantGroupKey = 'variant';
 
 class _FoodItemCustomizationSheetState
     extends ConsumerState<FoodItemCustomizationSheet> {
   int _quantity = 1;
   final Map<String, Set<String>> _selections = {};
-  List<_DisplayGroup> _displayGroups = const [];
+  List<CustomizationGroup> _displayGroups = const [];
   List<GlobalKey> _groupKeys = const [];
   bool _initialized = false;
 
@@ -95,29 +70,29 @@ class _FoodItemCustomizationSheetState
   void _initFromData(FoodItemCustomizationOptions data, AppLocalizations l10n) {
     if (_initialized) return;
     _initialized = true;
-    final groups = <_DisplayGroup>[];
+    final groups = <CustomizationGroup>[];
     if (data.variants.isNotEmpty) {
-      groups.add(_DisplayGroup(
+      groups.add(CustomizationGroup(
         key: _variantGroupKey,
         title: l10n.variantGroupTitle,
         minSelections: 1,
         maxSelections: 1,
         isRequired: true,
         options: data.variants
-            .map((v) => _DisplayOption(id: v.id, name: v.name, price: v.price))
+            .map((v) => CustomizationOption(id: v.id, name: v.name, price: v.price))
             .toList(),
       ));
     }
     for (final g in data.optionGroups) {
       if (g.options.isEmpty) continue; // no purchasable option -> don't block the item
-      groups.add(_DisplayGroup(
+      groups.add(CustomizationGroup(
         key: g.id,
         title: g.name,
         minSelections: g.minSelections,
         maxSelections: g.maxSelections,
         isRequired: g.isRequired,
         options: g.options
-            .map((o) => _DisplayOption(id: o.id, name: o.name, price: o.price))
+            .map((o) => CustomizationOption(id: o.id, name: o.name, price: o.price))
             .toList(),
       ));
     }
@@ -125,7 +100,7 @@ class _FoodItemCustomizationSheetState
     _groupKeys = List.generate(groups.length, (_) => GlobalKey());
   }
 
-  void _toggleOption(_DisplayGroup group, _DisplayOption option) {
+  void _toggleOption(CustomizationGroup group, CustomizationOption option) {
     setState(() {
       final current = _selections.putIfAbsent(group.key, () => <String>{});
       if (group.maxSelections == 1) {
@@ -141,7 +116,7 @@ class _FoodItemCustomizationSheetState
     });
   }
 
-  bool _isGroupSatisfied(_DisplayGroup group) {
+  bool _isGroupSatisfied(CustomizationGroup group) {
     final count = _selections[group.key]?.length ?? 0;
     return count >= group.minSelections && count <= group.maxSelections;
   }
@@ -269,17 +244,7 @@ class _FoodItemCustomizationSheetState
       ),
       child: Column(
         children: [
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
+          const SheetDragHandle(),
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
@@ -287,315 +252,40 @@ class _FoodItemCustomizationSheetState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: (widget.item.imageUrl.isNotEmpty &&
-                            widget.item.imageUrl.startsWith('http'))
-                        ? CachedNetworkImage(
-                            imageUrl: widget.item.imageUrl,
-                            width: double.infinity,
-                            height: 250,
-                            fit: BoxFit.cover,
-                            errorWidget: (context, url, error) => Container(
-                              color: AppColors.background,
-                              child: const Icon(Icons.fastfood, size: 50, color: Colors.grey),
-                            ),
-                          )
-                        : Container(
-                            width: double.infinity,
-                            height: 250,
-                            color: AppColors.background,
-                            child: const Icon(Icons.fastfood, size: 50, color: Colors.grey),
-                          ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.item.name,
-                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        CurrencyFormatter.formatPrice(widget.item.clientPrice),
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.foodPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.item.description,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 16,
-                      height: 1.5,
-                    ),
-                  ),
+                  FoodSheetHeader(item: widget.item),
                   const SizedBox(height: 24),
 
-                  for (var i = 0; i < _displayGroups.length; i++) ...[
-                    _buildGroupSection(context, i, l10n),
-                  ],
+                  // Variants + option groups (none for a plain item)
+                  for (var i = 0; i < _displayGroups.length; i++)
+                    OptionGroupSection(
+                      key: _groupKeys[i],
+                      group: _displayGroups[i],
+                      selectedIds: _selections[_displayGroups[i].key] ?? const <String>{},
+                      highlighted: _highlightedGroupIndex == i,
+                      onToggle: (option) => _toggleOption(_displayGroups[i], option),
+                    ),
 
-                  Text(
-                    l10n.specialInstructions,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: TextField(
-                      controller: _instructionsController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: l10n.typeInstructionsHint,
-                        hintStyle: TextStyle(
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
-                          fontSize: 14,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.all(16),
-                      ),
-                    ),
-                  ),
+                  SpecialInstructionsField(controller: _instructionsController),
                   const SizedBox(height: 24),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Quantity',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              onPressed: () {
-                                if (_quantity > 1) setState(() => _quantity--);
-                              },
-                              icon: const Icon(Icons.remove),
-                              color: AppColors.textPrimary,
-                            ),
-                            Container(
-                              width: 40,
-                              alignment: Alignment.center,
-                              child: Text(
-                                '$_quantity',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => setState(() => _quantity++),
-                              icon: const Icon(Icons.add),
-                              color: AppColors.foodPrimary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  QuantitySelector(
+                    quantity: _quantity,
+                    onDecrement: () {
+                      if (_quantity > 1) setState(() => _quantity--);
+                    },
+                    onIncrement: () => setState(() => _quantity++),
                   ),
                 ],
               ),
             ),
           ),
-
-          Container(
-            padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + MediaQuery.of(context).padding.bottom),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: Builder(builder: (context) {
-              final blocked = restaurantClosed || isLoadingOptions;
-              final isValid = _firstInvalidIndex() == null;
-              final total = _buildCartItem().totalPrice;
-              return SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: blocked
-                      ? null
-                      : () => _handleAddToCartTap(l10n),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isValid ? AppColors.foodPrimary : AppColors.foodPrimary.withValues(alpha: 0.4),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    disabledBackgroundColor: AppColors.foodPrimary.withValues(alpha: 0.4),
-                    disabledForegroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text(
-                    restaurantClosed
-                        ? l10n.restaurantClosedLabel
-                        : l10n.addToCartWithTotal(CurrencyFormatter.formatPrice(total)),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              );
-            }),
+          AddToCartBar(
+            isBlocked: restaurantClosed || isLoadingOptions,
+            isValid: _firstInvalidIndex() == null,
+            restaurantClosed: restaurantClosed,
+            total: _buildCartItem().totalPrice,
+            onPressed: () => _handleAddToCartTap(l10n),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGroupSection(BuildContext context, int index, AppLocalizations l10n) {
-    final group = _displayGroups[index];
-    final selected = _selections[group.key] ?? const <String>{};
-    final highlighted = _highlightedGroupIndex == index;
-
-    final String helperText;
-    if (group.minSelections == group.maxSelections) {
-      helperText = l10n.optionGroupSelectExact(group.minSelections);
-    } else if (group.minSelections == 0) {
-      helperText = l10n.optionGroupSelectUpTo(group.maxSelections);
-    } else {
-      helperText = l10n.optionGroupSelectRange(group.minSelections, group.maxSelections);
-    }
-
-    return AnimatedContainer(
-      key: _groupKeys[index],
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: highlighted ? AppColors.error.withValues(alpha: 0.06) : Colors.transparent,
-        border: Border.all(
-          color: highlighted ? AppColors.error : Colors.transparent,
-          width: 1.5,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  group.title,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: group.isRequired
-                      ? AppColors.foodPrimary.withValues(alpha: 0.12)
-                      : AppColors.background,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  group.isRequired ? l10n.optionGroupRequired : l10n.optionGroupOptional,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: group.isRequired ? AppColors.foodPrimaryDark : AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            helperText,
-            style: TextStyle(
-              fontSize: 13,
-              color: highlighted ? AppColors.error : AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          for (final option in group.options)
-            _OptionRow(
-              name: option.name,
-              price: option.price,
-              isSelected: selected.contains(option.id),
-              isSingleSelect: group.maxSelections == 1,
-              onTap: () => _toggleOption(group, option),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OptionRow extends StatelessWidget {
-  final String name;
-  final double price;
-  final bool isSelected;
-  final bool isSingleSelect;
-  final VoidCallback onTap;
-
-  const _OptionRow({
-    required this.name,
-    required this.price,
-    required this.isSelected,
-    required this.isSingleSelect,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final displayPrice = price;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            Icon(
-              isSingleSelect
-                  ? (isSelected ? Icons.radio_button_checked : Icons.radio_button_off)
-                  : (isSelected ? Icons.check_box : Icons.check_box_outline_blank),
-              color: isSelected ? AppColors.foodPrimary : AppColors.textLight,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                name,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-              ),
-            ),
-            Text(
-              displayPrice > 0
-                  ? '+${CurrencyFormatter.formatPrice(displayPrice)}'
-                  : CurrencyFormatter.formatPrice(displayPrice),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: displayPrice > 0 ? AppColors.textPrimary : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

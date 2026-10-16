@@ -347,6 +347,138 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noRestaurantsFound => 'لا توجد مطاعم';
 
   @override
+  String get confirmPasswordShort => 'تأكيد كلمة المرور';
+
+  @override
+  String get pleaseEnterEmail => 'يرجى إدخال بريدك الإلكتروني';
+
+  @override
+  String get sendResetCode => 'إرسال الرمز';
+
+  @override
+  String get haveCodeEnterIt => 'لديك رمز بالفعل؟ أدخله ←';
+
+  @override
+  String get resetCodeInvalid =>
+      'الرمز غير صالح أو انتهت صلاحيته. اطلب رمزًا جديدًا.';
+
+  @override
+  String get passwordUpdatedBody =>
+      'تم تغيير كلمة المرور. سجّل الدخول بكلمة المرور الجديدة.';
+
+  @override
+  String get backToSignIn => 'العودة إلى تسجيل الدخول';
+
+  @override
+  String get enterResetCode => 'أدخل الرمز';
+
+  @override
+  String get pleaseEnterPassword => 'يرجى إدخال كلمة المرور';
+
+  @override
+  String get resetPasswordButton => 'إعادة تعيين كلمة المرور';
+
+  @override
+  String get eightDigitCode => 'رمز من 8 أرقام';
+
+  @override
+  String get enterEightDigitCode =>
+      'أدخل الرمز المكوّن من 8 أرقام الذي وصلك عبر البريد';
+
+  @override
+  String get callUs => 'اتصل بنا';
+
+  @override
+  String get somethingWentWrong => 'حدث خطأ ما. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String codeSentTo(String email) {
+    return 'تم إرسال الرمز إلى $email';
+  }
+
+  @override
+  String get filterAll => 'الكل';
+
+  @override
+  String get cuisinePastry => 'حلويات';
+
+  @override
+  String get cuisinePizza => 'بيتزا';
+
+  @override
+  String get cuisineBurgers => 'برغر';
+
+  @override
+  String get cuisineSushi => 'سوشي';
+
+  @override
+  String get cuisineMexican => 'مكسيكي';
+
+  @override
+  String get cuisineItalian => 'إيطالي';
+
+  @override
+  String get cuisineFastFood => 'وجبات سريعة';
+
+  @override
+  String get shopOpen => 'مفتوح';
+
+  @override
+  String get shopClosed => 'مغلق';
+
+  @override
+  String get newShopBadge => 'جديد';
+
+  @override
+  String get deliveryLabel => 'التوصيل';
+
+  @override
+  String get minOrderLabel => 'الحد الأدنى';
+
+  @override
+  String get deliveryTimeLabel => 'مدة التوصيل';
+
+  @override
+  String get couldNotLoadShops => 'تعذّر تحميل المتاجر';
+
+  @override
+  String get newShopsSoon => 'عد قريبًا — متاجر جديدة في الطريق.';
+
+  @override
+  String get today => 'اليوم';
+
+  @override
+  String get yesterday => 'أمس';
+
+  @override
+  String get timeJustNow => 'الآن';
+
+  @override
+  String reviewsCount(int count) {
+    return '$count تقييم';
+  }
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return 'منذ $minutes د';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return 'منذ $hours س';
+  }
+
+  @override
+  String noRestaurantsNearby(int km) {
+    return 'لا يوجد مطعم على بعد $km كم منك حاليًا.';
+  }
+
+  @override
+  String noSupermarketsNearby(int km) {
+    return 'لا يوجد سوبرماركت على بعد $km كم منك حاليًا.';
+  }
+
+  @override
   String get couldNotLoadSupermarkets => 'تعذر تحميل السوبر ماركت';
 
   @override

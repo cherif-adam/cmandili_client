@@ -358,6 +358,140 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noRestaurantsFound => 'Aucun restaurant trouvé';
 
   @override
+  String get confirmPasswordShort => 'Confirmer le mot de passe';
+
+  @override
+  String get pleaseEnterEmail => 'Veuillez saisir votre e-mail';
+
+  @override
+  String get sendResetCode => 'Envoyer le code';
+
+  @override
+  String get haveCodeEnterIt => 'Vous avez déjà un code ? Saisissez-le →';
+
+  @override
+  String get resetCodeInvalid =>
+      'Le code est invalide ou a expiré. Demandez-en un nouveau.';
+
+  @override
+  String get passwordUpdatedBody =>
+      'Votre mot de passe a été modifié. Connectez-vous avec le nouveau.';
+
+  @override
+  String get backToSignIn => 'Retour à la connexion';
+
+  @override
+  String get enterResetCode => 'Saisissez le code';
+
+  @override
+  String get pleaseEnterPassword => 'Veuillez saisir un mot de passe';
+
+  @override
+  String get resetPasswordButton => 'Réinitialiser le mot de passe';
+
+  @override
+  String get eightDigitCode => 'Code à 8 chiffres';
+
+  @override
+  String get enterEightDigitCode =>
+      'Saisissez le code à 8 chiffres reçu par e-mail';
+
+  @override
+  String get callUs => 'Appelez-nous';
+
+  @override
+  String get somethingWentWrong =>
+      'Une erreur est survenue. Veuillez réessayer.';
+
+  @override
+  String codeSentTo(String email) {
+    return 'Code envoyé à $email';
+  }
+
+  @override
+  String get filterAll => 'Tout';
+
+  @override
+  String get cuisinePastry => 'Pâtisseries';
+
+  @override
+  String get cuisinePizza => 'Pizza';
+
+  @override
+  String get cuisineBurgers => 'Burgers';
+
+  @override
+  String get cuisineSushi => 'Sushi';
+
+  @override
+  String get cuisineMexican => 'Mexicain';
+
+  @override
+  String get cuisineItalian => 'Italien';
+
+  @override
+  String get cuisineFastFood => 'Fast-food';
+
+  @override
+  String get shopOpen => 'Ouvert';
+
+  @override
+  String get shopClosed => 'Fermé';
+
+  @override
+  String get newShopBadge => 'Nouveau';
+
+  @override
+  String get deliveryLabel => 'Livraison';
+
+  @override
+  String get minOrderLabel => 'Commande min.';
+
+  @override
+  String get deliveryTimeLabel => 'Temps de livraison';
+
+  @override
+  String get couldNotLoadShops => 'Impossible de charger les boutiques';
+
+  @override
+  String get newShopsSoon =>
+      'Revenez bientôt — de nouvelles boutiques arrivent.';
+
+  @override
+  String get today => 'Aujourd\'hui';
+
+  @override
+  String get yesterday => 'Hier';
+
+  @override
+  String get timeJustNow => 'À l\'instant';
+
+  @override
+  String reviewsCount(int count) {
+    return '$count avis';
+  }
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return 'il y a $minutes min';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return 'il y a $hours h';
+  }
+
+  @override
+  String noRestaurantsNearby(int km) {
+    return 'Aucun restaurant à moins de $km km de vous pour le moment.';
+  }
+
+  @override
+  String noSupermarketsNearby(int km) {
+    return 'Aucun supermarché à moins de $km km de vous pour le moment.';
+  }
+
+  @override
   String get couldNotLoadSupermarkets =>
       'Impossible de charger les supermarchés';
 

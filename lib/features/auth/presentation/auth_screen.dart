@@ -1,13 +1,20 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/debug/build_info.dart';
 import '../providers/auth_provider.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../core/providers/localization_provider.dart';
-import 'forgot_password_screen.dart';
+import 'widgets/auth_background.dart';
+import 'widgets/auth_logo_header.dart';
+import 'widgets/auth_submit_button.dart';
+import 'widgets/auth_tab_bar.dart';
+import 'widgets/auth_text_field.dart';
+import 'widgets/forgot_password_link.dart';
+import 'widgets/glass_card.dart';
+import 'widgets/language_cycle_button.dart';
+import 'widgets/or_divider.dart';
+import 'widgets/social_sign_in_button.dart';
 
 /// Maps a raw auth exception (e.g. the Supabase client's
 /// `AuthApiException(message: Invalid login credentials, statusCode: 400,
@@ -52,6 +59,15 @@ String friendlyAuthErrorMessage(Object e) {
   return 'Une erreur est survenue, veuillez réessayer';
 }
 
+/// Sign in / sign up, top to bottom:
+///
+///   background (green gradient + drifting circles), LanguageCycleButton
+///   AuthLogoHeader     logo, "Amana", "Bienvenue"
+///   GlassCard
+///     AuthTabBar       Se connecter | S'inscrire
+///     AuthTextField    (name), e-mail, password
+///     ForgotPasswordLink, AuthSubmitButton
+///     OrDivider, SocialSignInButton (Google)
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
@@ -261,138 +277,30 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     final size = MediaQuery.of(context).size;
     final screenHeight = size.height;
     final screenWidth = size.width;
+    final l = AppLocalizations.of(context)!;
+    final isSignIn = _tabController.index == 0;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Animated Background with Gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF059669),
-                  Color(0xFF0D9488),
-                  Color(0xFF0F766E),
-                ],
-              ),
-            ),
-          ),
-
-          // Animated Decorative Elements
-          AnimatedBuilder(
+          const AuthGradientBackground(),
+          AuthFloatingCircles(
             animation: _rotationAnimation,
-            builder: (context, child) {
-              return Stack(
-                children: [
-                  Positioned(
-                    top: -screenHeight * 0.15,
-                    right: -screenWidth * 0.2 + (_rotationAnimation.value * screenWidth * 0.1),
-                    child: Container(
-                      width: screenWidth * 0.6,
-                      height: screenWidth * 0.6,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.white.withValues(alpha: 0.15),
-                            Colors.white.withValues(alpha: 0.05),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -screenHeight * 0.1,
-                    left: -screenWidth * 0.15 - (_rotationAnimation.value * screenWidth * 0.1),
-                    child: Container(
-                      width: screenWidth * 0.5,
-                      height: screenWidth * 0.5,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.white.withValues(alpha: 0.15),
-                            Colors.white.withValues(alpha: 0.05),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: screenHeight * 0.3,
-                    left: -screenWidth * 0.1,
-                    child: Container(
-                      width: screenWidth * 0.3,
-                      height: screenWidth * 0.3,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withValues(alpha: 0.08),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
           ),
 
-          // Language Switcher Button
+          // 🌐 top right
           Positioned(
             top: 0,
             right: 0,
-            child: SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: screenHeight * 0.02,
-                  right: screenWidth * 0.05,
-                ),
-                child: Consumer(
-                  builder: (context, ref, _) {
-                    final locale = ref.watch(localizationProvider);
-                    return IconButton(
-                      onPressed: () {
-                        // Cycle through languages: en -> ar -> fr -> en
-                        String nextLang;
-                        switch (locale.languageCode) {
-                          case 'en':
-                            nextLang = 'ar';
-                            break;
-                          case 'ar':
-                            nextLang = 'fr';
-                            break;
-                          default:
-                            nextLang = 'en';
-                        }
-                        ref.read(localizationProvider.notifier).setLocale(Locale(nextLang));
-                      },
-                      icon: Container(
-                        padding: EdgeInsets.all(screenWidth * 0.025),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: screenWidth * 0.02,
-                              offset: Offset(0, screenHeight * 0.005),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.language_rounded,
-                          color: Colors.white,
-                          size: screenWidth * 0.06,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
+            child: LanguageCycleButton(
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
             ),
           ),
 
-          // Main Content
+          // Logo, then the login card
           SafeArea(
             child: Padding(
               padding: EdgeInsets.only(
@@ -414,277 +322,107 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Logo and Title
                         FadeTransition(
                           opacity: _fadeAnimation,
                           child: ScaleTransition(
                             scale: _scaleAnimation,
-                            child: Column(
-                              children: [
-                                // Logo Container
-                                Container(
-                                  padding: EdgeInsets.all(screenWidth * 0.04),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.2),
-                                        blurRadius: screenWidth * 0.05,
-                                        offset: Offset(0, screenHeight * 0.01),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Image.asset(
-                                    'assets/images/logo.png',
-                                    width: screenWidth * 0.15,
-                                    height: screenWidth * 0.15,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                SizedBox(height: screenHeight * 0.015),
-                                Text(
-                                  AppLocalizations.of(context)!.appTitle,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.09,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: 1.2,
-                                  ),
-                                ),
-                                SizedBox(height: screenHeight * 0.005),
-                                Text(
-                                  AppLocalizations.of(context)!.welcome,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.038,
-                                    color: Colors.white.withValues(alpha: 0.95),
-                                    letterSpacing: 0.5,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
+                            child: AuthLogoHeader(
+                              screenWidth: screenWidth,
+                              screenHeight: screenHeight,
                             ),
                           ),
                         ),
-
                         SizedBox(height: screenHeight * 0.04),
-
-                        // Glassmorphic Form Container
                         SlideTransition(
                           position: _slideAnimation,
                           child: FadeTransition(
                             opacity: _fadeAnimation,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(screenWidth * 0.08),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                                child: Container(
-                                  padding: EdgeInsets.all(screenWidth * 0.06),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.92),
-                                    borderRadius: BorderRadius.circular(screenWidth * 0.08),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.3),
-                                      width: 1.5,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.15),
-                                        blurRadius: screenWidth * 0.08,
-                                        offset: Offset(0, screenHeight * 0.015),
-                                      ),
-                                    ],
+                            child: GlassCard(
+                              screenWidth: screenWidth,
+                              screenHeight: screenHeight,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AuthTabBar(
+                                    controller: _tabController,
+                                    onTap: (_) => setState(() {}),
+                                    screenWidth: screenWidth,
+                                    screenHeight: screenHeight,
                                   ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Custom Tab Bar
-                                      Container(
-                                        height: screenHeight * 0.055,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.background,
-                                          borderRadius: BorderRadius.circular(screenWidth * 0.08),
-                                        ),
-                                        child: TabBar(
-                                          controller: _tabController,
-                                          indicator: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: [Color(0xFF059669), Color(0xFF0D9488)],
-                                            ),
-                                            borderRadius: BorderRadius.circular(screenWidth * 0.08),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: AppColors.primary.withValues(alpha: 0.4),
-                                                blurRadius: screenWidth * 0.03,
-                                                offset: Offset(0, screenHeight * 0.005),
-                                              ),
-                                            ],
-                                          ),
-                                          labelColor: Colors.white,
-                                          unselectedLabelColor: AppColors.textSecondary,
-                                          labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: screenWidth * 0.04),
-                                          tabs: [
-                                            Tab(key: const Key('auth_tab_signin'), text: AppLocalizations.of(context)!.signIn),
-                                            Tab(key: const Key('auth_tab_signup'), text: AppLocalizations.of(context)!.signUp),
-                                          ],
-                                          onTap: (_) => setState(() {}),
-                                        ),
-                                      ),
-                                      SizedBox(height: screenHeight * 0.025),
-
-                                      // Form
-                                      Form(
-                                        key: _formKey,
-                                        child: Column(
-                                          children: [
-                                            if (_tabController.index == 1) ...[
-                                              _buildTextField(
-                                                fieldKey: const Key('auth_name'),
-                                                controller: _nameController,
-                                                label: AppLocalizations.of(context)!.fullName,
-                                                icon: Icons.person_outline_rounded,
-                                                screenWidth: screenWidth,
-                                                screenHeight: screenHeight,
-                                              ),
-                                              SizedBox(height: screenHeight * 0.015),
-                                            ],
-                                            _buildTextField(
-                                              fieldKey: const Key('auth_email'),
-                                              controller: _emailController,
-                                              label: AppLocalizations.of(context)!.email,
-                                              icon: Icons.email_outlined,
-                                              keyboardType: TextInputType.emailAddress,
-                                              screenWidth: screenWidth,
-                                              screenHeight: screenHeight,
-                                            ),
-                                            SizedBox(height: screenHeight * 0.015),
-                                            _buildTextField(
-                                              fieldKey: const Key('auth_password'),
-                                              controller: _passwordController,
-                                              label: AppLocalizations.of(context)!.password,
-                                              icon: Icons.lock_outline_rounded,
-                                              isPassword: true,
-                                              isObscure: _obscurePassword,
-                                              onToggleObscure: () {
-                                                setState(() => _obscurePassword = !_obscurePassword);
-                                              },
-                                              screenWidth: screenWidth,
-                                              screenHeight: screenHeight,
-                                            ),
-
-                                            // "Forgot Password?" — only on Sign In tab
-                                            if (_tabController.index == 0)
-                                              Align(
-                                                alignment: Alignment.centerRight,
-                                                child: TextButton(
-                                                  onPressed: () => Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (_) => const ForgotPasswordScreen(),
-                                                    ),
-                                                  ),
-                                                  style: TextButton.styleFrom(
-                                                    foregroundColor: AppColors.primary,
-                                                    padding: EdgeInsets.symmetric(
-                                                      horizontal: screenWidth * 0.01,
-                                                      vertical: screenHeight * 0.005,
-                                                    ),
-                                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                  ),
-                                                  child: Text(
-                                                    'Forgot Password?',
-                                                    style: TextStyle(
-                                                      fontSize: screenWidth * 0.037,
-                                                      fontWeight: FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-
-                                            SizedBox(height: screenHeight * 0.015),
-
-                                            // Main Action Button
-                                            SizedBox(
-                                              width: double.infinity,
-                                              height: screenHeight * 0.06,
-                                              child: ElevatedButton(
-                                                key: const Key('auth_submit'),
-                                                onPressed: _isLoading ? null : _handleEmailAuth,
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: AppColors.primary,
-                                                  foregroundColor: Colors.white,
-                                                  elevation: 8,
-                                                  shadowColor: AppColors.primary.withValues(alpha: 0.5),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(screenWidth * 0.04),
-                                                  ),
-                                                ),
-                                                child: _isLoading
-                                                    ? SizedBox(
-                                                        height: screenHeight * 0.025,
-                                                        width: screenHeight * 0.025,
-                                                        child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                                                      )
-                                                    : Text(
-                                                        _tabController.index == 0
-                                                            ? AppLocalizations.of(context)!.signIn
-                                                            : AppLocalizations.of(context)!.createAccount,
-                                                        style: TextStyle(fontSize: screenWidth * 0.042, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                                                      ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      SizedBox(height: screenHeight * 0.02),
-
-                                      // Divider
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Container(
-                                              height: 1.5,
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(colors: [Colors.transparent, AppColors.textLight.withValues(alpha: 0.3)]),
-                                              ),
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-                                            child: Text(
-                                              AppLocalizations.of(context)!.or,
-                                              style: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.7), fontWeight: FontWeight.w600, fontSize: screenWidth * 0.035),
-                                            ),
-                                          ),
-                                          Expanded(
-                                            child: Container(
-                                              height: 1.5,
-                                              decoration: BoxDecoration(
-                                                gradient: LinearGradient(colors: [AppColors.textLight.withValues(alpha: 0.3), Colors.transparent]),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-
-                                      SizedBox(height: screenHeight * 0.02),
-
-                                      // Social Buttons
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                        children: [
-                                          _buildSocialButton(
-                                            icon: Icons.g_mobiledata_rounded,
-                                            onPressed: () => _handleSocialSignIn(ref.read(authRepositoryProvider).signInWithGoogle),
+                                  SizedBox(height: screenHeight * 0.025),
+                                  Form(
+                                    key: _formKey,
+                                    child: Column(
+                                      children: [
+                                        if (!isSignIn) ...[
+                                          AuthTextField(
+                                            fieldKey: const Key('auth_name'),
+                                            controller: _nameController,
+                                            label: l.fullName,
+                                            icon: Icons.person_outline_rounded,
                                             screenWidth: screenWidth,
                                             screenHeight: screenHeight,
                                           ),
+                                          SizedBox(height: screenHeight * 0.015),
                                         ],
+                                        AuthTextField(
+                                          fieldKey: const Key('auth_email'),
+                                          controller: _emailController,
+                                          label: l.email,
+                                          icon: Icons.email_outlined,
+                                          keyboardType: TextInputType.emailAddress,
+                                          screenWidth: screenWidth,
+                                          screenHeight: screenHeight,
+                                        ),
+                                        SizedBox(height: screenHeight * 0.015),
+                                        AuthTextField(
+                                          fieldKey: const Key('auth_password'),
+                                          controller: _passwordController,
+                                          label: l.password,
+                                          icon: Icons.lock_outline_rounded,
+                                          isPassword: true,
+                                          isObscure: _obscurePassword,
+                                          onToggleObscure: () {
+                                            setState(() => _obscurePassword = !_obscurePassword);
+                                          },
+                                          screenWidth: screenWidth,
+                                          screenHeight: screenHeight,
+                                        ),
+                                        if (isSignIn)
+                                          ForgotPasswordLink(
+                                            screenWidth: screenWidth,
+                                            screenHeight: screenHeight,
+                                          ),
+                                        SizedBox(height: screenHeight * 0.015),
+                                        AuthSubmitButton(
+                                          isLoading: _isLoading,
+                                          label: isSignIn ? l.signIn : l.createAccount,
+                                          onPressed: _handleEmailAuth,
+                                          screenWidth: screenWidth,
+                                          screenHeight: screenHeight,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: screenHeight * 0.02),
+                                  OrDivider(screenWidth: screenWidth),
+                                  SizedBox(height: screenHeight * 0.02),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      SocialSignInButton(
+                                        icon: Icons.g_mobiledata_rounded,
+                                        onPressed: _isLoading
+                                            ? null
+                                            : () => _handleSocialSignIn(ref
+                                                .read(authRepositoryProvider)
+                                                .signInWithGoogle),
+                                        screenWidth: screenWidth,
+                                        screenHeight: screenHeight,
                                       ),
                                     ],
                                   ),
-                                ),
+                                ],
                               ),
                             ),
                           ),
@@ -698,9 +436,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
             ),
           ),
 
-          // Etiquette de build (mode debug uniquement) : sans elle, on ne
-          // sait pas si le telephone execute le correctif ou une vieille
-          // installation.
+          // Build label (debug builds only): tells whether the phone runs the
+          // latest build or an old installation.
           if (BuildInfo.label != null)
             Positioned(
               left: 0,
@@ -718,141 +455,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    Key? fieldKey,
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required double screenWidth,
-    required double screenHeight,
-    bool isPassword = false,
-    bool? isObscure,
-    VoidCallback? onToggleObscure,
-    TextInputType? keyboardType,
-  }) {
-    return TextFormField(
-      key: fieldKey,
-      controller: controller,
-      obscureText: isObscure ?? false,
-      keyboardType: keyboardType,
-      style: TextStyle(
-        fontWeight: FontWeight.w500,
-        color: AppColors.textPrimary,
-        fontSize: screenWidth * 0.04,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(
-          color: AppColors.textSecondary.withValues(alpha: 0.8),
-          fontSize: screenWidth * 0.038,
-        ),
-        prefixIcon: Icon(
-          icon,
-          color: AppColors.primary.withValues(alpha: 0.7),
-          size: screenWidth * 0.06,
-        ),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  isObscure! ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                  color: AppColors.textSecondary.withValues(alpha: 0.5),
-                  size: screenWidth * 0.055,
-                ),
-                onPressed: onToggleObscure,
-              )
-            : null,
-        filled: true,
-        fillColor: AppColors.background,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(screenWidth * 0.04),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(screenWidth * 0.04),
-          borderSide: BorderSide(
-            color: AppColors.textLight.withValues(alpha: 0.1),
-            width: 1.5,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(screenWidth * 0.04),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 2,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(screenWidth * 0.04),
-          borderSide: const BorderSide(
-            color: AppColors.error,
-            width: 1.5,
-          ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(screenWidth * 0.04),
-          borderSide: const BorderSide(
-            color: AppColors.error,
-            width: 2,
-          ),
-        ),
-        contentPadding: EdgeInsets.symmetric(
-          horizontal: screenWidth * 0.05,
-          vertical: screenHeight * 0.02,
-        ),
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return AppLocalizations.of(context)!.pleaseEnter(label);
-        }
-        if (label == AppLocalizations.of(context)!.email && !value.contains('@')) {
-          return AppLocalizations.of(context)!.validEmail;
-        }
-        if (label == AppLocalizations.of(context)!.password && value.length < 6) {
-          return AppLocalizations.of(context)!.passwordLength;
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    required double screenWidth,
-    required double screenHeight,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _isLoading ? null : onPressed,
-        borderRadius: BorderRadius.circular(screenWidth * 0.04),
-        child: Container(
-          padding: EdgeInsets.all(screenWidth * 0.045),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(
-              color: AppColors.textLight.withValues(alpha: 0.25),
-              width: 2,
-            ),
-            borderRadius: BorderRadius.circular(screenWidth * 0.04),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: screenWidth * 0.02,
-                offset: Offset(0, screenHeight * 0.005),
-              ),
-            ],
-          ),
-          child: Icon(
-            icon,
-            size: screenWidth * 0.08,
-            color: AppColors.textPrimary,
-          ),
-        ),
       ),
     );
   }

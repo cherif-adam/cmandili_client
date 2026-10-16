@@ -1,4 +1,4 @@
-package com.cmandili.mobile
+package com.amana.mobile
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

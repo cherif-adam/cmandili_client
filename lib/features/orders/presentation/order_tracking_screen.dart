@@ -2,22 +2,29 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/utils/currency_formatter.dart';
 import '../../../core/services/route_service.dart';
 import '../../../core/widgets/app_map.dart';
 import '../data/models/order.dart';
 import '../../../core/providers/vendor_provider.dart';
 import '../providers/order_provider.dart';
-import 'order_labels.dart';
 import '../../loyalty/presentation/loyalty_card_sheet.dart';
 import '../../loyalty/presentation/loyalty_cancel_dialog.dart';
 import '../../rating/presentation/rating_prompt_sheet.dart';
-import 'widgets/colis_receipt_card.dart';
+import 'widgets/cancel_order_dialog.dart';
 import 'widgets/receipt_confirmation_card.dart';
+import 'widgets/tracking_details_sheet.dart';
 
+/// Following an order, top to bottom:
+///
+///   live map (driver, pickup, delivery, route) — or a big icon before
+///   a driver shares a position; ← back, ◎ recenter
+///   TrackingDetailsSheet — status, cards, timeline, driver, details,
+///   cancel
+///
+/// This class keeps the live parts: the driver's position (two realtime
+/// sources), the route and camera, and the cancel / confirm actions.
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
 
@@ -217,116 +224,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     super.dispose();
   }
 
-  /// Les raisons proposées à l'annulation. La valeur ENVOYÉE au serveur
-  /// reste une clé stable ; seul le libellé suit la langue du client, sinon
-  /// une annulation en arabe arriverait illisible dans le tableau de bord.
-  static const _cancelReasonKeys = [
-    'wrong_order',
-    'too_long',
-    'changed_mind',
-    'other',
-  ];
-
-  String _cancelReasonLabel(AppLocalizations l, String key) {
-    switch (key) {
-      case 'wrong_order':
-        return l.cancelReasonWrongOrder;
-      case 'too_long':
-        return l.cancelReasonTooLong;
-      case 'changed_mind':
-        return l.cancelReasonChangedMind;
-      default:
-        return l.cancelReasonOther;
-    }
-  }
-
   Future<void> _showCancelDialog(Order order) async {
-    String? selectedReason;
-    final hasDriver = order.driverId != null;
-
-    final confirmed = await showDialog<String>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text(
-              AppLocalizations.of(context)!.cancelOrderTitle,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (hasDriver)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.orange.shade300),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.warning_amber_rounded,
-                              color: Colors.orange.shade700, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              AppLocalizations.of(context)!.cancelDriverAssigned,
-                              style: const TextStyle(fontSize: 13, height: 1.4),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  Text(
-                    AppLocalizations.of(context)!.cancelReasonLabel,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  ..._cancelReasonKeys.map(
-                    (r) => RadioListTile<String>(
-                      title: Text(
-                          _cancelReasonLabel(AppLocalizations.of(context)!, r),
-                          style: const TextStyle(fontSize: 14)),
-                      value: r,
-                      groupValue: selectedReason,
-                      dense: true,
-                      activeColor: AppColors.primary,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (val) => setDlgState(() => selectedReason = val),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text(AppLocalizations.of(context)!.backAction),
-              ),
-              ElevatedButton(
-                onPressed: selectedReason == null
-                    ? null
-                    : () => Navigator.pop(ctx, selectedReason),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-                child: Text(AppLocalizations.of(context)!.confirmAction),
-              ),
-            ],
-          );
-        },
-      ),
-    );
+    final confirmed =
+        await showCancelOrderDialog(context, hasDriver: order.driverId != null);
 
     if (confirmed == null || !mounted) return;
 
@@ -516,7 +416,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Map
+          // Live map once the driver sends a position, else a big icon.
           if (showMap)
             AppMap(
               controller: _mapController,
@@ -526,8 +426,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               polyline: _routePolyline,
               // The details sheet covers the lower ~45% of the screen; telling
               // the map about it keeps Google's own controls clear of the
-              // sheet and centres the fitted route in the part still visible,
-              // instead of behind it.
+              // sheet and centres the fitted route in the part still visible.
               contentPadding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).size.height * 0.45,
               ),
@@ -560,884 +459,127 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               },
             )
           else
-            Container(
-              color: AppColors.background,
-              child: Center(
-                child: Icon(
-                  isFacture
-                      ? Icons.receipt_long_rounded
-                      : isCourier
-                          ? Icons.local_shipping
-                          : Icons.restaurant,
-                  size: 100,
-                  color: AppColors.textLight.withValues(alpha: 0.3),
-                ),
-              ),
+            _MapPlaceholder(
+              icon: isFacture
+                  ? Icons.receipt_long_rounded
+                  : isCourier
+                      ? Icons.local_shipping
+                      : Icons.restaurant,
             ),
 
-          // Top Bar
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          const _BackButton(),
 
-          // Recenter button — the camera no longer auto-follows the driver on
-          // every GPS tick (see _updateDriverPosition), so give the user an
-          // easy way to snap back to a framed driver+destination view.
+          // Recenter: the camera does not follow every GPS tick, so this
+          // snaps back to a framed driver + destination view.
           if (showMap)
             Positioned(
               right: 16,
               bottom: MediaQuery.of(context).size.height * 0.45 + 16,
-              child: Material(
-                color: Colors.white,
-                shape: const CircleBorder(),
-                elevation: 4,
-                shadowColor: Colors.black.withValues(alpha: 0.2),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () => _mapController.fitBounds([
-                    (lat: _driverLat!, lng: _driverLng!),
-                    destination,
-                  ]),
-                  child: const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: Icon(Icons.my_location_rounded, color: AppColors.primary, size: 22),
-                  ),
-                ),
+              child: _RecenterButton(
+                onTap: () => _mapController.fitBounds([
+                  (lat: _driverLat!, lng: _driverLng!),
+                  destination,
+                ]),
               ),
             ),
 
-          // Bottom Sheet
-          DraggableScrollableSheet(
-            initialChildSize: 0.45,
-            minChildSize: 0.4,
-            maxChildSize: 0.9,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.textLight.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    Text(
-                      orderStatusLabel(AppLocalizations.of(context)!, order.status),
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Prefer the LIVE route's duration over the estimate
-                    // frozen at checkout. Same Directions response already
-                    // fetched for the polyline below — no extra API call.
-                    //
-                    // The stored value is a single restaurant→customer
-                    // duration captured the moment the order was placed: it
-                    // never updates, and it ignores where the driver actually
-                    // is. Once a driver is assigned and moving, _route runs
-                    // driver→customer from their live position, so it answers
-                    // the question the customer is actually asking.
-                    //
-                    // Falls back to the stored value before a driver is
-                    // assigned, which is the only point where nothing live
-                    // exists yet.
-                    if (showMap && _route != null)
-                      Text(
-                        AppLocalizations.of(context)!.estimatedDeliveryAt(_route!.etaLabel),
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                      )
-                    else if (order.estimatedDeliveryTime != null)
-                      Text(
-                        AppLocalizations.of(context)!.estimatedDeliveryAt(
-                            _formatTime(order.estimatedDeliveryTime!)),
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                      ),
-
-                    // Colis : code de remise, puis preuves une fois la
-                    // livraison faite, puis signalement pendant 24 h. La
-                    // carte ne rend rien si la commande n'a pas de reçu.
-                    if (isCourier) ...[
-                      const SizedBox(height: 16),
-                      ColisReceiptCard(
-                        orderId: order.id,
-                        deliveredAt: order.deliveredAt,
-                      ),
-                    ],
-
-                    // The driver says it is delivered: ask the customer.
-                    // Renders nothing for orders from before this existed.
-                    if (order.status == OrderStatus.delivered) ...[
-                      const SizedBox(height: 16),
-                      ReceiptConfirmationCard(
-                        order: order,
-                        // Rebuild so the shop-rating prompt held back above
-                        // gets its turn.
-                        onFlowFinished: () {
-                          if (mounted) setState(() {});
-                        },
-                      ),
-                    ],
-
-                    // Live route: traffic-aware ETA, remaining distance, and
-                    // the streets the driver is taking. Redrawn whenever they
-                    // deviate, so this always describes the way they are
-                    // actually going rather than the way first proposed.
-                    if (showMap && _route != null) ...[
-                      const SizedBox(height: 16),
-                      _RouteCard(route: _route!),
-                    ],
-
-                    if (order.status == OrderStatus.delivered &&
-                        order.loyaltyMilestoneType != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.celebration, color: Colors.green),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                order.loyaltyMilestoneType == 'free'
-                                    ? '🎉 Livraison gratuite appliquée — merci de votre fidélité !'
-                                    : '🎉 -50% sur la livraison appliqué — merci de votre fidélité !',
-                                style: const TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 24),
-
-                    // Confirm receipt button for courier
-                    if (isCourier &&
-                        order.status == OrderStatus.onTheWay &&
-                        !order.isRecipientAccepted)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 24),
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _confirmReceipt,
-                          icon: const Icon(Icons.check_circle_outline),
-                          label: Text(AppLocalizations.of(context)!.confirmReceipt),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.secondary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.all(16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    if (order.isRecipientAccepted)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 24),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.success),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle, color: AppColors.success),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                AppLocalizations.of(context)!.recipientAccepted,
-                                style: const TextStyle(
-                                  color: AppColors.success,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    _OrderTimeline(
-                      status: order.status,
-                      isCourier: isCourier,
-                      isFacture: isFacture,
-                      // La catégorie de la boutique décide, pas le type de la
-                      // commande : le checkout étiquette « food » tout ce qui
-                      // n'est pas de l'épicerie, fleurs et électronique
-                      // comprises. Tant que le détail n'est pas chargé, on
-                      // garde l'ancien comportement — vrai pour la majorité
-                      // des commandes, et corrigé dès que la catégorie arrive.
-                      hasPreparationStep: ref.watch(
-                              hasPreparationStepProvider(shopCategory)) ??
-                          (order.type == OrderType.food),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Driver Info
-                    if ((order.status == OrderStatus.onTheWay ||
-                            order.status == OrderStatus.pickedUp) &&
-                        order.driverName != null) ...[
-                      Text(
-                        AppLocalizations.of(context)!.yourCourier,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            const CircleAvatar(
-                              radius: 30,
-                              backgroundColor: AppColors.primary,
-                              child: Icon(Icons.person, color: Colors.white, size: 30),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    order.driverName!,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                                  Text(
-                                    order.driverPhone ?? '',
-                                    style: const TextStyle(
-                                        color: AppColors.textSecondary, fontSize: 14),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => _callPhone(context, order.driverPhone),
-                              icon: const Icon(Icons.phone, color: AppColors.primary),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Order Details
-                    Text(
-                      isFacture
-                          ? AppLocalizations.of(context)!.billDetailsTitle
-                          : isCourier
-                              ? AppLocalizations.of(context)!.packageDetails
-                              : AppLocalizations.of(context)!.orderDetailsTitle,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-
-                    if (isFacture) ...[
-                      _DetailRow(
-                          label: AppLocalizations.of(context)!.billTypeField,
-                          value: _billTypeLabel(AppLocalizations.of(context)!, order.billType)),
-                      _DetailRow(
-                          label: AppLocalizations.of(context)!.billReferenceField,
-                          value: order.billReference ?? 'N/A'),
-                      _DetailRow(
-                          label: AppLocalizations.of(context)!.billAmountField,
-                          value: order.billAmount != null
-                              ? '${order.billAmount!.toStringAsFixed(3)} TND'
-                              : 'N/A'),
-                      if (order.senderPhone != null)
-                        _DetailRow(label: AppLocalizations.of(context)!.phone, value: order.senderPhone!),
-                      const SizedBox(height: 16),
-                      // Show bill photo if customer uploaded one
-                      if (order.billPhotoUrl != null) ...[
-                        Text(AppLocalizations.of(context)!.billPhotoLabel,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: () => _showFullScreenImage(context, order.billPhotoUrl!),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              order.billPhotoUrl!,
-                              height: 140,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      // Show receipt photo if driver uploaded one
-                      if (order.billReceiptUrl != null) ...[
-                        Text(AppLocalizations.of(context)!.paymentReceiptLabel,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: AppColors.success)),
-                        const SizedBox(height: 8),
-                        GestureDetector(
-                          onTap: () => _showFullScreenImage(context, order.billReceiptUrl!),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              order.billReceiptUrl!,
-                              height: 140,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ] else if (isCourier) ...[
-                      _DetailRow(label: AppLocalizations.of(context)!.recipient, value: order.recipientName ?? 'N/A'),
-                      _DetailRow(label: AppLocalizations.of(context)!.phone, value: order.recipientPhone ?? 'N/A'),
-                      _DetailRow(label: AppLocalizations.of(context)!.item, value: order.packageDescription ?? AppLocalizations.of(context)!.packageFallback),
-                      const SizedBox(height: 16),
-                    ] else ...[
-                      if (shopName.isNotEmpty) ...[
-                        Text(
-                          shopName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 16),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      ...items.map((item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('${item.quantity}x ${item.name}',
-                                    style:
-                                        const TextStyle(color: AppColors.textSecondary)),
-                                Text(CurrencyFormatter.formatPrice(item.totalPrice),
-                                    style:
-                                        const TextStyle(color: AppColors.textSecondary)),
-                              ],
-                            ),
-                          )),
-                    ],
-
-                    const Divider(height: 24),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(AppLocalizations.of(context)!.total,
-                            style:
-                                const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text(
-                          CurrencyFormatter.formatPrice(order.total),
-                          style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        const Icon(Icons.payments_outlined,
-                            size: 20, color: AppColors.textSecondary),
-                        const SizedBox(width: 8),
-                        Text(paymentMethodLabel(AppLocalizations.of(context)!, order.paymentMethod),
-                            style: const TextStyle(color: AppColors.textSecondary)),
-                      ],
-                    ),
-
-                    // ── Cancellation section ──────────────────────────────
-                    // Mirrors the status list in
-                    // OrderRepository.cancelOrderByCustomer: cancellable right
-                    // up to pickup. Stopping at 'confirmed' left a customer
-                    // trapped whenever a shop marked an order ready and no
-                    // driver ever collected it.
-                    if (order.status == OrderStatus.pending ||
-                        order.status == OrderStatus.confirmed ||
-                        order.status == OrderStatus.preparing ||
-                        order.status == OrderStatus.ready) ...[
-                      const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showCancelDialog(order),
-                          icon: const Icon(Icons.cancel_outlined,
-                              color: Colors.red, size: 18),
-                          label: Text(
-                            AppLocalizations.of(context)!.cancelOrderTitle,
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ] else if (order.status != OrderStatus.cancelled &&
-                        order.status != OrderStatus.delivered &&
-                        order.status.index >= OrderStatus.pickedUp.index) ...[
-                      const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline,
-                                size: 18, color: AppColors.textSecondary),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                AppLocalizations.of(context)!
-                                    .cancelTooLateOnTheWay,
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.textSecondary),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              );
+          TrackingDetailsSheet(
+            order: order,
+            route: showMap ? _route : null,
+            shopName: shopName,
+            items: items,
+            // The shop's category decides, not the order type: checkout tags
+            // "food" everything that is not grocery. Until the details are
+            // loaded, keep the old behaviour.
+            hasPreparationStep:
+                ref.watch(hasPreparationStepProvider(shopCategory)) ??
+                    (order.type == OrderType.food),
+            onCancel: () => _showCancelDialog(order),
+            onConfirmRecipientReceipt: _confirmReceipt,
+            // Rebuild so the shop-rating prompt held back above gets its turn.
+            onReceiptFlowFinished: () {
+              if (mounted) setState(() {});
             },
           ),
         ],
       ),
     );
   }
-
-  String _billTypeLabel(AppLocalizations l, String? billType) {
-    switch (billType) {
-      case 'steg':
-        return l.billTypeElectricity;
-      case 'sonede':
-        return l.billTypeWater;
-      case 'topnet':
-        return l.billTypeInternet;
-      case 'autre':
-        return l.cancelReasonOther;
-      default:
-        // Un type ajouté en base mais pas encore ici : sa clé vaut mieux que
-        // rien.
-        return billType ?? 'N/A';
-    }
-  }
-
-  void _showFullScreenImage(BuildContext context, String url) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            iconTheme: const IconThemeData(color: Colors.white),
-          ),
-          body: Center(
-            child: InteractiveViewer(
-              child: Image.network(url, fit: BoxFit.contain),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _formatTime(DateTime time) {
-    final difference = time.difference(DateTime.now());
-    if (difference.inMinutes < 60) return '${difference.inMinutes} minutes';
-    return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
-  Future<void> _callPhone(BuildContext context, String? phone) async {
-    final number = phone?.trim();
-    if (number == null || number.isEmpty) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.driverPhoneNotAvailable)),
-      );
-      return;
-    }
-    final uri = Uri(scheme: 'tel', path: number);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.unableToStartCall)),
-      );
-    }
-  }
 }
 
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _DetailRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(label,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-          ),
-          Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Live route summary shown above the order timeline: traffic-aware ETA,
-/// remaining driving distance, and the named streets the driver's current
-/// route runs along. Rebuilt whenever the route is re-fetched, so if the
-/// driver takes a different street the list here changes with the drawn line.
-class _RouteCard extends StatelessWidget {
-  final AppRoute route;
-
-  const _RouteCard({required this.route});
-
-  @override
-  Widget build(BuildContext context) {
-    // Enough streets to show the shape of the journey without turning the
-    // card into a full turn-by-turn list, which the customer does not need.
-    const maxStreets = 4;
-    final streets = route.streetNames.take(maxStreets).toList();
-    final remaining = route.streetNames.length - streets.length;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.route_rounded,
-                  color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                route.etaLabel,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '• ${route.distanceLabel}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          if (streets.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Text(
-              AppLocalizations.of(context)!.routeLabel,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.4,
-                color: AppColors.textSecondary.withValues(alpha: 0.9),
-              ),
-            ),
-            const SizedBox(height: 6),
-            // Streets in travel order, separated by chevrons so the sequence
-            // reads as a path rather than an unordered set of names.
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                for (var i = 0; i < streets.length; i++) ...[
-                  if (i > 0)
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 16,
-                      color: AppColors.textLight.withValues(alpha: 0.8),
-                    ),
-                  Text(
-                    streets[i],
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-                if (remaining > 0)
-                  Text(
-                    '+$remaining',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _OrderTimeline extends StatelessWidget {
-  final OrderStatus status;
-  final bool isCourier;
-  final bool isFacture;
-
-  /// Le commerçant prépare-t-il la commande avant qu'elle soit prête ?
-  ///
-  /// Vrai pour les restaurants seulement. Partout ailleurs le commerçant met
-  /// de côté ce qu'il a en rayon : la commande passe d'« acceptée » à
-  /// « prête », et annoncer une préparation au client décrivait un travail
-  /// qui n'a pas lieu. La valeur vient de `vendor_categories`, la même ligne
-  /// que lisent l'application partenaire et celle du livreur.
-  final bool hasPreparationStep;
-
-  const _OrderTimeline({
-    required this.status,
-    this.isCourier = false,
-    this.isFacture = false,
-    this.hasPreparationStep = true,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final steps = isFacture
-        ? [
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineOrderConfirmed,
-              isCompleted: status.index >= OrderStatus.confirmed.index,
-              icon: Icons.check_circle,
-            ),
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineDriverComing,
-              isCompleted: status.index >= OrderStatus.onTheWay.index,
-              icon: Icons.directions_bike,
-            ),
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineCashCollected,
-              isCompleted: status.index >= OrderStatus.pickedUp.index,
-              icon: Icons.payments_rounded,
-            ),
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineBillPaid,
-              isCompleted: status.index >= OrderStatus.delivered.index,
-              icon: Icons.receipt_long_rounded,
-            ),
-          ]
-        : isCourier
-        ? [
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineRequestConfirmed,
-              isCompleted: status.index >= OrderStatus.confirmed.index,
-              icon: Icons.check_circle,
-            ),
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelinePickedUp,
-              isCompleted: status.index >= OrderStatus.pickedUp.index ||
-                  status == OrderStatus.onTheWay ||
-                  status == OrderStatus.delivered,
-              icon: Icons.inventory_2,
-            ),
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineOnTheWay,
-              isCompleted: status.index >= OrderStatus.onTheWay.index,
-              icon: Icons.local_shipping,
-            ),
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineDelivered,
-              isCompleted: status.index >= OrderStatus.delivered.index,
-              icon: Icons.done_all,
-            ),
-          ]
-        : [
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineOrderConfirmed,
-              isCompleted: status.index >= OrderStatus.confirmed.index,
-              icon: Icons.check_circle,
-            ),
-            // Le restaurant prépare ; le fleuriste, l'épicier ou le magasin
-            // d'électronique met de côté et annonce « prête ». Deux étapes
-            // différentes, pas un habillage de la même.
-            if (hasPreparationStep)
-              _TimelineStep(
-                title: AppLocalizations.of(context)!.timelinePreparing,
-                isCompleted: status.index >= OrderStatus.preparing.index,
-                icon: Icons.restaurant,
-              )
-            else
-              _TimelineStep(
-                title: AppLocalizations.of(context)!.timelineReady,
-                isCompleted: status.index >= OrderStatus.ready.index,
-                icon: Icons.inventory_2_rounded,
-              ),
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineOnTheWay,
-              isCompleted: status.index >= OrderStatus.onTheWay.index,
-              icon: Icons.delivery_dining,
-            ),
-            _TimelineStep(
-              title: AppLocalizations.of(context)!.timelineDelivered,
-              isCompleted: status.index >= OrderStatus.delivered.index,
-              icon: Icons.done_all,
-            ),
-          ];
-
-    return Column(
-      children: List.generate(
-        steps.length,
-        (index) => _TimelineItem(step: steps[index], isLast: index == steps.length - 1),
-      ),
-    );
-  }
-}
-
-class _TimelineStep {
-  final String title;
-  final bool isCompleted;
+/// Big faint icon where the map will be, until the driver shares a position.
+class _MapPlaceholder extends StatelessWidget {
   final IconData icon;
 
-  _TimelineStep({required this.title, required this.isCompleted, required this.icon});
-}
-
-class _TimelineItem extends StatelessWidget {
-  final _TimelineStep step;
-  final bool isLast;
-
-  const _TimelineItem({required this.step, required this.isLast});
+  const _MapPlaceholder({required this.icon});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
+    return Container(
+      color: AppColors.background,
+      child: Center(
+        child: Icon(
+          icon,
+          size: 100,
+          color: AppColors.textLight.withValues(alpha: 0.3),
+        ),
+      ),
+    );
+  }
+}
+
+/// Round white ← at the top left.
+class _BackButton extends StatelessWidget {
+  const _BackButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
               decoration: BoxDecoration(
-                color: step.isCompleted ? AppColors.primary : AppColors.background,
+                color: Colors.white,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: step.isCompleted ? AppColors.primary : AppColors.textLight,
-                  width: 2,
-                ),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8),
+                ],
               ),
-              child: Icon(
-                step.icon,
-                color: step.isCompleted ? Colors.white : AppColors.textLight,
-                size: 20,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
               ),
             ),
-            if (!isLast)
-              Container(
-                width: 2,
-                height: 40,
-                color: step.isCompleted
-                    ? AppColors.primary
-                    : AppColors.textLight.withValues(alpha: 0.3),
-              ),
           ],
         ),
-        const SizedBox(width: 16),
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Text(
-            step.title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: step.isCompleted ? FontWeight.w600 : FontWeight.normal,
-              color: step.isCompleted ? AppColors.textPrimary : AppColors.textSecondary,
-            ),
-          ),
+      ),
+    );
+  }
+}
+
+/// Round white ◎ button above the panel that re-frames the map.
+class _RecenterButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _RecenterButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 4,
+      shadowColor: Colors.black.withValues(alpha: 0.2),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: const Padding(
+          padding: EdgeInsets.all(12),
+          child: Icon(Icons.my_location_rounded, color: AppColors.primary, size: 22),
         ),
-      ],
+      ),
     );
   }
 }

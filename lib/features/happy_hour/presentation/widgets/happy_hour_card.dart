@@ -4,6 +4,9 @@ import 'dart:async';
 
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
+/// One deal in the Happy Hour / promos list, top to bottom: the photo
+/// with the -40% badge and the countdown, then name, description, units
+/// left, the prices and the "Je prends" button.
 class HappyHourCard extends StatefulWidget {
   final String imageUrl;
   final String name;
@@ -100,77 +103,22 @@ class _HappyHourCardState extends State<HappyHourCard> {
             // Image Section
             Stack(
               children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: CachedNetworkImage(
-                    imageUrl: widget.imageUrl,
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(height: 180, color: Colors.grey[200]),
-                    errorWidget: (context, url, error) => Container(
-                      height: 180,
-                      color: Colors.grey[200],
-                      child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
-                    ),
-                  ),
-                ),
-                // Discount Badge
+                _DealPhoto(imageUrl: widget.imageUrl),
                 Positioned(
                   top: 12,
                   left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: widget.accentColor,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: widget.accentColor.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      '-$discountPercent%',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
+                  child: _DiscountBadge(
+                    percent: discountPercent,
+                    color: widget.accentColor,
                   ),
                 ),
                 // Timer Badge (only for deals that have an end)
                 if (widget.discountEndTime != null)
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.timer, color: Colors.white, size: 16),
-                        const SizedBox(width: 4),
-                        Text(
-                          _formatDuration(_timeLeft),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ],
-                    ),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: _CountdownBadge(text: _formatDuration(_timeLeft)),
                   ),
-                ),
               ],
             ),
             // Details Section
@@ -200,96 +148,240 @@ class _HappyHourCardState extends State<HappyHourCard> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 12),
-                  // Quantity Indicator
                   if (widget.discountQuantity != null)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: widget.accentColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: widget.accentColor.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.inventory_2_outlined,
-                              size: 14, color: widget.accentColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            AppLocalizations.of(context)!
-                                .happyHourUnitsLeft(widget.discountQuantity!),
-                            style: TextStyle(
-                              color: widget.accentColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                    _UnitsLeftChip(
+                      quantity: widget.discountQuantity!,
+                      color: widget.accentColor,
                     ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${widget.originalPrice.toStringAsFixed(2)} DT',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                          Text(
-                            '${widget.discountPrice.toStringAsFixed(2)} DT',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: widget.accentColor,
-                            ),
-                          ),
-                        ],
+                      _DealPrices(
+                        originalPrice: widget.originalPrice,
+                        discountPrice: widget.discountPrice,
+                        color: widget.accentColor,
                       ),
-                      InkWell(
-                        onTap: widget.onGrab,
-                        borderRadius: BorderRadius.circular(24),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                widget.accentColor.withValues(alpha: 0.85),
-                                widget.accentColor,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    widget.accentColor.withValues(alpha: 0.4),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            AppLocalizations.of(context)!.happyHourGrab,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
+                      _GrabButton(onTap: widget.onGrab, color: widget.accentColor),
                     ],
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The 180px photo across the top of the card (grey while loading).
+class _DealPhoto extends StatelessWidget {
+  final String imageUrl;
+
+  const _DealPhoto({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      child: CachedNetworkImage(
+        imageUrl: imageUrl,
+        height: 180,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(height: 180, color: Colors.grey[200]),
+        errorWidget: (context, url, error) => Container(
+          height: 180,
+          color: Colors.grey[200],
+          child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+        ),
+      ),
+    );
+  }
+}
+
+/// "-40%" pill on the photo.
+class _DiscountBadge extends StatelessWidget {
+  final int percent;
+  final Color color;
+
+  const _DiscountBadge({required this.percent, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Text(
+        '-$percent%',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+}
+
+/// Dark "⏱ 01:59:30" pill on the photo.
+class _CountdownBadge extends StatelessWidget {
+  final String text;
+
+  const _CountdownBadge({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.timer, color: Colors.white, size: 16),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "📦 Plus que 5" chip.
+class _UnitsLeftChip extends StatelessWidget {
+  final int quantity;
+  final Color color;
+
+  const _UnitsLeftChip({required this.quantity, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.inventory_2_outlined,
+              size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            AppLocalizations.of(context)!
+                .happyHourUnitsLeft(quantity),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Old price struck through, deal price big under it.
+class _DealPrices extends StatelessWidget {
+  final double originalPrice;
+  final double discountPrice;
+  final Color color;
+
+  const _DealPrices({
+    required this.originalPrice,
+    required this.discountPrice,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${originalPrice.toStringAsFixed(2)} DT',
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+            decoration: TextDecoration.lineThrough,
+          ),
+        ),
+        Text(
+          '${discountPrice.toStringAsFixed(2)} DT',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The gradient "Je prends" button.
+class _GrabButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final Color color;
+
+  const _GrabButton({required this.onTap, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.85),
+              color,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color:
+                  color.withValues(alpha: 0.4),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          AppLocalizations.of(context)!.happyHourGrab,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
