@@ -1,28 +1,38 @@
-// Le badge « Recommandé » ajoute du contenu dans une Row déjà occupée par le
-// titre du mode, et le nouveau titre de section est bien plus long que
-// l'ancien. C'est exactement l'endroit où un débordement apparaît : la barre
-// de l'assistant avait déjà débordé de 9,7 px pour la même raison.
+// L'écran Colis tient-il dans l'écran ?
 //
-// ── CE QUE CES TESTS MESURENT ────────────────────────────────────────────────
-// La géométrie réelle des éléments ajoutés ou rallongés : restent-ils dans
-// l'écran, à quatre largeurs de téléphone. On ne se contente pas de
-// `takeException() == null`, et c'est volontaire :
+// ── POURQUOI CE FICHIER ──────────────────────────────────────────────────────
+// Trois débordements distincts ont été corrigés sur cette page, et aucun ne
+// s'était vu avant qu'on mesure :
 //
-// L'ÉCRAN COLIS DÉBORDE DÉJÀ AILLEURS, AVANT CE CHANGEMENT. Mesuré sur la
-// version précédente, aux largeurs 320/360/393/430 : une vingtaine de
-// RenderFlex en débordement, de 9,8 px à 121 px. Il en reste quatre à droite
-// (18, 23, 26 et 31 px, une Row d'un champ à `Align`) et deux en bas (0,1 px
-// et 9,8 px, une carte à hauteur fixe de 124 px) — tous présents avant et
-// après, aucun dans la section de remise. Un test global échouerait donc sur
-// des défauts qui ne sont pas les nôtres, et il serait désactivé au premier
-// agacement. Celui-ci consomme ces erreurs et mesure ce dont ce changement
-// répond.
+//   1. _buildSectionHeader ne contraignait pas son titre. Plusieurs en-têtes
+//      débordaient de 37 à 48 px, et le titre « Comment le livreur remet votre
+//      colis ? », plus long, portait le débordement à plus de 250 px.
+//   2. La Row du bouton d'envoi débordait de 18 à 31 px dès que le prix estimé
+//      s'affichait à côté du libellé.
+//   3. Le cadre « Ajouter une photo du colis » était dimensionné par la
+//      HAUTEUR de l'écran (h * 0.14) alors que son contenu est dimensionné par
+//      la LARGEUR : il débordait par le bas de 0,1 à 9,8 px.
 //
-// Ce qui A été corrigé ici, parce que ce changement l'avait aggravé :
-// _buildSectionHeader n'avait aucune contrainte sur son titre. Plusieurs
-// en-têtes débordaient de 37 à 48 px ; « Comment le livreur remet votre
-// colis ? » portait le débordement à plus de 250 px. Avec l'Expanded, tous
-// les en-têtes de la page tiennent.
+// Les débordements de Flutter ne cassent rien, ne lèvent rien en production et
+// ne se voient qu'à la bande rayée en mode debug. C'est exactement pourquoi
+// ils s'accumulent : la barre de l'assistant avait débordé de 9,7 px pendant
+// des semaines. Un test qui rend l'écran et refuse la moindre erreur de layout
+// est le seul moyen de ne pas les laisser revenir.
+//
+// ── CE QUE MESURENT CES TESTS ────────────────────────────────────────────────
+// Deux filets, parce qu'ils n'attrapent pas la même chose :
+//
+//   • `takeException() == null` à quatre largeurs et dans les trois langues :
+//     attrape TOUT débordement, où qu'il soit sur la page, y compris dans du
+//     code qu'on n'a pas touché. C'est le filet large.
+//   • la géométrie des éléments précis (titre, badge, bouton, cadre photo) :
+//     dit CE QUI dépasse et DE COMBIEN quand ça casse. Un « multiple
+//     exceptions (7) » n'aide personne à 2 h du matin.
+//
+// 320 px est le plus petit téléphone encore en service, 360 l'Android courant,
+// 393 un Pixel, 430 un grand iPhone. L'arabe est testé aussi : en RTL le
+// badge passe à gauche du titre, et un texte plus long dans une Row contrainte
+// déborde du côté opposé.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,13 +44,15 @@ import 'package:cmandili_mobile/features/courier/presentation/courier_screen.dar
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 const _widths = [320.0, 360.0, 393.0, 430.0];
+const _locales = ['fr', 'en', 'ar'];
+const _screenHeight = 900.0;
 
 Future<AppLocalizations> pumpCourier(
   WidgetTester tester, {
   required double width,
   String locale = 'fr',
 }) async {
-  tester.view.physicalSize = Size(width, 900);
+  tester.view.physicalSize = Size(width, _screenHeight);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
@@ -50,7 +62,7 @@ Future<AppLocalizations> pumpCourier(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
-        body: CourierScreen(screenWidth: width, screenHeight: 900),
+        body: CourierScreen(screenWidth: width, screenHeight: _screenHeight),
       ),
     ),
   ));
@@ -58,14 +70,10 @@ Future<AppLocalizations> pumpCourier(
   // qui n'aboutissent pas en test. Un pump suffit pour obtenir le layout.
   await tester.pump();
 
-  // Les débordements préexistants décrits en tête de fichier. Les laisser
-  // ferait échouer le test au démontage sur des défauts d'ailleurs.
-  tester.takeException();
-
   return AppLocalizations.delegate.load(Locale(locale));
 }
 
-/// Un texte tient-il entièrement dans la largeur de l'écran ?
+/// Un élément tient-il entièrement dans la largeur de l'écran ?
 void expectWithinScreen(
   WidgetTester tester,
   Finder finder,
@@ -77,7 +85,7 @@ void expectWithinScreen(
   final right = tester.getBottomRight(finder).dx;
   expect(left, greaterThanOrEqualTo(-0.5), reason: '$what sort à gauche');
   expect(right, lessThanOrEqualTo(width + 0.5),
-      reason: '$what dépasse de ${(right - width).toStringAsFixed(1)} px');
+      reason: '$what dépasse à droite de ${(right - width).toStringAsFixed(1)} px');
 }
 
 void main() {
@@ -91,14 +99,117 @@ void main() {
     );
   });
 
-  group('le choix du mode de remise tient à l\'écran', () {
-    for (final width in _widths) {
-      testWidgets('titre et badge dans l\'écran à ${width.toInt()} px',
-          (tester) async {
-        final l10n = await pumpCourier(tester, width: width);
+  // ── Le filet large ────────────────────────────────────────────────────────
+  group('aucune erreur de layout sur tout l\'écran', () {
+    for (final locale in _locales) {
+      for (final width in _widths) {
+        testWidgets('$locale à ${width.toInt()} px', (tester) async {
+          await pumpCourier(tester, width: width, locale: locale);
+          // Toute erreur de layout de la page entière échoue ici, y compris
+          // dans du code que ce changement n'a pas touché. C'est voulu : le
+          // filet n'a d'intérêt que s'il couvre ce qu'on n'a pas regardé.
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+  });
 
+  // ── Les trois corrections, nommées ────────────────────────────────────────
+  group('le titre de section', () {
+    for (final width in _widths) {
+      testWidgets('tient à ${width.toInt()} px', (tester) async {
+        final l10n = await pumpCourier(tester, width: width);
         expectWithinScreen(tester, find.text(l10n.colisHandoverSectionTitle),
             width, 'le titre de section');
+      });
+    }
+
+    testWidgets('s\'enroule au lieu d\'être coupé', (tester) async {
+      // 320 px est la largeur où l'ancien en-tête débordait le plus.
+      final l10n = await pumpCourier(tester, width: 320);
+      final title = find.text(l10n.colisHandoverSectionTitle);
+      expectWithinScreen(tester, title, 320, 'le titre de section');
+      expect(tester.getSize(title).height, greaterThan(20),
+          reason: 'le titre ne s\'enroule pas, il est donc coupé');
+    });
+  });
+
+  group('le bouton d\'envoi', () {
+    for (final width in _widths) {
+      testWidgets('son contenu tient à ${width.toInt()} px', (tester) async {
+        await pumpCourier(tester, width: width);
+
+        // Le libellé et l'icône partagent une Row à l'intérieur du bouton.
+        // Avec le prix estimé à côté, elle débordait de 18 à 31 px.
+        expectWithinScreen(tester, find.text('Confirmer l\'envoi'), width,
+            'le libellé du bouton d\'envoi');
+        expectWithinScreen(tester, find.byIcon(Icons.send_rounded), width,
+            'l\'icône du bouton d\'envoi');
+      });
+    }
+
+    testWidgets('le libellé est réduit, jamais tronqué', (tester) async {
+      await pumpCourier(tester, width: 320);
+      // Un FittedBox réduit l'échelle ; une ellipse aurait donné
+      // « Confirmer l'env… » sur le bouton qui engage la commande.
+      final label = tester.widget<Text>(find.text('Confirmer l\'envoi'));
+      expect(label.overflow, anyOf(isNull, TextOverflow.clip),
+          reason: 'le libellé du bouton ne doit pas être ellipsé');
+      expect(
+        find.ancestor(
+            of: find.text('Confirmer l\'envoi'),
+            matching: find.byType(FittedBox)),
+        findsWidgets,
+        reason: 'sans FittedBox la Row du bouton déborde dès que le prix '
+            's\'affiche',
+      );
+    });
+  });
+
+  group('le cadre « ajouter une photo »', () {
+    for (final width in _widths) {
+      testWidgets('son contenu ne dépasse pas par le bas à ${width.toInt()} px',
+          (tester) async {
+        await pumpCourier(tester, width: width);
+
+        final box = find.ancestor(
+          of: find.text('Ajouter une photo du colis'),
+          matching: find.byType(Container),
+        );
+        expect(box, findsWidgets, reason: 'le cadre photo est absent');
+
+        // Le cadre était dimensionné par la hauteur de l'écran, son contenu
+        // par la largeur : le texte du bas sortait de la bordure.
+        final frame = tester.getRect(box.first);
+        final caption =
+            tester.getRect(find.text('Appuyer pour prendre/choisir une photo'));
+        expect(caption.bottom, lessThanOrEqualTo(frame.bottom + 0.5),
+            reason: 'la légende dépasse du cadre de '
+                '${(caption.bottom - frame.bottom).toStringAsFixed(1)} px');
+      });
+    }
+
+    testWidgets('le cadre garde sa taille de référence quand ça rentre',
+        (tester) async {
+      // minHeight, pas height : la correction ne doit pas avoir rapetissé le
+      // cadre là où il tenait déjà.
+      await pumpCourier(tester, width: 320);
+      final box = find
+          .ancestor(
+            of: find.text('Ajouter une photo du colis'),
+            matching: find.byType(Container),
+          )
+          .first;
+      expect(tester.getSize(box).height,
+          greaterThanOrEqualTo(_screenHeight * 0.14 - 0.5));
+    });
+  });
+
+  group('le mode de remise', () {
+    for (final width in _widths) {
+      testWidgets('titres et badge dans l\'écran à ${width.toInt()} px',
+          (tester) async {
+        final l10n = await pumpCourier(tester, width: width);
         expectWithinScreen(tester, find.text(l10n.colisModeRecommended), width,
             'le badge Recommandé');
         expectWithinScreen(tester, find.text(l10n.colisModeCodeTitle), width,
@@ -107,19 +218,6 @@ void main() {
             'le titre « Remise sans code »');
       });
     }
-
-    testWidgets('le titre de section passe à la ligne au lieu de déborder',
-        (tester) async {
-      // 320 px est la largeur où l'ancien en-tête débordait le plus.
-      final l10n = await pumpCourier(tester, width: 320);
-      final title = find.text(l10n.colisHandoverSectionTitle);
-      expectWithinScreen(tester, title, 320, 'le titre de section');
-      // Deux lignes à cette largeur : s'il tenait sur une, c'est qu'il aurait
-      // été tronqué ou réduit.
-      final size = tester.getSize(title);
-      expect(size.height, greaterThan(20),
-          reason: 'le titre ne s\'enroule pas, il est donc coupé');
-    });
 
     testWidgets('le badge n\'apparaît que sur le mode recommandé',
         (tester) async {
@@ -132,22 +230,29 @@ void main() {
     testWidgets('les explications des deux modes ne sont pas tronquées',
         (tester) async {
       final l10n = await pumpCourier(tester, width: 360);
-
-      // Pas de maxLines ni d'ellipse : une explication coupée à « Sans le bon
-      // code, le livreur ne peut… » perd précisément ce qu'elle disait.
+      // Une explication coupée à « Sans le bon code, le livreur ne peut… »
+      // perd précisément ce qu'elle disait.
       for (final s in [l10n.colisModeCodeSubtitle, l10n.colisModeNoCodeSubtitle]) {
         final w = tester.widget<Text>(find.text(s));
         expect(w.maxLines, isNull, reason: 'texte tronqué : $s');
         expect(w.overflow, anyOf(isNull, TextOverflow.clip));
       }
     });
+  });
 
-    testWidgets('l\'arabe tient aussi, en RTL et à 320 px', (tester) async {
-      final l10n = await pumpCourier(tester, width: 320, locale: 'ar');
-      expectWithinScreen(tester, find.text(l10n.colisHandoverSectionTitle), 320,
-          'le titre arabe');
-      expectWithinScreen(
-          tester, find.text(l10n.colisModeRecommended), 320, 'le badge arabe');
-    });
+  group('en arabe, le texte tient des deux côtés', () {
+    for (final width in _widths) {
+      testWidgets('RTL à ${width.toInt()} px', (tester) async {
+        final l10n = await pumpCourier(tester, width: width, locale: 'ar');
+        // En RTL, un dépassement sort par la GAUCHE : expectWithinScreen
+        // vérifie les deux bords.
+        expectWithinScreen(tester, find.text(l10n.colisHandoverSectionTitle),
+            width, 'le titre arabe');
+        expectWithinScreen(
+            tester, find.text(l10n.colisModeRecommended), width, 'le badge arabe');
+        expectWithinScreen(tester, find.text(l10n.colisModeCodeTitle), width,
+            'le titre « avec code » arabe');
+      });
+    }
   });
 }

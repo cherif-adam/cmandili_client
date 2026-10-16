@@ -684,29 +684,39 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
                 ),
                 child: (_isSubmitting || _isUploadingPhoto)
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.send_rounded),
-                          SizedBox(width: w * 0.02),
-                          Text(
-                            'Confirmer l\'envoi',
-                            style: TextStyle(
-                              fontSize: w * 0.045,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (_estimatedPrice != null) ...[
+                    // FittedBox plutôt qu'une ellipse : « Confirmer l'env… »
+                    // ou un prix tronqué sur le bouton d'envoi serait pire que
+                    // des caractères un peu plus petits. La Row débordait de
+                    // 18 à 31 px dès que le prix estimé s'affichait à côté du
+                    // libellé — mainAxisSize.min pour qu'elle soit mesurée à
+                    // sa largeur naturelle avant d'être réduite.
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.send_rounded),
                             SizedBox(width: w * 0.02),
                             Text(
-                              '• ${_estimatedPrice!.toStringAsFixed(3)} TND',
+                              'Confirmer l\'envoi',
                               style: TextStyle(
-                                fontSize: w * 0.038,
-                                fontWeight: FontWeight.w500,
+                                fontSize: w * 0.045,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
+                            if (_estimatedPrice != null) ...[
+                              SizedBox(width: w * 0.02),
+                              Text(
+                                '• ${_estimatedPrice!.toStringAsFixed(3)} TND',
+                                style: TextStyle(
+                                  fontSize: w * 0.038,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
               ),
             ),
@@ -1000,7 +1010,13 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
       onTap: _showPhotoPicker,
       child: Container(
         width: double.infinity,
-        height: h * 0.14,
+        // minHeight et non height : la boîte était dimensionnée par la HAUTEUR
+        // de l'écran (h * 0.14) alors que son contenu — icône et deux lignes —
+        // est dimensionné par la LARGEUR. Sur un téléphone large le contenu
+        // débordait par le bas de 0,1 à 9,8 px. Avec un minimum, la boîte
+        // garde la même taille quand ça rentre et grandit quand il faut.
+        constraints: BoxConstraints(minHeight: h * 0.14),
+        padding: EdgeInsets.symmetric(vertical: h * 0.012),
         decoration: BoxDecoration(
           color: Colors.grey.shade50,
           borderRadius: BorderRadius.circular(w * 0.04),
@@ -1010,6 +1026,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
