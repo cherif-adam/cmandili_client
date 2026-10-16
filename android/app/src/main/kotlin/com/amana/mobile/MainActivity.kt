@@ -1,4 +1,4 @@
-package com.cmandili.mobile
+package com.amana.mobile
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,7 +10,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.cmandili.mobile/speech"
+    private val CHANNEL = "com.amana.mobile/speech"
     private var speechRecognizer: SpeechRecognizer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

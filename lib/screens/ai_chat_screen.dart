@@ -95,7 +95,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   // ── Task 3: Voice — native Android speech via MethodChannel ───────────────
   // Uses Android's built-in SpeechRecognizer (no external package needed).
   // MethodChannel defined in MainActivity.kt (see comment below).
-  static const _speechChannel = MethodChannel('com.cmandili.mobile/speech');
+  static const _speechChannel = MethodChannel('com.amana.mobile/speech');
   bool _isListening = false;
   late AnimationController _micPulseController;
 

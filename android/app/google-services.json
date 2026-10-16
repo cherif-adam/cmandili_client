@@ -7,6 +7,93 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:785469526658:android:7fc4a8b941dd59ad3f5a9b",
+        "android_client_info": {
+          "package_name": "com.amana.driver"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxJormHyNaQHljybifi1g5hRmRjBhX2oM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:785469526658:android:cd57e68c3c55c4503f5a9b",
+        "android_client_info": {
+          "package_name": "com.amana.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxJormHyNaQHljybifi1g5hRmRjBhX2oM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:785469526658:android:f196a1fea358d0683f5a9b",
+        "android_client_info": {
+          "package_name": "com.amana.partner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxJormHyNaQHljybifi1g5hRmRjBhX2oM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "785469526658-r0cl6q3cgourm68om0oo3pk4077auo4r.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:785469526658:android:3d0649c6cd7ae9d43f5a9b",
         "android_client_info": {
           "package_name": "com.cmandili.driver"
