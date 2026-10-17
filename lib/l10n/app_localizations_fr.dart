@@ -1430,4 +1430,28 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get city => 'Tunisie';
+
+  @override
+  String get deleteAccount => 'Supprimer mon compte';
+
+  @override
+  String get deleteAccountTitle => 'Supprimer votre compte ?';
+
+  @override
+  String get deleteAccountBody =>
+      'Votre profil, vos adresses, vos destinataires enregistrés, vos photos, vos notes vocales, vos messages avec l\'assistant, vos avis et vos notifications seront supprimés définitivement.\n\nVos commandes passées sont conservées pour la comptabilité des commerces et des livreurs, sans lien avec vous.\n\nCette action est irréversible.';
+
+  @override
+  String get deleteAccountConfirm => 'Supprimer';
+
+  @override
+  String get deleteAccountDone => 'Votre compte a été supprimé.';
+
+  @override
+  String get deleteAccountActiveOrder =>
+      'Vous avez une commande en cours. Vous pourrez supprimer votre compte une fois qu\'elle sera livrée ou annulée.';
+
+  @override
+  String get deleteAccountFailed =>
+      'Impossible de supprimer votre compte. Réessayez ou contactez-nous.';
 }

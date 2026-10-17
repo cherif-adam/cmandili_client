@@ -1402,4 +1402,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get city => 'Tunisia';
+
+  @override
+  String get deleteAccount => 'Delete my account';
+
+  @override
+  String get deleteAccountTitle => 'Delete your account?';
+
+  @override
+  String get deleteAccountBody =>
+      'Your profile, addresses, saved recipients, photos, voice notes, assistant messages, reviews and notifications will be permanently deleted.\n\nYour past orders are kept for the shops\' and drivers\' accounting, no longer linked to you.\n\nThis cannot be undone.';
+
+  @override
+  String get deleteAccountConfirm => 'Delete';
+
+  @override
+  String get deleteAccountDone => 'Your account has been deleted.';
+
+  @override
+  String get deleteAccountActiveOrder =>
+      'You have an order in progress. You can delete your account once it is delivered or cancelled.';
+
+  @override
+  String get deleteAccountFailed =>
+      'Your account could not be deleted. Please try again or contact us.';
 }

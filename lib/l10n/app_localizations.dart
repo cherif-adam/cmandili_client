@@ -2655,6 +2655,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tunisia'**
   String get city;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete my account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile, addresses, saved recipients, photos, voice notes, assistant messages, reviews and notifications will be permanently deleted.\n\nYour past orders are kept for the shops\' and drivers\' accounting, no longer linked to you.\n\nThis cannot be undone.'**
+  String get deleteAccountBody;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @deleteAccountDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been deleted.'**
+  String get deleteAccountDone;
+
+  /// No description provided for @deleteAccountActiveOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'You have an order in progress. You can delete your account once it is delivered or cancelled.'**
+  String get deleteAccountActiveOrder;
+
+  /// No description provided for @deleteAccountFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account could not be deleted. Please try again or contact us.'**
+  String get deleteAccountFailed;
 }
 
 class _AppLocalizationsDelegate

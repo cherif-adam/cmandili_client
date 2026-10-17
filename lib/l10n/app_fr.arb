@@ -487,5 +487,12 @@
             "count": { "type": "int" }
         }
     },
-    "city": "Tunisie"
+    "city": "Tunisie",
+    "deleteAccount": "Supprimer mon compte",
+    "deleteAccountTitle": "Supprimer votre compte ?",
+    "deleteAccountBody": "Votre profil, vos adresses, vos destinataires enregistrés, vos photos, vos notes vocales, vos messages avec l'assistant, vos avis et vos notifications seront supprimés définitivement.\n\nVos commandes passées sont conservées pour la comptabilité des commerces et des livreurs, sans lien avec vous.\n\nCette action est irréversible.",
+    "deleteAccountConfirm": "Supprimer",
+    "deleteAccountDone": "Votre compte a été supprimé.",
+    "deleteAccountActiveOrder": "Vous avez une commande en cours. Vous pourrez supprimer votre compte une fois qu'elle sera livrée ou annulée.",
+    "deleteAccountFailed": "Impossible de supprimer votre compte. Réessayez ou contactez-nous."
 }

@@ -8,7 +8,8 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/providers/localization_provider.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../auth/data/auth_repository.dart' show User;
+import '../../auth/data/auth_repository.dart'
+    show AccountDeletionError, AccountDeletionException, User;
 import '../../auth/presentation/change_password_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../bills/presentation/mes_factures_screen.dart';
@@ -19,6 +20,7 @@ import '../data/profile_repository.dart';
 import 'edit_profile_screen.dart';
 import 'help_support_screen.dart';
 import 'saved_addresses_screen.dart';
+import 'widgets/delete_account_dialog.dart';
 import 'widgets/language_picker_sheet.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/profile_menu_item.dart';
@@ -32,6 +34,7 @@ import 'widgets/profile_switch_item.dart';
 ///   "Paramètres"    notifications, bill reminders, language, theme,
 ///                   password, help
 ///   Déconnexion
+///   Supprimer mon compte   (required by Google Play)
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -74,6 +77,45 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       await ref.read(authRepositoryProvider).signOut();
     } catch (e) {
       debugPrint('Logout failed: $e');
+    }
+  }
+
+  /// Confirms, deletes the account, then lands on the login screen exactly
+  /// like a logout (main.dart reacts to the signed-out state). Refused while
+  /// an order is in progress; the account is then left untouched.
+  Future<void> _deleteAccount() async {
+    final l = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    if (!await showDeleteAccountDialog(context) || !mounted) return;
+
+    // Blocks the screen for the few seconds the deletion takes.
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+
+    try {
+      await ref.read(authRepositoryProvider).deleteAccount();
+      navigator.popUntil((route) => route.isFirst);
+      messenger.showSnackBar(SnackBar(content: Text(l.deleteAccountDone)));
+    } on AccountDeletionException catch (e) {
+      navigator.pop(); // the progress dialog
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.error == AccountDeletionError.activeOrder
+              ? l.deleteAccountActiveOrder
+              : l.deleteAccountFailed),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        ),
+      );
     }
   }
 
@@ -260,6 +302,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   color: AppColors.error,
                   showArrow: false,
                   onTap: _logout,
+                ),
+                item(
+                  icon: Icons.delete_forever_outlined,
+                  title: l.deleteAccount,
+                  color: AppColors.textSecondary,
+                  showArrow: false,
+                  onTap: _deleteAccount,
                 ),
                 SizedBox(height: screenHeight * 0.12),
               ]),

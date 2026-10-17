@@ -332,4 +332,122 @@ class AuthRepository {
       return false;
     }
   }
+
+  // ── Account deletion ───────────────────────────────────────────────────────
+
+  /// Supprime definitivement le compte du client connecte (exige par Google
+  /// Play), puis le deconnecte.
+  ///
+  /// La base fait le travail : `delete_my_account()` supprime l'utilisateur
+  /// auth et, par les ON DELETE CASCADE, tout ce qui est personnel. Les
+  /// commandes restent pour les commerces et les livreurs, sans lien avec la
+  /// personne (migration 20261017120000_delete_my_account.sql).
+  ///
+  /// Les fichiers du stockage ne partent pas avec une ligne SQL : l'appli
+  /// efface d'abord ceux qu'elle peut atteindre (photo de profil, photos de
+  /// colis et de factures, notes vocales). Sans bloquer : un fichier qui
+  /// resiste ne doit pas empecher la suppression du compte.
+  ///
+  /// Lance [AccountDeletionException] si une commande est en cours ou si la
+  /// suppression echoue.
+  Future<void> deleteAccount() async {
+    final uid = _supabase.auth.currentUser?.id;
+    if (uid == null) {
+      throw const AccountDeletionException(AccountDeletionError.failed);
+    }
+
+    // Verifie AVANT de toucher aux fichiers : refusee, la suppression doit
+    // laisser le compte intact. La fonction SQL refait ce controle.
+    final List<dynamic> orders;
+    try {
+      orders = await _supabase
+          .from('orders')
+          .select('id, status, order_items(voice_note_url)')
+          .eq('user_id', uid);
+    } catch (e) {
+      debugPrint('deleteAccount: orders lookup failed ($e)');
+      throw const AccountDeletionException(AccountDeletionError.failed);
+    }
+    final hasActiveOrder = orders.any((o) =>
+        o['status'] != 'delivered' && o['status'] != 'cancelled');
+    if (hasActiveOrder) {
+      throw const AccountDeletionException(AccountDeletionError.activeOrder);
+    }
+
+    await _deleteOwnFiles(uid, orders);
+
+    try {
+      await _supabase.rpc('delete_my_account');
+    } on supabase.PostgrestException catch (e) {
+      debugPrint('deleteAccount: ${e.code} ${e.message}');
+      throw AccountDeletionException(e.message.contains('active_order')
+          ? AccountDeletionError.activeOrder
+          : AccountDeletionError.failed);
+    } catch (e) {
+      debugPrint('deleteAccount: $e');
+      throw const AccountDeletionException(AccountDeletionError.failed);
+    }
+
+    // Le compte n'existe plus : signOut() ferme la session locale (il ignore
+    // le refus du serveur pour un utilisateur supprime) et Google.
+    await signOut();
+  }
+
+  /// Efface, sans jamais echouer, les fichiers du client dans le stockage.
+  Future<void> _deleteOwnFiles(String uid, List<dynamic> orders) async {
+    final storage = _supabase.storage;
+
+    Future<void> remove(String bucket, List<String> paths) async {
+      if (paths.isEmpty) return;
+      try {
+        await storage.from(bucket).remove(paths);
+      } catch (e) {
+        debugPrint('deleteAccount: $bucket not cleaned ($e)');
+      }
+    }
+
+    // Photo de profil : chemin fixe (ProfileRepository.uploadProfilePicture).
+    await remove('profiles', ['avatars/$uid/avatar.jpg']);
+
+    // Photos de colis et de factures : rangees sous <uid>/.
+    try {
+      final files = await storage.from('package-photos').list(path: uid);
+      await remove('package-photos', [for (final f in files) '$uid/${f.name}']);
+    } catch (e) {
+      debugPrint('deleteAccount: package-photos not listed ($e)');
+    }
+
+    // Notes vocales : rangees par commande, l'URL publique donne le chemin.
+    const marker = '/voice-messages/';
+    final voicePaths = <String>[
+      for (final o in orders)
+        for (final item in (o['order_items'] as List? ?? const []))
+          if (item['voice_note_url'] is String &&
+              (item['voice_note_url'] as String).contains(marker))
+            Uri.decodeComponent((item['voice_note_url'] as String)
+                .split(marker)
+                .last
+                .split('?')
+                .first),
+    ];
+    await remove('voice-messages', voicePaths);
+  }
+}
+
+/// Pourquoi la suppression du compte n'a pas eu lieu.
+enum AccountDeletionError {
+  /// Une commande n'est ni livree ni annulee.
+  activeOrder,
+
+  /// Reseau, base, ou migration delete_my_account pas encore appliquee.
+  failed,
+}
+
+class AccountDeletionException implements Exception {
+  final AccountDeletionError error;
+
+  const AccountDeletionException(this.error);
+
+  @override
+  String toString() => 'AccountDeletionException($error)';
 }

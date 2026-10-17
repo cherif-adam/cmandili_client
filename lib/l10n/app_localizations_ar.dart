@@ -1399,4 +1399,28 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get city => 'تونس';
+
+  @override
+  String get deleteAccount => 'حذف حسابي';
+
+  @override
+  String get deleteAccountTitle => 'حذف حسابك؟';
+
+  @override
+  String get deleteAccountBody =>
+      'سيتم حذف ملفك الشخصي وعناوينك والمستلمين المحفوظين وصورك ورسائلك الصوتية ورسائلك مع المساعد وتقييماتك وإشعاراتك نهائياً.\n\nتُحفظ طلباتك السابقة لمحاسبة المحلات والسائقين، دون أي ربط بك.\n\nلا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get deleteAccountConfirm => 'حذف';
+
+  @override
+  String get deleteAccountDone => 'تم حذف حسابك.';
+
+  @override
+  String get deleteAccountActiveOrder =>
+      'لديك طلب قيد التنفيذ. يمكنك حذف حسابك بعد تسليمه أو إلغائه.';
+
+  @override
+  String get deleteAccountFailed =>
+      'تعذّر حذف حسابك. حاول مجدداً أو تواصل معنا.';
 }
