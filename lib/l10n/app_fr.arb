@@ -106,8 +106,6 @@
     "addNewAddress": "Ajouter une nouvelle adresse",
     "addressRemoved": "Adresse supprimée",
     "setDefault": "Définir par défaut",
-    "noPaymentMethods": "Aucun moyen de paiement enregistré",
-    "addNewCard": "Ajouter une nouvelle carte",
     "noRestaurantsFound": "Aucun restaurant trouvé",
     "confirmPasswordShort": "Confirmer le mot de passe",
     "pleaseEnterEmail": "Veuillez saisir votre e-mail",
@@ -153,7 +151,6 @@
     "account": "Compte",
     "orderHistory": "Historique des commandes",
     "editProfile": "Modifier le profil",
-    "paymentMethods": "Moyens de paiement",
     "user": "Utilisateur",
     "viewDeals": "Voir les offres",
     "saveUpTo60": "Économisez jusqu'à 60% sur la nourriture et l'épicerie !",
@@ -279,9 +276,6 @@
     "factureHeroTitle": "Payer une facture",
     "supermarketSuccessTitle": "Ta commande est en route !",
     "factureSuccessTitle": "Ta facture est prise en charge !",
-    "cardholderName": "Nom du titulaire",
-    "cardNumber": "Numéro de carte",
-    "expiryDate": "Date d'expiration (MM/AA)",
     "phoneNumberLabel": "Numéro de téléphone",
     "bio": "Bio",
     "subject": "Sujet",
@@ -476,7 +470,7 @@
     "aiSearchNoResultsText": "Aucun plat ne correspond à ta demande",
     "aiSearchFallbackMessage": "Aucun résultat exact — voici des plats populaires",
     "aiSearchModalTitle": "Rechercher par photo",
-    "aiSearchModalHint": "Envoie une photo d'un plat pour le trouver à {city}",
+    "aiSearchModalHint": "Envoie une photo d'un plat pour le trouver en {city}",
     "@aiSearchModalHint": {
         "placeholders": {
             "city": { "type": "String" }
@@ -493,5 +487,5 @@
             "count": { "type": "int" }
         }
     },
-    "city": "Kairouan"
+    "city": "Tunisie"
 }

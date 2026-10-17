@@ -742,18 +742,6 @@ abstract class AppLocalizations {
   /// **'Set Default'**
   String get setDefault;
 
-  /// No description provided for @noPaymentMethods.
-  ///
-  /// In en, this message translates to:
-  /// **'No payment methods saved'**
-  String get noPaymentMethods;
-
-  /// No description provided for @addNewCard.
-  ///
-  /// In en, this message translates to:
-  /// **'Add New Card'**
-  String get addNewCard;
-
   /// No description provided for @noRestaurantsFound.
   ///
   /// In en, this message translates to:
@@ -1023,12 +1011,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit Profile'**
   String get editProfile;
-
-  /// No description provided for @paymentMethods.
-  ///
-  /// In en, this message translates to:
-  /// **'Payment Methods'**
-  String get paymentMethods;
 
   /// No description provided for @user.
   ///
@@ -1749,24 +1731,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your bill is being handled!'**
   String get factureSuccessTitle;
-
-  /// No description provided for @cardholderName.
-  ///
-  /// In en, this message translates to:
-  /// **'Cardholder Name'**
-  String get cardholderName;
-
-  /// No description provided for @cardNumber.
-  ///
-  /// In en, this message translates to:
-  /// **'Card Number'**
-  String get cardNumber;
-
-  /// No description provided for @expiryDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Expiry Date (MM/YY)'**
-  String get expiryDate;
 
   /// No description provided for @phoneNumberLabel.
   ///
@@ -2689,7 +2653,7 @@ abstract class AppLocalizations {
   /// No description provided for @city.
   ///
   /// In en, this message translates to:
-  /// **'Kairouan'**
+  /// **'Tunisia'**
   String get city;
 }
 

@@ -338,12 +338,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get setDefault => 'تعيين كافتراضي';
 
   @override
-  String get noPaymentMethods => 'لا توجد طرق دفع محفوظة';
-
-  @override
-  String get addNewCard => 'إضافة بطاقة جديدة';
-
-  @override
   String get noRestaurantsFound => 'لا توجد مطاعم';
 
   @override
@@ -493,9 +487,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get editProfile => 'تعديل الملف الشخصي';
-
-  @override
-  String get paymentMethods => 'طرق الدفع';
 
   @override
   String get user => 'المستخدم';
@@ -881,15 +872,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get factureSuccessTitle => 'تم تحصيل فاتورتك!';
-
-  @override
-  String get cardholderName => 'اسم حامل البطاقة';
-
-  @override
-  String get cardNumber => 'رقم البطاقة';
-
-  @override
-  String get expiryDate => 'تاريخ الانتهاء (MM/YY)';
 
   @override
   String get phoneNumberLabel => 'رقم الهاتف';
@@ -1416,5 +1398,5 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get city => 'القيروان';
+  String get city => 'تونس';
 }

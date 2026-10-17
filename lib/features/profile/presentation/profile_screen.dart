@@ -18,7 +18,6 @@ import '../../orders/presentation/order_history_screen.dart';
 import '../data/profile_repository.dart';
 import 'edit_profile_screen.dart';
 import 'help_support_screen.dart';
-import 'payment_methods_screen.dart';
 import 'saved_addresses_screen.dart';
 import 'widgets/language_picker_sheet.dart';
 import 'widgets/profile_header.dart';
@@ -29,7 +28,7 @@ import 'widgets/profile_switch_item.dart';
 /// The "Profil" tab, top to bottom:
 ///
 ///   ProfileHeader   green, avatar (tap to change), name, email
-///   "Compte"        orders, bills, edit profile, addresses, payment
+///   "Compte"        orders, bills, edit profile, addresses
 ///   "Paramètres"    notifications, bill reminders, language, theme,
 ///                   password, help
 ///   Déconnexion
@@ -208,11 +207,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   icon: Icons.location_on_outlined,
                   title: l.savedAddresses,
                   onTap: () => _open(const SavedAddressesScreen()),
-                ),
-                item(
-                  icon: Icons.payment_outlined,
-                  title: l.paymentMethods,
-                  onTap: () => _open(const PaymentMethodsScreen()),
                 ),
                 SizedBox(height: screenHeight * 0.03),
 
