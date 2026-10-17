@@ -21,7 +21,9 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.amana.mobile"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned rather than flutter.compileSdkVersion: Google Play requires
+    // target API 36 and Flutter 3.32 still defaults to 35.
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -40,7 +42,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
@@ -67,13 +69,12 @@ android {
             // Debug keeps all ABIs so the app runs on x86_64 emulators.
         }
         release {
-            // Ship only 64-bit ARM. Real Android phones since 2019 are arm64-v8a;
-            // x86_64 is emulator-only, armeabi-v7a is legacy 32-bit. Dropping both
-            // removes ~2/3 of the native-lib payload (Mapbox, flutter_sound,
-            // Firebase, etc. each ship one .so per ABI), shrinking the default
-            // universal APK from ~150 MB to ~50 MB.
+            // ARM only: arm64-v8a for current phones, armeabi-v7a so older 32-bit
+            // phones can still install. x86_64 is emulator-only and stays out.
+            // Play splits the App Bundle per ABI, so each phone downloads only
+            // its own native libraries.
             ndk {
-                abiFilters += listOf("arm64-v8a")
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
             }
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
@@ -82,8 +83,8 @@ android {
             }
             // R8 minification is OFF: with Mapbox + Firebase + supabase_flutter
             // it requires hand-tuned -keep rules and crashed the Gradle daemon
-            // on a 16 GB machine. The size win was already taken by
-            // arm64-v8a-only `abiFilters` above (~2/3 APK reduction).
+            // on a 16 GB machine. The size win comes from the ARM-only
+            // `abiFilters` above instead. No R8 means no mapping.txt.
             isMinifyEnabled = false
             isShrinkResources = false
         }
