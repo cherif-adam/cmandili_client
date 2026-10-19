@@ -16,6 +16,7 @@ import '../../orders/providers/order_provider.dart';
 import '../../promo/presentation/promo_error_text.dart';
 import '../../promo/providers/promo_provider.dart';
 import '../../loyalty/data/loyalty_eligibility.dart';
+import '../../profile/data/profile_repository.dart';
 import 'widgets/checkout_address_picker.dart';
 import 'widgets/checkout_section_title.dart';
 import 'widgets/order_notes_field.dart';
@@ -61,6 +62,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   // forever if this isn't a milestone order.
   LoyaltyMilestonePreview? _loyaltyPreview;
 
+  final _profileRepo = ProfileRepository();
+
   @override
   void initState() {
     super.initState();
@@ -74,22 +77,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   Future<void> _prefillContactFromProfile() async {
-    final supabase = Supabase.instance.client;
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) return;
     try {
-      final row = await supabase
-          .from('profiles')
-          .select('full_name, phone')
-          .eq('id', userId)
-          .maybeSingle();
-      if (!mounted || row == null) return;
+      final contact = await _profileRepo.getContact();
+      if (!mounted || contact == null) return;
       setState(() {
         if (_nameController.text.isEmpty) {
-          _nameController.text = (row['full_name'] as String?) ?? '';
+          _nameController.text = contact.fullName ?? '';
         }
         if (_phoneController.text.isEmpty) {
-          _phoneController.text = (row['phone'] as String?) ?? '';
+          _phoneController.text = contact.phone ?? '';
         }
       });
     } catch (_) {}
@@ -324,14 +320,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
 
       // Persist contact back to profile (fire-and-forget).
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId != null) {
-        Supabase.instance.client.from('profiles').update({
-          'phone': phone,
-          if (_nameController.text.trim().isNotEmpty)
-            'full_name': _nameController.text.trim(),
-        }).eq('id', userId).then((_) {}, onError: (_) {});
-      }
+      _profileRepo
+          .saveContact(
+            phone: phone,
+            fullName: _nameController.text.trim().isNotEmpty
+                ? _nameController.text.trim()
+                : null,
+          )
+          .then((_) {}, onError: (_) {});
 
       // ── Create order ───────────────────────────────────────────────────
       // finalDeliveryFee/finalTotal above are the STICKER price sent to the

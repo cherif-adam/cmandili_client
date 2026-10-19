@@ -4,6 +4,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/home/presentation/home_screen.dart';
+import 'features/profile/data/profile_repository.dart';
 import 'features/profile/presentation/phone_gate_screen.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -130,15 +131,8 @@ class _PostAuthGateState extends State<_PostAuthGate> {
   }
 
   Future<bool> _checkPhone() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return false;
     try {
-      final row = await Supabase.instance.client
-          .from('profiles')
-          .select('phone')
-          .eq('id', userId)
-          .maybeSingle();
-      final phone = row?['phone'] as String?;
+      final phone = await ProfileRepository().getPhone();
       return phone != null && phone.trim().isNotEmpty;
     } catch (_) {
       return false;

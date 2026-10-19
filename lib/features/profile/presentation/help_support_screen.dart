@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
+import '../data/support_repository.dart';
 import 'widgets/contact_option_tile.dart';
 
 /// "Aide & support": a form that opens a support ticket (subject +
@@ -15,6 +15,7 @@ class HelpSupportScreen extends StatefulWidget {
 }
 
 class _HelpSupportScreenState extends State<HelpSupportScreen> {
+  final _supportRepo = SupportRepository();
   final _formKey = GlobalKey<FormState>();
   final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
@@ -32,13 +33,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      await Supabase.instance.client.from('support_tickets').insert({
-        'user_id': user?.id,
-        'subject': _subjectController.text.trim(),
-        'message': _messageController.text.trim(),
-        'status': 'open',
-      });
+      await _supportRepo.createTicket(
+        subject: _subjectController.text.trim(),
+        message: _messageController.text.trim(),
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -24,6 +24,49 @@ class ProfileRepository {
     }
   }
 
+  /// The phone number on the current user's profile, or null when signed
+  /// out, when the row is missing or when it has no phone. Errors propagate:
+  /// the caller decides what a failure means.
+  Future<String?> getPhone() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+    final row = await _supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', userId)
+        .maybeSingle();
+    return row?['phone'] as String?;
+  }
+
+  /// Name and phone of the current user, used to prefill checkout. Null when
+  /// signed out or when the row is missing. Errors propagate.
+  Future<({String? fullName, String? phone})?> getContact() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+    final row = await _supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('id', userId)
+        .maybeSingle();
+    if (row == null) return null;
+    return (
+      fullName: row['full_name'] as String?,
+      phone: row['phone'] as String?,
+    );
+  }
+
+  /// Writes the contact typed at checkout back to the profile. Unlike
+  /// [updateProfile] it touches only these two columns and never inserts a
+  /// row. Does nothing when signed out. Errors propagate.
+  Future<void> saveContact({required String phone, String? fullName}) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    await _supabase.from('profiles').update({
+      'phone': phone,
+      if (fullName != null) 'full_name': fullName,
+    }).eq('id', userId);
+  }
+
   // Update user profile
   Future<bool> updateProfile({
     String? fullName,
