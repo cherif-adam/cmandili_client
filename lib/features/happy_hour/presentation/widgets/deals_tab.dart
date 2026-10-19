@@ -5,7 +5,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/models/vendor.dart';
 import '../../../cart/data/models/cart_item.dart';
 import '../../../cart/presentation/add_to_cart_guard.dart';
-import '../../../cart/presentation/cart_screen.dart';
+import '../../../cart/presentation/cart/cart_screen.dart';
 import '../../providers/happy_hour_provider.dart';
 import 'happy_hour_card.dart';
 

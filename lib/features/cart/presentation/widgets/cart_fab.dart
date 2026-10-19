@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../providers/cart_provider.dart';
-import '../cart_screen.dart';
+import '../cart/cart_screen.dart';
 
 /// Bouton panier flottant, visible dès qu'il y a quelque chose dedans.
 ///

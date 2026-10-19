@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../data/models/cart_item.dart';
-import '../../data/models/order_customization.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../data/models/cart_item.dart';
+import '../../../data/models/order_customization.dart';
 import 'order_customization_widget.dart';
 
 /// One line of the cart. Swipe left to remove it.

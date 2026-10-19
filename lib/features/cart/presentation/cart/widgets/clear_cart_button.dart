@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../providers/cart_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../providers/cart_provider.dart';
 
 /// The red "🗑 Vider" button in the cart's app bar. Asks for confirmation,
 /// then empties the cart.

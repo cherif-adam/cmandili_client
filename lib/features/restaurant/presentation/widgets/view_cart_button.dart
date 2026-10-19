@@ -4,7 +4,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../cart/presentation/cart_screen.dart';
+import '../../../cart/presentation/cart/cart_screen.dart';
 import '../../../cart/providers/cart_provider.dart';
 
 /// The wide orange "(6)  Voir le panier  75,50 DT" button floating at the
