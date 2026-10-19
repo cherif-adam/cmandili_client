@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../data/bill_type.dart';
+import '../../../data/bill_type.dart';
 
 /// One bill type in the grid: icon + name, tinted with the bill's color
 /// when selected.

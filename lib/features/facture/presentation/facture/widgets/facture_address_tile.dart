@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../checkout/data/models/delivery_address.dart';
+import '../../../../checkout/data/models/delivery_address.dart';
 import 'facture_colors.dart';
 
 /// A tappable address box: grey placeholder + chevron when empty, tinted

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../loyalty/data/loyalty_eligibility.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../loyalty/data/loyalty_eligibility.dart';
 import 'facture_colors.dart';
 
 /// The light-orange box before the submit button:

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../data/bill_type.dart';
+import '../../../data/bill_type.dart';
 import 'bill_type_card.dart';
 
 /// The 2-column grid of bill types (Topnet, STEG, SONEDE, Autre).
