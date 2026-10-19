@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../providers/order_provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../data/models/order.dart';
+import '../../providers/order_provider.dart';
 import 'widgets/empty_orders_view.dart';
 import 'widgets/loyalty_progress_card.dart';
 import 'widgets/order_history_card.dart';
@@ -16,6 +17,9 @@ import 'widgets/orders_error_view.dart';
 ///   or EmptyOrdersView / OrdersErrorView
 ///
 /// Pull down to refresh.
+///
+/// UI only: the orders and the loyalty count come from [userOrdersProvider]
+/// and [loyaltyProgressProvider] (OrderRepository behind them).
 class OrderHistoryScreen extends ConsumerWidget {
   const OrderHistoryScreen({super.key});
 
@@ -42,26 +46,15 @@ class OrderHistoryScreen extends ConsumerWidget {
         data: (orders) {
           if (orders.isEmpty) return EmptyOrdersView(sw: sw, sh: sh);
 
-          return RefreshIndicator(
+          return _OrdersList(
+            orders: orders,
+            loyaltyAsync: loyaltyAsync,
             onRefresh: () async {
               ref.invalidate(userOrdersProvider);
               ref.invalidate(loyaltyProgressProvider);
             },
-            color: AppColors.primary,
-            child: ListView.builder(
-              padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.01, sw * 0.04, sh * 0.04),
-              itemCount: orders.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return loyaltyAsync.when(
-                    data: (count) => LoyaltyProgressCard(count: count, sw: sw, sh: sh),
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  );
-                }
-                return OrderHistoryCard(order: orders[index - 1], sw: sw, sh: sh);
-              },
-            ),
+            sw: sw,
+            sh: sh,
           );
         },
         loading: () => const Center(
@@ -73,6 +66,48 @@ class OrderHistoryScreen extends ConsumerWidget {
           sw: sw,
           sh: sh,
         ),
+      ),
+    );
+  }
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// Pull-to-refresh list: the loyalty progress card first, then one
+/// OrderHistoryCard per order.
+class _OrdersList extends StatelessWidget {
+  const _OrdersList({
+    required this.orders,
+    required this.loyaltyAsync,
+    required this.onRefresh,
+    required this.sw,
+    required this.sh,
+  });
+
+  final List<Order> orders;
+  final AsyncValue<int> loyaltyAsync;
+  final RefreshCallback onRefresh;
+  final double sw;
+  final double sh;
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      color: AppColors.primary,
+      child: ListView.builder(
+        padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.01, sw * 0.04, sh * 0.04),
+        itemCount: orders.length + 1,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return loyaltyAsync.when(
+              data: (count) => LoyaltyProgressCard(count: count, sw: sw, sh: sh),
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            );
+          }
+          return OrderHistoryCard(order: orders[index - 1], sw: sw, sh: sh);
+        },
       ),
     );
   }

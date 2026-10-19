@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../cart/presentation/cart/cart_screen.dart';
-import '../../../cart/providers/cart_provider.dart';
-import '../../data/models/order.dart';
-import '../../providers/order_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../cart/presentation/cart/cart_screen.dart';
+import '../../../../cart/providers/cart_provider.dart';
+import '../../../data/models/order.dart';
+import '../../../providers/order_provider.dart';
 
 /// "↻ Commander à nouveau" under a delivered food order.
 ///

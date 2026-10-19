@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// What the orders tab shows before the first order: a receipt icon,
 /// "No orders yet" and a short hint.
