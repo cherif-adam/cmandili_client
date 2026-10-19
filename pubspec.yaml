@@ -75,6 +75,9 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
+  # Imported by test/auth_state_stream_test.dart. Pinned to the version
+  # supabase already resolves transitively, so nothing changes at runtime.
+  rxdart: ^0.28.0
 
 flutter_launcher_icons:
   android: "launcher_icon"

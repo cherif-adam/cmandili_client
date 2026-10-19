@@ -377,6 +377,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               .read(promoRepositoryProvider)
               .releaseUsage(promoCode: promoState.appliedCode);
         }
+        if (!mounted) return;
         _showSnack(paymentResult.errorMessage ??
             AppLocalizations.of(context)!.paymentFailedOrderCancelled);
         return;

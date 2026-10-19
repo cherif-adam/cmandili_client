@@ -68,7 +68,7 @@ class SaveRecipientToggle extends StatelessWidget {
               Switch(
                 value: value,
                 onChanged: (v) => onChanged(v),
-                activeColor: kCourierPurple,
+                activeThumbColor: kCourierPurple,
                 activeTrackColor: kCourierPurple.withValues(alpha: 0.5),
               ),
             ],

@@ -44,27 +44,29 @@ Future<String?> showCancelOrderDialog(BuildContext context, {required bool hasDr
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (hasDriver) const _DriverAssignedWarning(),
-                Text(
-                  l.cancelReasonLabel,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                for (final r in cancelReasonKeys)
-                  RadioListTile<String>(
-                    title: Text(cancelReasonLabel(l, r), style: const TextStyle(fontSize: 14)),
-                    value: r,
-                    groupValue: selectedReason,
-                    dense: true,
-                    activeColor: AppColors.primary,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (val) => setDlgState(() => selectedReason = val),
+            child: RadioGroup<String>(
+              groupValue: selectedReason,
+              onChanged: (val) => setDlgState(() => selectedReason = val),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (hasDriver) const _DriverAssignedWarning(),
+                  Text(
+                    l.cancelReasonLabel,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                   ),
-              ],
+                  const SizedBox(height: 8),
+                  for (final r in cancelReasonKeys)
+                    RadioListTile<String>(
+                      title: Text(cancelReasonLabel(l, r), style: const TextStyle(fontSize: 14)),
+                      value: r,
+                      dense: true,
+                      activeColor: AppColors.primary,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                ],
+              ),
             ),
           ),
           actions: [
