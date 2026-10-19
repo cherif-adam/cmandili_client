@@ -13,7 +13,7 @@ import '../../happy_hour/providers/happy_hour_provider.dart';
 import '../../promos/presentation/widgets/promos_home_banner.dart';
 import '../../restaurant/providers/restaurant_provider.dart';
 import '../../supermarket/presentation/supermarket_list/supermarket_list_screen.dart';
-import '../../vendors/presentation/vendor_list_screen.dart';
+import '../../vendors/presentation/vendor_list/vendor_list_screen.dart';
 import 'widgets/food_hero_banner.dart';
 import 'widgets/home_categories_section.dart';
 import 'widgets/home_header.dart';

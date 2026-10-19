@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../core/providers/vendor_provider.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../../core/models/vendor.dart';
+import '../../../../core/providers/vendor_provider.dart';
+import '../../../../core/theme/app_colors.dart';
 import 'widgets/vendor_card.dart';
 
 /// Shop list for any vendor category — florists, pet shops, gift shops,
@@ -13,7 +14,8 @@ import 'widgets/vendor_card.dart';
 ///   or _NoShopsYet / _ShopsError
 ///
 /// One screen serves every category: the only thing that changes is the
-/// `category` string it is given. Returns a sliver.
+/// `category` string it is given. Returns a sliver. UI only: the shops come
+/// from [nearbyVendorsByCategoryProvider] (VendorRepository behind it).
 class VendorListScreen extends ConsumerWidget {
   /// `vendors.category` value to list.
   final String category;
@@ -48,15 +50,29 @@ class VendorListScreen extends ConsumerWidget {
         if (vendors.isEmpty) {
           return SliverToBoxAdapter(child: _NoShopsYet(label: emptyLabel));
         }
-        return SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-          sliver: SliverList.separated(
-            itemCount: vendors.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 14),
-            itemBuilder: (context, i) => VendorCard(vendor: vendors[i]),
-          ),
-        );
+        return _VendorsSliverList(vendors: vendors);
       },
+    );
+  }
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// One VendorCard per shop, nearest first.
+class _VendorsSliverList extends StatelessWidget {
+  final List<Vendor> vendors;
+
+  const _VendorsSliverList({required this.vendors});
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+      sliver: SliverList.separated(
+        itemCount: vendors.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 14),
+        itemBuilder: (context, i) => VendorCard(vendor: vendors[i]),
+      ),
     );
   }
 }

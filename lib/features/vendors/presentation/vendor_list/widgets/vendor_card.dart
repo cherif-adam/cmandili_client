@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/models/vendor.dart';
-import '../../../../core/providers/nearby_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/delivery_fee.dart';
-import '../../../../core/utils/venue_hours.dart';
-import '../vendor_detail_screen.dart';
+import '../../../../../core/models/vendor.dart';
+import '../../../../../core/providers/nearby_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/utils/delivery_fee.dart';
+import '../../../../../core/utils/venue_hours.dart';
+import '../../vendor_detail_screen.dart';
 
 /// One shop in the florist / pet shop / gift / bakery / electronics list.
 /// Deliberately the same shape for every category. Opens the shop's page.
