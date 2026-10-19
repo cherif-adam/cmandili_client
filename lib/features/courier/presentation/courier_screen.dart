@@ -9,6 +9,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/location_service.dart';
 import '../../../core/utils/delivery_fee.dart';
 import '../data/colis_repository.dart';
+import '../data/saved_recipient_repository.dart';
+import '../../../core/data/package_photo_storage.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
 import '../../orders/presentation/order_success_screen.dart';
@@ -72,6 +74,8 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
 
   // ── Bon de prise en charge ────────────────────────────────────────────────
   final _colisRepo = ColisRepository();
+  final _recipientRepo = SavedRecipientRepository();
+  final _photoStorage = PackagePhotoStorage();
 
   /// Plafond lu en base, pour qu'un admin le change sans livrer une version.
   /// La valeur de repli ne sert qu'à l'affichage : le serveur revalide.
@@ -146,18 +150,9 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     if (userId == null) return;
     setState(() => _isLoadingSavedRecipients = true);
     try {
-      final rows = await Supabase.instance.client
-          .from('saved_recipients')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: false);
+      final recipients = await _recipientRepo.getAll(userId);
       if (mounted) {
-        setState(() {
-          _savedRecipients = (rows as List)
-              .map((r) =>
-                  SavedRecipient.fromJson(r as Map<String, dynamic>))
-              .toList();
-        });
+        setState(() => _savedRecipients = recipients);
       }
     } catch (_) {
       // Non-fatal: feature degrades silently
@@ -179,10 +174,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
 
   Future<void> _deleteRecipient(String id) async {
     try {
-      await Supabase.instance.client
-          .from('saved_recipients')
-          .delete()
-          .eq('id', id);
+      await _recipientRepo.delete(id);
       setState(() => _savedRecipients.removeWhere((r) => r.id == id));
     } catch (_) {}
   }
@@ -191,14 +183,14 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     if (!_saveRecipient) return;
     final phone = _recipientPhoneController.text.trim();
     if (phone.isEmpty) return;
-    await Supabase.instance.client.from('saved_recipients').insert({
-      'user_id': userId,
-      'name': _recipientNameController.text.trim().isEmpty
+    await _recipientRepo.add(
+      userId: userId,
+      name: _recipientNameController.text.trim().isEmpty
           ? null
           : _recipientNameController.text.trim(),
-      'phone': phone,
-      'delivery_address': _dropoffAddress?.toJson(),
-    });
+      phone: phone,
+      deliveryAddress: _dropoffAddress?.toJson(),
+    );
   }
 
   Future<void> _confirmDeleteRecipient(SavedRecipient r) async {
@@ -273,17 +265,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     setState(() => _isUploadingPhoto = true);
     try {
       final bytes = await _packagePhoto!.readAsBytes();
-      final path = '$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await Supabase.instance.client.storage
-          .from('package-photos')
-          .uploadBinary(
-            path,
-            bytes,
-            fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
-          );
-      return Supabase.instance.client.storage
-          .from('package-photos')
-          .getPublicUrl(path);
+      return await _photoStorage.uploadParcelPhoto(userId, bytes);
     } catch (_) {
       return null;
     } finally {

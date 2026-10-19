@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
+import '../../../core/data/package_photo_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
@@ -64,6 +65,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
   final _amountController = TextEditingController();
   final _phoneController = TextEditingController();
   final _supabase = Supabase.instance.client;
+  final _photoStorage = PackagePhotoStorage();
 
   BillType? _selectedBillType;
   DeliveryAddress? _customerAddress;  // pickup (cash collection)
@@ -166,10 +168,8 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
   Future<String?> _uploadBillPhoto(String userId) async {
     if (_billPhoto == null) return null;
     try {
-      final path = '$userId/bill_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final bytes = await _billPhoto!.readAsBytes();
-      await _supabase.storage.from('package-photos').uploadBinary(path, bytes);
-      return _supabase.storage.from('package-photos').getPublicUrl(path);
+      return await _photoStorage.uploadBillPhoto(userId, bytes);
     } catch (e) {
       return null;
     }
