@@ -3,16 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/providers/nearby_provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/delivery_fee.dart';
-import '../../../../core/utils/venue_hours.dart';
-import '../../../../core/widgets/shop_card/closed_photo_overlay.dart';
-import '../../../../core/widgets/shop_card/photo_pill.dart';
-import '../../../../core/widgets/shop_card/shop_info_item.dart';
-import '../../data/models/supermarket.dart';
-import '../supermarket_detail_screen.dart';
+import '../../../../../core/providers/nearby_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/utils/delivery_fee.dart';
+import '../../../../../core/utils/venue_hours.dart';
+import '../../../../../core/widgets/shop_card/closed_photo_overlay.dart';
+import '../../../../../core/widgets/shop_card/photo_pill.dart';
+import '../../../../../core/widgets/shop_card/shop_info_item.dart';
+import '../../../data/models/supermarket.dart';
+import '../../supermarket_detail_screen.dart';
 
 /// Green used by the supermarket cards (icons, "Ouvert").
 const _green = Color(0xFF4CAF50);

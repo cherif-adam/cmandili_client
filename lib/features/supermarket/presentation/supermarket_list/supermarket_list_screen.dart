@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../core/providers/nearby_provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../providers/supermarket_provider.dart';
+import '../../../../core/providers/nearby_provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../data/models/supermarket.dart';
+import '../../providers/supermarket_provider.dart';
 import 'widgets/supermarket_card.dart';
 import 'widgets/supermarket_hero_banner.dart';
 
@@ -15,6 +16,8 @@ import 'widgets/supermarket_hero_banner.dart';
 ///   list of SupermarketCard (nearest first, within 15 km)
 ///
 /// Returns slivers, so it goes in the home tab's [CustomScrollView].
+/// UI only: the list comes from [nearbySupermarketsProvider]
+/// (SupermarketRepository behind it).
 class SupermarketListScreen extends ConsumerWidget {
   final double screenWidth;
   final double screenHeight;
@@ -45,23 +48,10 @@ class SupermarketListScreen extends ConsumerWidget {
                     screenHeight: screenHeight,
                   ),
                 )
-              : SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    screenWidth * 0.05,
-                    0,
-                    screenWidth * 0.05,
-                    screenHeight * 0.12,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => SupermarketCard(
-                        supermarket: supermarkets[index],
-                        screenWidth: screenWidth,
-                        screenHeight: screenHeight,
-                      ),
-                      childCount: supermarkets.length,
-                    ),
-                  ),
+              : _SupermarketsSliverList(
+                  supermarkets: supermarkets,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
                 ),
           loading: () => SliverToBoxAdapter(
             child: Center(
@@ -79,6 +69,43 @@ class SupermarketListScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// One SupermarketCard per supermarket, nearest first.
+class _SupermarketsSliverList extends StatelessWidget {
+  final List<Supermarket> supermarkets;
+  final double screenWidth;
+  final double screenHeight;
+
+  const _SupermarketsSliverList({
+    required this.supermarkets,
+    required this.screenWidth,
+    required this.screenHeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: EdgeInsets.fromLTRB(
+        screenWidth * 0.05,
+        0,
+        screenWidth * 0.05,
+        screenHeight * 0.12,
+      ),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => SupermarketCard(
+            supermarket: supermarkets[index],
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
+          ),
+          childCount: supermarkets.length,
+        ),
+      ),
     );
   }
 }
