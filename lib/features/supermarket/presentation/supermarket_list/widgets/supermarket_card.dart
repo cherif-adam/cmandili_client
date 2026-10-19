@@ -12,7 +12,7 @@ import '../../../../../core/widgets/shop_card/closed_photo_overlay.dart';
 import '../../../../../core/widgets/shop_card/photo_pill.dart';
 import '../../../../../core/widgets/shop_card/shop_info_item.dart';
 import '../../../data/models/supermarket.dart';
-import '../../supermarket_detail_screen.dart';
+import '../../supermarket_detail/supermarket_detail_screen.dart';
 
 /// Green used by the supermarket cards (icons, "Ouvert").
 const _green = Color(0xFF4CAF50);

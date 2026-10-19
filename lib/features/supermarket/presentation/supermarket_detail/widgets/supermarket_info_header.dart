@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/delivery_fee.dart';
-import '../../data/models/supermarket.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/utils/delivery_fee.dart';
+import '../../../data/models/supermarket.dart';
 
 /// Under a supermarket's photo: name, description, and three coloured
 /// pills — ★ rating · 🕒 time · 🛵 fee.

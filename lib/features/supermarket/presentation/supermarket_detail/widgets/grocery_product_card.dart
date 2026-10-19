@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/widgets/new_item_badge.dart';
-import '../../../cart/data/models/cart_item.dart';
-import '../../../cart/presentation/add_to_cart_guard.dart';
-import '../../data/models/grocery_item.dart';
-import '../../providers/supermarket_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/widgets/new_item_badge.dart';
+import '../../../../cart/data/models/cart_item.dart';
+import '../../../../cart/presentation/add_to_cart_guard.dart';
+import '../../../data/models/grocery_item.dart';
+import '../../../providers/supermarket_provider.dart';
 import 'grocery_variant_sheet.dart';
 
 /// One product in a supermarket's grid:

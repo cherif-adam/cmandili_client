@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../cart/providers/cart_provider.dart';
-import '../data/models/grocery_category.dart';
-import '../data/models/supermarket.dart';
-import '../providers/supermarket_provider.dart';
+import '../../../cart/providers/cart_provider.dart';
+import '../../data/models/grocery_item.dart';
+import '../../data/models/supermarket.dart';
+import '../../providers/supermarket_provider.dart';
+import 'supermarket_detail_controller.dart';
 import 'widgets/grocery_category_chips.dart';
 import 'widgets/grocery_product_card.dart';
 import 'widgets/supermarket_cart_button.dart';
@@ -19,6 +20,9 @@ import 'widgets/supermarket_info_header.dart';
 ///   GroceryCategoryChips      Tout · Légumes · Fruits…
 ///   grid of GroceryProductCard (2 per row)
 ///   SupermarketCartButton     floating, once the cart has something
+///
+/// UI only: the selected category and the filtering live in
+/// [SupermarketDetailController]; the items come from [groceryItemsProvider].
 class SupermarketDetailScreen extends ConsumerStatefulWidget {
   final Supermarket supermarket;
 
@@ -32,20 +36,20 @@ class SupermarketDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScreen> {
-  /// Null = "Tout".
-  GroceryCategory? _selectedCategory;
+  /// This page's own controller (see [supermarketDetailControllerProvider]).
+  late final _provider = supermarketDetailControllerProvider(Object());
 
   @override
   Widget build(BuildContext context) {
     final groceryItemsAsync = ref.watch(groceryItemsProvider(widget.supermarket.id));
     final cartItemCount = ref.watch(cartItemCountProvider);
+    final selectedCategory = ref.watch(_provider);
+    final controller = ref.read(_provider.notifier);
 
     return Scaffold(
       body: groceryItemsAsync.when(
         data: (groceryItems) {
-          final filteredItems = _selectedCategory == null
-              ? groceryItems
-              : groceryItems.where((item) => item.category == _selectedCategory).toList();
+          final filteredItems = controller.visibleItems(groceryItems);
 
           return CustomScrollView(
             slivers: [
@@ -55,28 +59,13 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
               ),
               SliverToBoxAdapter(
                 child: GroceryCategoryChips(
-                  selected: _selectedCategory,
-                  onChanged: (category) =>
-                      setState(() => _selectedCategory = category),
+                  selected: selectedCategory,
+                  onChanged: controller.selectCategory,
                 ),
               ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => GroceryProductCard(
-                      item: filteredItems[index],
-                      isOpen: widget.supermarket.isOpen,
-                    ),
-                    childCount: filteredItems.length,
-                  ),
-                ),
+              _ProductGrid(
+                items: filteredItems,
+                isOpen: widget.supermarket.isOpen,
               ),
             ],
           );
@@ -89,6 +78,38 @@ class _SupermarketDetailScreenState extends ConsumerState<SupermarketDetailScree
       floatingActionButton: cartItemCount > 0
           ? SupermarketCartButton(cartItemCount: cartItemCount)
           : null,
+    );
+  }
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// Two GroceryProductCards per row.
+class _ProductGrid extends StatelessWidget {
+  const _ProductGrid({required this.items, required this.isOpen});
+
+  final List<GroceryItem> items;
+  final bool isOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.75,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => GroceryProductCard(
+            item: items[index],
+            isOpen: isOpen,
+          ),
+          childCount: items.length,
+        ),
+      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../data/models/supermarket.dart';
+import '../../../data/models/supermarket.dart';
 
 /// The supermarket's photo at the top of its page, with a round white
 /// ← back button. Green bar once collapsed.

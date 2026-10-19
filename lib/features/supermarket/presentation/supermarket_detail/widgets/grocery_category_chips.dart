@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../data/models/grocery_category.dart';
+import '../../../data/models/grocery_category.dart';
 
 /// The row of grocery filters on a supermarket's page:
 /// 🛒 Tout · 🥬 Légumes · 🍎 Fruits · … — the selected one is green.
