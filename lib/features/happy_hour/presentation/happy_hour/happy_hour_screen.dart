@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../cart/presentation/widgets/cart_fab.dart';
-import '../providers/deal_categories_provider.dart';
-import 'widgets/deals_scaffold.dart';
-import 'widgets/deals_tab.dart';
+import '../../../cart/presentation/widgets/cart_fab.dart';
+import '../../providers/deal_categories_provider.dart';
+import '../widgets/deals_scaffold.dart';
+import '../widgets/deals_tab.dart';
 
 /// L'orange du Happy Hour, partagé avec sa bannière d'accueil.
 const Color kHappyHourAccent = Color(0xFFFF6D00);

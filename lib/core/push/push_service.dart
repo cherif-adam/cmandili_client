@@ -5,7 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../features/happy_hour/presentation/happy_hour_screen.dart';
+import '../../features/happy_hour/presentation/happy_hour/happy_hour_screen.dart';
 import '../../features/promos/presentation/promos_screen.dart';
 
 /// Root navigator, so a tapped notification can open a screen from outside

@@ -1,16 +1,19 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../restaurant/data/models/food_item.dart';
 import '../../supermarket/data/models/grocery_item.dart';
 import '../../supermarket/data/models/grocery_category.dart';
 import '../../../core/models/vendor.dart';
 import '../../../core/providers/nearby_provider.dart';
+import '../data/happy_hour_repository.dart';
+
+final happyHourRepositoryProvider =
+    Provider<HappyHourRepository>((ref) => HappyHourRepository());
 
 // Queries food_items where discount_price is set and discount_end_time is in the future
 final happyHourRestaurantsProvider = FutureProvider<List<FoodItem>>((ref) async {
-  final supabase = Supabase.instance.client;
+  final repository = ref.watch(happyHourRepositoryProvider);
   // Only the deals of shops the customer can see (15 km), like the lists.
   final near = ref.watch(nearbyShopIdsProvider);
   // .toUtc() matters even though nothing is written here: this string is
@@ -33,17 +36,9 @@ final happyHourRestaurantsProvider = FutureProvider<List<FoodItem>>((ref) async 
   // (b) cannot be filtered server-side on time: happy_hour_start/end are
   // plain `time` columns holding Tunis local wall-clock, so the window is
   // closed below against the device clock instead.
-  final response = await supabase
-      .from('food_items')
-      .select()
-      .eq('is_available', true)
-      .or('and(discount_price.not.is.null,discount_end_time.gt.$now),'
-          // No end date = runs until the partner stops it (or its limited
-          // quantity sells out and the DB clears it).
-          'and(discount_price.not.is.null,discount_end_time.is.null),'
-          'is_happy_hour.is.true');
+  final response = await repository.fetchFoodDeals(now);
 
-  final rows = (response as List).where((json) {
+  final rows = response.where((json) {
     if (near != null && !near.contains(json['restaurant_id'])) return false;
     if (json['discount_price'] != null) return true; // (a), already time-filtered
     return _withinHappyHourWindow(
@@ -153,21 +148,14 @@ bool _withinHappyHourWindow(String? start, String? end) {
 
 // Queries grocery_items where discount_price is set and discount_end_time is in the future
 final happyHourSupermarketsProvider = FutureProvider<List<GroceryItem>>((ref) async {
-  final supabase = Supabase.instance.client;
+  final repository = ref.watch(happyHourRepositoryProvider);
   final near = ref.watch(nearbyShopIdsProvider); // see happyHourRestaurantsProvider
   // .toUtc() — see happyHourRestaurantsProvider above.
   final now = DateTime.now().toUtc().toIso8601String();
 
-  final response = await supabase
-      .from('grocery_items')
-      .select()
-      .not('discount_price', 'is', null)
-      // No end date = runs until the partner stops it.
-      .or('discount_end_time.is.null,discount_end_time.gt.$now')
-      .eq('is_available', true)
-      .order('discount_end_time', ascending: true, nullsFirst: false);
+  final response = await repository.fetchGroceryDeals(now);
 
-  return (response as List)
+  return response
       .where((json) => near == null || near.contains(json['supermarket_id']))
       .map((json) => GroceryItem(
     id: json['id'] ?? '',
@@ -199,21 +187,14 @@ final happyHourSupermarketsProvider = FutureProvider<List<GroceryItem>>((ref) as
 /// supermarkets, so without this a boutique's happy hour never reached a
 /// customer at all.
 final happyHourShopsProvider = FutureProvider<List<VendorItem>>((ref) async {
-  final supabase = Supabase.instance.client;
+  final repository = ref.watch(happyHourRepositoryProvider);
   final near = ref.watch(nearbyShopIdsProvider); // see happyHourRestaurantsProvider
   final now = DateTime.now().toUtc().toIso8601String(); // see above re .toUtc()
 
-  final response = await supabase
-      .from('vendor_items')
-      .select('*, vendors!inner(category)')
-      .not('discount_price', 'is', null)
-      .or('discount_end_time.is.null,discount_end_time.gt.$now')
-      .not('vendors.category', 'in', '(food,grocery)')
-      .eq('is_available', true)
-      .order('discount_end_time', ascending: true, nullsFirst: false);
+  final response = await repository.fetchShopDeals(now);
 
-  return (response as List)
-      .map((json) => VendorItem.fromDb(json as Map<String, dynamic>))
+  return response
+      .map((json) => VendorItem.fromDb(json))
       .where((item) =>
           item.hasActiveDiscount && (near == null || near.contains(item.vendorId)))
       .toList();

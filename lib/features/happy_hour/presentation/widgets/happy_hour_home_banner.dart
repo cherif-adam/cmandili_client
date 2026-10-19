@@ -4,7 +4,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/deal_categories_provider.dart';
-import '../happy_hour_screen.dart';
+import '../happy_hour/happy_hour_screen.dart';
 import 'deals_home_banner.dart';
 
 const Color _kHappyOrange = Color(0xFFFF9500);
