@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../loyalty/data/loyalty_eligibility.dart';
@@ -23,6 +24,7 @@ class FacturePriceSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -33,15 +35,15 @@ class FacturePriceSummary extends StatelessWidget {
       child: Column(
         children: [
           _PriceRow(
-            label: 'Montant de la facture',
+            label: l10n.factureBillAmount,
             value: amountText.isNotEmpty && double.tryParse(amountText) != null
                 ? '${double.parse(amountText).toStringAsFixed(3)} TND'
                 : '—',
-            note: '(collecté en espèces)',
+            note: l10n.factureCollectedInCash,
           ),
           const Divider(height: 20),
           _PriceRow(
-            label: 'Frais de service',
+            label: l10n.factureServiceFee,
             value: '${serviceFee.toStringAsFixed(3)} TND',
             bold: true,
             color: kFactureOrange,
@@ -50,8 +52,8 @@ class FacturePriceSummary extends StatelessWidget {
             const Divider(height: 20),
             _PriceRow(
               label: loyaltyPreview!.type == 'free'
-                  ? 'Fidélité — livraison gratuite'
-                  : 'Fidélité — -50%',
+                  ? l10n.loyaltyFreeDelivery
+                  : l10n.factureLoyaltyHalf,
               value:
                   '− ${(serviceFee * loyaltyPreview!.discountMultiplier).toStringAsFixed(3)} TND',
               bold: true,

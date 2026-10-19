@@ -84,7 +84,7 @@ class OrderHistoryCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _typeLabel(order),
+                            _typeLabel(AppLocalizations.of(context)!, order),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: sw * 0.04,
@@ -233,7 +233,7 @@ class OrderHistoryCard extends StatelessWidget {
   ///
   /// Cases are listed one by one rather than grouped under `default`, so the
   /// compiler still flags a forgotten value.
-  static String _typeLabel(Order order) {
+  static String _typeLabel(AppLocalizations l10n, Order order) {
     switch (order.type) {
       case OrderType.food:
       case OrderType.grocery:
@@ -245,33 +245,33 @@ class OrderHistoryCard extends StatelessWidget {
       case OrderType.electronics:
         return order.restaurantName.isNotEmpty
             ? order.restaurantName
-            : _shopCategoryLabel(order.type);
+            : _shopCategoryLabel(l10n, order.type);
       case OrderType.courier:
         return 'Courier Delivery';
       case OrderType.billPayment:
         return 'Bill Payment';
       case OrderType.facture:
-        return 'Paiement de facture';
+        return l10n.orderTypeFacture;
     }
   }
 
-  static String _shopCategoryLabel(OrderType type) {
+  static String _shopCategoryLabel(AppLocalizations l10n, OrderType type) {
     switch (type) {
       case OrderType.grocery:
       case OrderType.supermarket:
-        return 'Supermarche';
+        return l10n.orderShopSupermarket;
       case OrderType.bakery:
-        return 'Patisserie';
+        return l10n.orderShopBakery;
       case OrderType.flowers:
-        return 'Fleurs';
+        return l10n.orderShopFlowers;
       case OrderType.pets:
-        return 'Animalerie';
+        return l10n.orderShopPets;
       case OrderType.gifts:
-        return 'Cadeaux';
+        return l10n.orderShopGifts;
       case OrderType.electronics:
-        return 'Electronique';
+        return l10n.orderShopElectronics;
       default:
-        return 'Restaurant';
+        return l10n.orderShopRestaurant;
     }
   }
 }
@@ -342,9 +342,10 @@ class _LoyaltyMilestoneBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final label = milestoneType == 'free'
-        ? '🎉 Livraison gratuite'
-        : '🎉 -50% sur la livraison';
+        ? l10n.loyaltyBadgeFree
+        : l10n.loyaltyBadgeHalf;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: sw * 0.03, vertical: sw * 0.015),
       decoration: BoxDecoration(

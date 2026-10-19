@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../checkout/data/models/delivery_address.dart';
@@ -82,7 +83,8 @@ class CourierLocationCard extends StatelessWidget {
                   ),
                   SizedBox(height: h * 0.004),
                   Text(
-                    address?.fullAddress ?? 'Appuyez pour sélectionner',
+                    address?.fullAddress ??
+                        AppLocalizations.of(context)!.courierTapToSelect,
                     style: TextStyle(
                       fontSize: w * 0.038,
                       fontWeight: FontWeight.w600,

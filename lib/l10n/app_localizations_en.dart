@@ -1458,4 +1458,528 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get colisShareSubject => 'Amana delivery code';
+
+  @override
+  String get mapGpsUnavailable => 'Couldn\'t get your GPS position';
+
+  @override
+  String get mapUseCurrentLocation => 'Use my current location';
+
+  @override
+  String get mapOr => 'or';
+
+  @override
+  String get mapSearchHint => 'Search for an address or place…';
+
+  @override
+  String get mapTypeStreetHint => 'Type a street, neighbourhood or place…';
+
+  @override
+  String get mapNoResults => 'No results';
+
+  @override
+  String get mapLocating => 'Locating…';
+
+  @override
+  String get mapLocatingInProgress => 'Finding your location…';
+
+  @override
+  String get mapDragToAdjust => 'Drag to adjust the position';
+
+  @override
+  String get mapDragToPlace => 'Drag the map to the spot you want';
+
+  @override
+  String get mapConfirmLocation => 'Confirm this location';
+
+  @override
+  String get authErrorInvalidCredentials => 'Incorrect email or password';
+
+  @override
+  String get authErrorAccountExists =>
+      'An account already exists with this email';
+
+  @override
+  String get authErrorEmailNotConfirmed =>
+      'Please confirm your email before signing in';
+
+  @override
+  String get authErrorNoInternet => 'Internet connection problem';
+
+  @override
+  String get authErrorTimeout =>
+      'The server is taking too long to respond. Try again.';
+
+  @override
+  String get authErrorServiceUnavailable =>
+      'The service is temporarily unavailable. Try again in a moment.';
+
+  @override
+  String get authErrorGeneric => 'Something went wrong, please try again';
+
+  @override
+  String get authCheckFormFields => 'Check the form fields';
+
+  @override
+  String get authAccountCreatedConfirmEmail =>
+      'Account created! Open the confirmation email we just sent, then sign in.';
+
+  @override
+  String get billsTitle => 'My bills';
+
+  @override
+  String get billsLoadError => 'Couldn\'t load your bills';
+
+  @override
+  String get billsEmptyTitle => 'No bills paid yet';
+
+  @override
+  String get billsEmptySubtitle => 'Your bill payments will appear here';
+
+  @override
+  String billsReference(String reference) {
+    return 'Ref: $reference';
+  }
+
+  @override
+  String get billsReceiptAvailable => 'Receipt available';
+
+  @override
+  String get billsLabelSteg => 'STEG — Electricity';
+
+  @override
+  String get billsLabelSonede => 'SONEDE — Water';
+
+  @override
+  String get billsLabelTopnet => 'Topnet — Internet';
+
+  @override
+  String get billsLabelOther => 'Other bill';
+
+  @override
+  String get billStatusPaid => 'Paid';
+
+  @override
+  String get billStatusInProgress => 'In progress';
+
+  @override
+  String get commonDelete => 'Delete';
+
+  @override
+  String commonErrorWith(String error) {
+    return 'Error: $error';
+  }
+
+  @override
+  String get commonInvalidAmount => 'Invalid amount';
+
+  @override
+  String get commonInvalidPhone8 =>
+      'Invalid number — exactly 8 digits required';
+
+  @override
+  String get photoTakePicture => 'Take a photo';
+
+  @override
+  String get photoChooseFromGallery => 'Choose from gallery';
+
+  @override
+  String get courierDeleteRecipientTitle => 'Delete this recipient?';
+
+  @override
+  String courierDeleteRecipientBody(String name) {
+    return '$name will be removed from your saved contacts.';
+  }
+
+  @override
+  String get courierPickupAddress => 'Pickup address';
+
+  @override
+  String get courierConfirmNoForbidden =>
+      'Confirm that your parcel contains no forbidden items.';
+
+  @override
+  String get courierAcceptPhotoProof =>
+      'Accept that the photo and location will serve as proof.';
+
+  @override
+  String get courierDeclaredValueRequired => 'Enter the value of your parcel';
+
+  @override
+  String get courierDeclaredValuePositive => 'The value must be greater than 0';
+
+  @override
+  String courierDeclaredValueMax(String max) {
+    return 'Maximum $max TND — split your shipment';
+  }
+
+  @override
+  String get courierDescriptionRequired => 'Describe what is in your parcel';
+
+  @override
+  String get courierReceiverLabelRequired =>
+      'Say who the parcel will be handed to';
+
+  @override
+  String get courierSenderPhone => 'Sender\'s phone';
+
+  @override
+  String get courierSenderPhoneHint => 'The person handing over the parcel';
+
+  @override
+  String get courierSenderPhoneRequired => 'Required — sender\'s number';
+
+  @override
+  String get courierRecipientName => 'Recipient\'s name';
+
+  @override
+  String get courierRecipientNameHint =>
+      'Optional — helps the driver identify the recipient';
+
+  @override
+  String get courierRecipientNameExample => 'E.g. Mohamed Ben Ali';
+
+  @override
+  String get courierRecipientPhone => 'Recipient\'s phone';
+
+  @override
+  String get courierRecipientPhoneHint => 'The person receiving the parcel';
+
+  @override
+  String get courierRecipientPhoneRequired => 'Required — recipient\'s number';
+
+  @override
+  String get courierContentsTitle => 'What is in your parcel?';
+
+  @override
+  String get courierContentsExample =>
+      'E.g. Samsung A15 phone, documents, clothes…';
+
+  @override
+  String get courierDeclaredValue => 'Declared value';
+
+  @override
+  String courierDeclaredValueCap(String max) {
+    return 'Limit: $max TND. Above that, split your shipment into several parcels.';
+  }
+
+  @override
+  String get courierDeclaredValueHint => 'Value in TND';
+
+  @override
+  String get courierPhotoTitle => 'Parcel photo';
+
+  @override
+  String get courierPhotoHint =>
+      'Optional — helps the driver identify your parcel';
+
+  @override
+  String get courierSizeTitle => 'Parcel size';
+
+  @override
+  String get courierConfirmSend => 'Confirm sending';
+
+  @override
+  String get courierTapToSelect => 'Tap to select';
+
+  @override
+  String get courierPhoneExample => 'E.g. 20123456';
+
+  @override
+  String get courierEstimatedPrice => 'Estimated price';
+
+  @override
+  String get courierEstimatedPriceLoyaltyFree =>
+      'Estimated price — loyalty: free delivery';
+
+  @override
+  String get courierEstimatedPriceLoyaltyHalf =>
+      'Estimated price — loyalty: -50%';
+
+  @override
+  String get courierPriceBase => '3.500 TND base';
+
+  @override
+  String get courierReceiverLabelExample =>
+      'E.g. school caretaker, neighbour on the 3rd floor…';
+
+  @override
+  String get courierAcceptPhotoProofCheckbox =>
+      'I accept that the proof of delivery is the driver\'s photo and location.';
+
+  @override
+  String get courierForbiddenTitle => 'Not allowed in a parcel';
+
+  @override
+  String get courierForbiddenConfirm =>
+      'I confirm that my parcel contains none of these items';
+
+  @override
+  String get courierPhotoChange => 'Change';
+
+  @override
+  String get courierPhotoAdd => 'Add a photo of the parcel';
+
+  @override
+  String get courierPhotoTapHint => 'Tap to take/choose a photo';
+
+  @override
+  String get courierSizeSmall => 'Small';
+
+  @override
+  String get courierSizeMedium => 'Medium';
+
+  @override
+  String get courierSizeLarge => 'Large';
+
+  @override
+  String get courierSizeSmallDesc => 'Documents, small items';
+
+  @override
+  String get courierSizeMediumDesc => 'Clothes, accessories';
+
+  @override
+  String get courierSizeLargeDesc => 'Luggage, large parcels';
+
+  @override
+  String get courierSaveRecipient => 'Save this recipient for next time';
+
+  @override
+  String get courierSavedRecipients => 'Saved recipients';
+
+  @override
+  String get factureSelectBillType => 'Please select the bill type';
+
+  @override
+  String get factureEnterPickupAddress => 'Please enter your pickup address';
+
+  @override
+  String get factureEnterOfficeAddress => 'Please enter the office address';
+
+  @override
+  String get factureNotSignedIn => 'Not signed in';
+
+  @override
+  String get factureReferenceRequired => 'Required — reference number';
+
+  @override
+  String get factureAmountRequired => 'Required — bill amount';
+
+  @override
+  String get facturePhoneRequired => 'Required — phone number';
+
+  @override
+  String get factureBillTypeTitle => 'Bill type';
+
+  @override
+  String get factureReferenceLabel => 'Reference / contract number';
+
+  @override
+  String get factureAmountLabel => 'Amount to pay (TND)';
+
+  @override
+  String get factureCustomerAddressTitle => 'Your address (cash pickup)';
+
+  @override
+  String get factureChooseYourAddress => 'Choose your address';
+
+  @override
+  String factureOfficeAddressTitle(String billType) {
+    return 'Office address $billType';
+  }
+
+  @override
+  String get factureChooseOfficeAddress => 'Choose the office address';
+
+  @override
+  String get facturePhoneTitle => 'Your phone number';
+
+  @override
+  String get facturePhoneLabel => 'Phone (8 digits)';
+
+  @override
+  String get factureAddBillPhoto => 'Add a photo of the bill (optional)';
+
+  @override
+  String get factureRemovePhoto => 'Remove the photo';
+
+  @override
+  String get factureBillAmount => 'Bill amount';
+
+  @override
+  String get factureCollectedInCash => '(collected in cash)';
+
+  @override
+  String get factureServiceFee => 'Service fee';
+
+  @override
+  String get factureLoyaltyHalf => 'Loyalty — -50%';
+
+  @override
+  String get factureSendRequest => 'Send the request';
+
+  @override
+  String get colisDisputeExplain =>
+      'Describe what happened. An administrator will review the evidence (photos, time, location) before deciding.';
+
+  @override
+  String get colisDisputeMessageHint => 'Your message (optional)';
+
+  @override
+  String get colisDisputeSendFailed => 'The report could not be sent.';
+
+  @override
+  String get colisReceiptTitle => 'Pickup receipt';
+
+  @override
+  String get colisReceiptDeclaredContents => 'Declared contents';
+
+  @override
+  String get colisReceiptHandedTo => 'Handed to';
+
+  @override
+  String get colisReceiptPlate => 'Plate';
+
+  @override
+  String get colisReceiptDistanceToAddress => 'Distance to the address';
+
+  @override
+  String get colisProofPickup => 'Pickup';
+
+  @override
+  String get colisProofDelivery => 'Handover';
+
+  @override
+  String get colisDisputeSent =>
+      'Report sent. An administrator will review it.';
+
+  @override
+  String get colisDisputeWindow =>
+      'A problem? You have 24 h after delivery to report it.';
+
+  @override
+  String get colisDisputeNotReceivedTitle => 'Parcel not received';
+
+  @override
+  String get colisDisputeNotReceived => 'Not received';
+
+  @override
+  String get colisDisputeProblem => 'Problem with the parcel';
+
+  @override
+  String get colisCodeCopy => 'Copy';
+
+  @override
+  String get colisCodeCopied => 'Code copied';
+
+  @override
+  String get colisCodeShare => 'Share';
+
+  @override
+  String get loyaltyAppliedFree =>
+      '🎉 Free delivery applied — thank you for your loyalty!';
+
+  @override
+  String get loyaltyAppliedHalf =>
+      '🎉 -50% on delivery applied — thank you for your loyalty!';
+
+  @override
+  String loyaltyProgressOrders(String progress) {
+    return '$progress/5 orders until your next discount';
+  }
+
+  @override
+  String get loyaltyBadgeFree => '🎉 Free delivery';
+
+  @override
+  String get loyaltyBadgeHalf => '🎉 -50% on delivery';
+
+  @override
+  String get reorderButton => 'Order again';
+
+  @override
+  String get reorderReplaceCartTitle => 'Replace the cart?';
+
+  @override
+  String get reorderReplaceCartBody =>
+      'Your cart already has items. Replace them with the ones from this order?';
+
+  @override
+  String get reorderReplace => 'Replace';
+
+  @override
+  String get reorderNothingAvailable =>
+      'None of the items from this order are available right now.';
+
+  @override
+  String reorderSkipped(String count) {
+    return '$count unavailable item(s) were skipped.';
+  }
+
+  @override
+  String get reorderFailed =>
+      'Something went wrong while reordering. Try again.';
+
+  @override
+  String get orderTypeFacture => 'Bill payment';
+
+  @override
+  String get orderShopSupermarket => 'Supermarket';
+
+  @override
+  String get orderShopBakery => 'Bakery';
+
+  @override
+  String get orderShopFlowers => 'Flowers';
+
+  @override
+  String get orderShopPets => 'Pet shop';
+
+  @override
+  String get orderShopGifts => 'Gifts';
+
+  @override
+  String get orderShopElectronics => 'Electronics';
+
+  @override
+  String get orderShopRestaurant => 'Restaurant';
+
+  @override
+  String get homeEmptyBakery => 'No bakery available near you.';
+
+  @override
+  String get homeEmptyFlowers => 'No florist available near you.';
+
+  @override
+  String get homeEmptyPets => 'No pet shop available near you.';
+
+  @override
+  String get homeEmptyGifts => 'No gift shop near you.';
+
+  @override
+  String get homeEmptyElectronics => 'No electronics shop near you.';
+
+  @override
+  String get homeEmptyShops => 'No shop available near you.';
+
+  @override
+  String get profileUploadFailed => 'Upload failed. Please try again.';
+
+  @override
+  String get profileBillReminders => 'Bill reminders';
+
+  @override
+  String get ratingOrderQuestion => 'How was your order?';
+
+  @override
+  String get vendorCatalogueLoadError => 'Couldn\'t load the catalogue';
+
+  @override
+  String get vendorNoItemsYet => 'No items yet.';
+
+  @override
+  String get vendorDefaultSection => 'Items';
+
+  @override
+  String get vendorClosedNotice => 'This shop is currently closed.';
 }

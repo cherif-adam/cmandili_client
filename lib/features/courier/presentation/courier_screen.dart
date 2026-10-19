@@ -205,17 +205,18 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Supprimer ce destinataire ?'),
-        content: Text('${r.displayLabel} sera retiré de vos contacts enregistrés.'),
+        title: Text(AppLocalizations.of(context)!.courierDeleteRecipientTitle),
+        content: Text(AppLocalizations.of(context)!
+            .courierDeleteRecipientBody(r.displayLabel)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
+            child: Text(AppLocalizations.of(context)!.commonDelete),
           ),
         ],
       ),
@@ -247,7 +248,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Prendre une photo'),
+              title: Text(AppLocalizations.of(context)!.photoTakePicture),
               onTap: () {
                 Navigator.pop(context);
                 _pickPhoto(ImageSource.camera);
@@ -255,7 +256,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Choisir depuis la galerie'),
+              title: Text(AppLocalizations.of(context)!.photoChooseFromGallery),
               onTap: () {
                 Navigator.pop(context);
                 _pickPhoto(ImageSource.gallery);
@@ -325,7 +326,8 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     final address = await Navigator.push<DeliveryAddress>(
       context,
       MaterialPageRoute(
-        builder: (_) => const MapAddressPicker(label: 'Adresse de ramassage'),
+        builder: (_) => MapAddressPicker(
+            label: AppLocalizations.of(context)!.courierPickupAddress),
       ),
     );
     if (address != null) {
@@ -338,7 +340,8 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     final address = await Navigator.push<DeliveryAddress>(
       context,
       MaterialPageRoute(
-        builder: (_) => const MapAddressPicker(label: 'Adresse de livraison'),
+        builder: (_) => MapAddressPicker(
+            label: AppLocalizations.of(context)!.deliveryAddress),
       ),
     );
     if (address != null) {
@@ -388,11 +391,11 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     // Les deux cases ne sont pas des champs de formulaire : un validator ne
     // les couvre pas, il faut les vérifier à la main.
     if (!_forbiddenConfirmed) {
-      _snack('Confirmez que votre colis ne contient aucun article interdit.');
+      _snack(AppLocalizations.of(context)!.courierConfirmNoForbidden);
       return;
     }
     if (_deliveryMode == ColisDeliveryMode.noCode && !_noCodeAccepted) {
-      _snack('Acceptez que la photo et la position tiennent lieu de preuve.');
+      _snack(AppLocalizations.of(context)!.courierAcceptPhotoProof);
       return;
     }
 
@@ -472,7 +475,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text(AppLocalizations.of(context)!.commonErrorWith('$e')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -493,25 +496,27 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
   /// Le serveur revalide ce plafond. Ce validator évite juste à l'utilisateur
   /// de remplir tout le formulaire pour se faire refuser à la fin.
   String? _validateDeclaredValue(String? v) {
+    final l10n = AppLocalizations.of(context)!;
     final raw = (v ?? '').trim().replaceAll(',', '.');
-    if (raw.isEmpty) return 'Indiquez la valeur de votre colis';
+    if (raw.isEmpty) return l10n.courierDeclaredValueRequired;
     final value = double.tryParse(raw);
-    if (value == null) return 'Montant invalide';
-    if (value <= 0) return 'La valeur doit être supérieure à 0';
+    if (value == null) return l10n.commonInvalidAmount;
+    if (value <= 0) return l10n.courierDeclaredValuePositive;
     if (value > _maxDeclaredValue) {
-      return 'Maximum ${_maxDeclaredValue.toStringAsFixed(0)} TND — '
-          'scindez votre envoi';
+      return l10n.courierDeclaredValueMax(_maxDeclaredValue.toStringAsFixed(0));
     }
     return null;
   }
 
   String? _validatePackageDescription(String? v) =>
-      (v ?? '').trim().isEmpty ? 'Décrivez le contenu de votre colis' : null;
+      (v ?? '').trim().isEmpty
+          ? AppLocalizations.of(context)!.courierDescriptionRequired
+          : null;
 
   String? _validateReceiverLabel(String? v) {
     if (_deliveryMode != ColisDeliveryMode.noCode) return null;
     return (v ?? '').trim().isEmpty
-        ? 'Indiquez à qui le colis sera remis'
+        ? AppLocalizations.of(context)!.courierReceiverLabelRequired
         : null;
   }
 
@@ -534,11 +539,11 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             SizedBox(height: h * 0.03),
 
             // ── Pickup address ───────────────────────────────────────────────
-            CourierSectionHeader('Adresse de ramassage', Icons.upload_rounded,
+            CourierSectionHeader(l10n.courierPickupAddress, Icons.upload_rounded,
                 screenWidth: w),
             SizedBox(height: h * 0.015),
             CourierLocationCard(
-              label: 'Adresse de ramassage',
+              label: l10n.courierPickupAddress,
               address: _pickupAddress,
               icon: Icons.upload_rounded,
               color: AppColors.primary,
@@ -561,11 +566,11 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
               ),
 
             // ── Dropoff address ──────────────────────────────────────────────
-            CourierSectionHeader('Adresse de livraison', Icons.download_rounded,
+            CourierSectionHeader(l10n.deliveryAddress, Icons.download_rounded,
                 screenWidth: w),
             SizedBox(height: h * 0.015),
             CourierLocationCard(
-              label: 'Adresse de livraison',
+              label: l10n.deliveryAddress,
               address: _dropoffAddress,
               icon: Icons.download_rounded,
               color: const Color(0xFF2E7D32),
@@ -588,31 +593,31 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             SizedBox(height: h * 0.025),
 
             // ── Sender phone ─────────────────────────────────────────────────
-            CourierSectionHeader('Téléphone de l\'expéditeur', Icons.phone_outlined,
+            CourierSectionHeader(l10n.courierSenderPhone, Icons.phone_outlined,
                 screenWidth: w),
             SizedBox(height: h * 0.008),
-            CourierSectionHint('La personne qui remet le colis', screenWidth: w),
+            CourierSectionHint(l10n.courierSenderPhoneHint, screenWidth: w),
             SizedBox(height: h * 0.01),
             CourierPhoneField(
               controller: _senderPhoneController,
               icon: Icons.phone,
-              requiredMessage: 'Obligatoire — numéro de l\'expéditeur',
+              requiredMessage: l10n.courierSenderPhoneRequired,
               screenWidth: w,
             ),
             SizedBox(height: h * 0.025),
 
             // ── Recipient name (optional) ────────────────────────────────────
-            CourierSectionHeader('Nom du destinataire', Icons.person_outline,
+            CourierSectionHeader(l10n.courierRecipientName, Icons.person_outline,
                 screenWidth: w),
             SizedBox(height: h * 0.008),
             CourierSectionHint(
-              'Optionnel — aide le livreur à identifier le destinataire',
+              l10n.courierRecipientNameHint,
               screenWidth: w,
             ),
             SizedBox(height: h * 0.01),
             CourierTextField(
               controller: _recipientNameController,
-              hint: 'Ex: Mohamed Ben Ali',
+              hint: l10n.courierRecipientNameExample,
               icon: Icons.person,
               screenWidth: w,
               keyboardType: TextInputType.name,
@@ -622,15 +627,15 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
 
             // ── Recipient phone ──────────────────────────────────────────────
             CourierSectionHeader(
-                'Téléphone du destinataire', Icons.phone_forwarded_outlined,
+                l10n.courierRecipientPhone, Icons.phone_forwarded_outlined,
                 screenWidth: w),
             SizedBox(height: h * 0.008),
-            CourierSectionHint('La personne qui reçoit le colis', screenWidth: w),
+            CourierSectionHint(l10n.courierRecipientPhoneHint, screenWidth: w),
             SizedBox(height: h * 0.01),
             CourierPhoneField(
               controller: _recipientPhoneController,
               icon: Icons.phone_forwarded,
-              requiredMessage: 'Obligatoire — numéro du destinataire',
+              requiredMessage: l10n.courierRecipientPhoneRequired,
               screenWidth: w,
             ),
             SaveRecipientToggle(
@@ -646,12 +651,12 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             // reçu, et ce qu'un admin lit en cas de litige. « Optionnel » ne
             // tient plus dès lors qu'on s'en sert comme preuve.
             CourierSectionHeader(
-                'Que contient votre colis ?', Icons.description_outlined,
+                l10n.courierContentsTitle, Icons.description_outlined,
                 screenWidth: w),
             SizedBox(height: h * 0.015),
             CourierTextField(
               controller: _packageDescController,
-              hint: 'Ex : téléphone Samsung A15, documents, vêtements…',
+              hint: l10n.courierContentsExample,
               icon: Icons.description,
               screenWidth: w,
               maxLines: 2,
@@ -660,18 +665,17 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             SizedBox(height: h * 0.025),
 
             // ── Valeur déclarée ──────────────────────────────────────────────
-            CourierSectionHeader('Valeur déclarée', Icons.sell_outlined,
+            CourierSectionHeader(l10n.courierDeclaredValue, Icons.sell_outlined,
                 screenWidth: w),
             SizedBox(height: h * 0.008),
             CourierSectionHint(
-              'Plafond : ${_maxDeclaredValue.toStringAsFixed(0)} TND. Au-delà, '
-              'scindez votre envoi en plusieurs colis.',
+              l10n.courierDeclaredValueCap(_maxDeclaredValue.toStringAsFixed(0)),
               screenWidth: w,
             ),
             SizedBox(height: h * 0.015),
             CourierTextField(
               controller: _declaredValueController,
-              hint: 'Valeur en TND',
+              hint: l10n.courierDeclaredValueHint,
               icon: Icons.payments_outlined,
               screenWidth: w,
               keyboardType:
@@ -710,11 +714,11 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             SizedBox(height: h * 0.025),
 
             // ── Package photo ────────────────────────────────────────────────
-            CourierSectionHeader('Photo du colis', Icons.camera_alt_outlined,
+            CourierSectionHeader(l10n.courierPhotoTitle, Icons.camera_alt_outlined,
                 screenWidth: w),
             SizedBox(height: h * 0.008),
             CourierSectionHint(
-              'Optionnel — aide le livreur à identifier votre colis',
+              l10n.courierPhotoHint,
               screenWidth: w,
             ),
             SizedBox(height: h * 0.015),
@@ -728,7 +732,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             SizedBox(height: h * 0.025),
 
             // ── Package size ─────────────────────────────────────────────────
-            CourierSectionHeader('Taille du colis', Icons.straighten_outlined,
+            CourierSectionHeader(l10n.courierSizeTitle, Icons.straighten_outlined,
                 screenWidth: w),
             SizedBox(height: h * 0.015),
             PackageSizeSelector(

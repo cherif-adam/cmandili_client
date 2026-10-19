@@ -62,7 +62,7 @@ class DeliveryModeSelector extends StatelessWidget {
           SizedBox(height: h * 0.004),
           CourierTextField(
             controller: receiverLabelController,
-            hint: "Ex : Gardien de l'école, voisin du 3e…",
+            hint: l10n.courierReceiverLabelExample,
             icon: Icons.person_pin_circle_outlined,
             screenWidth: w,
             validator: receiverLabelValidator,
@@ -75,8 +75,7 @@ class DeliveryModeSelector extends StatelessWidget {
             dense: true,
             activeColor: AppColors.primary,
             title: Text(
-              "J'accepte que la preuve de remise soit la photo et la position "
-              'du livreur.',
+              l10n.courierAcceptPhotoProofCheckbox,
               style: TextStyle(fontSize: w * 0.034),
             ),
           ),

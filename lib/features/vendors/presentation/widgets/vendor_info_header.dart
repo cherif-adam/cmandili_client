@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/models/vendor.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -78,9 +79,9 @@ class VendorInfoHeader extends StatelessWidget {
                 color: AppColors.error.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
-                'Cette boutique est actuellement fermée.',
-                style: TextStyle(
+              child: Text(
+                AppLocalizations.of(context)!.vendorClosedNotice,
+                style: const TextStyle(
                     color: AppColors.error,
                     fontSize: 13,
                     fontWeight: FontWeight.w600),

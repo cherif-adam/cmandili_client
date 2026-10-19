@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../orders/data/models/order.dart';
@@ -19,7 +20,8 @@ class MesFacturesScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Mes factures', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(AppLocalizations.of(context)!.billsTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -46,7 +48,8 @@ class MesFacturesScreen extends ConsumerWidget {
               children: [
                 Icon(Icons.error_outline, size: sw * 0.15, color: AppColors.error),
                 SizedBox(height: sh * 0.02),
-                const Text('Impossible de charger les factures', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(context)!.billsLoadError,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 SizedBox(height: sh * 0.02),
                 ElevatedButton(
                   onPressed: () => ref.invalidate(billOrdersProvider),
@@ -55,7 +58,7 @@ class MesFacturesScreen extends ConsumerWidget {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Réessayer'),
+                  child: Text(AppLocalizations.of(context)!.retry),
                 ),
               ],
             ),
@@ -88,10 +91,10 @@ class _EmptyFactures extends StatelessWidget {
             child: Icon(Icons.receipt_long_outlined, size: sw * 0.15, color: const Color(0xFFFF9500)),
           ),
           SizedBox(height: sh * 0.03),
-          Text('Aucune facture payée', style: TextStyle(fontSize: sw * 0.055, fontWeight: FontWeight.bold)),
+          Text(AppLocalizations.of(context)!.billsEmptyTitle, style: TextStyle(fontSize: sw * 0.055, fontWeight: FontWeight.bold)),
           SizedBox(height: sh * 0.01),
           Text(
-            'Vos paiements de factures apparaîtront ici',
+            AppLocalizations.of(context)!.billsEmptySubtitle,
             style: TextStyle(fontSize: sw * 0.038, color: Colors.grey[500]),
           ),
         ],
@@ -109,7 +112,8 @@ class _FactureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final billInfo = _billInfo(order.billType);
+    final l10n = AppLocalizations.of(context)!;
+    final billInfo = _billInfo(l10n, order.billType);
 
     return Container(
       margin: EdgeInsets.only(bottom: sh * 0.015),
@@ -159,7 +163,7 @@ class _FactureCard extends StatelessWidget {
                           if (order.billReference != null) ...[
                             SizedBox(height: sh * 0.003),
                             Text(
-                              'Réf: ${order.billReference}',
+                              l10n.billsReference('${order.billReference}'),
                               style: TextStyle(color: Colors.grey[500], fontSize: sw * 0.03, fontFamily: 'monospace'),
                             ),
                           ],
@@ -201,7 +205,7 @@ class _FactureCard extends StatelessWidget {
                       const Icon(Icons.check_circle, size: 14, color: AppColors.success),
                       const SizedBox(width: 4),
                       Text(
-                        'Reçu disponible',
+                        l10n.billsReceiptAvailable,
                         style: TextStyle(color: AppColors.success, fontSize: sw * 0.03, fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -215,16 +219,17 @@ class _FactureCard extends StatelessWidget {
     );
   }
 
-  ({IconData icon, Color color, String label}) _billInfo(String? billType) {
+  ({IconData icon, Color color, String label}) _billInfo(
+      AppLocalizations l10n, String? billType) {
     switch (billType) {
       case 'steg':
-        return (icon: Icons.bolt_rounded, color: const Color(0xFFF57F17), label: 'STEG — Électricité');
+        return (icon: Icons.bolt_rounded, color: const Color(0xFFF57F17), label: l10n.billsLabelSteg);
       case 'sonede':
-        return (icon: Icons.water_drop_rounded, color: const Color(0xFF00695C), label: 'SONEDE — Eau');
+        return (icon: Icons.water_drop_rounded, color: const Color(0xFF00695C), label: l10n.billsLabelSonede);
       case 'topnet':
-        return (icon: Icons.wifi_rounded, color: const Color(0xFF1565C0), label: 'Topnet — Internet');
+        return (icon: Icons.wifi_rounded, color: const Color(0xFF1565C0), label: l10n.billsLabelTopnet);
       default:
-        return (icon: Icons.receipt_long_rounded, color: const Color(0xFF616161), label: 'Autre facture');
+        return (icon: Icons.receipt_long_rounded, color: const Color(0xFF616161), label: l10n.billsLabelOther);
     }
   }
 }
@@ -237,14 +242,15 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final (label, color) = switch (status) {
-      OrderStatus.pending   => ('En attente', Colors.orange),
-      OrderStatus.confirmed => ('Confirmée', Colors.blue),
-      OrderStatus.onTheWay  => ('En route', Colors.lightBlue),
-      OrderStatus.pickedUp  => ('Espèces collectées', Colors.indigo),
-      OrderStatus.delivered => ('Payée', Colors.green),
-      OrderStatus.cancelled => ('Annulée', Colors.red),
-      _                     => ('En cours', Colors.grey),
+      OrderStatus.pending   => (l10n.orderStatusPending, Colors.orange),
+      OrderStatus.confirmed => (l10n.orderStatusConfirmed, Colors.blue),
+      OrderStatus.onTheWay  => (l10n.orderStatusOnTheWay, Colors.lightBlue),
+      OrderStatus.pickedUp  => (l10n.timelineCashCollected, Colors.indigo),
+      OrderStatus.delivered => (l10n.billStatusPaid, Colors.green),
+      OrderStatus.cancelled => (l10n.orderStatusCancelled, Colors.red),
+      _                     => (l10n.billStatusInProgress, Colors.grey),
     };
 
     return Container(

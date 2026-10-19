@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../orders/data/models/order.dart';
 import '../../orders/providers/order_provider.dart';
@@ -73,13 +74,12 @@ class _RatingPromptSheetState extends ConsumerState<RatingPromptSheet> {
         );
 
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success
-              ? 'Merci pour votre avis !'
-              : 'Impossible d\'envoyer votre avis pour le moment.',
+          success ? l10n.rateDriverThanks : l10n.rateDriverFailed,
         ),
         backgroundColor: success ? AppColors.success : AppColors.error,
       ),
@@ -113,10 +113,10 @@ class _RatingPromptSheetState extends ConsumerState<RatingPromptSheet> {
                   ),
                 ),
               ),
-              const Text(
-                'Comment était votre commande ?',
+              Text(
+                AppLocalizations.of(context)!.ratingOrderQuestion,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
               ),
               const SizedBox(height: 4),
               Text(
@@ -145,7 +145,7 @@ class _RatingPromptSheetState extends ConsumerState<RatingPromptSheet> {
                 maxLines: 2,
                 maxLength: 240,
                 decoration: InputDecoration(
-                  hintText: 'Un commentaire ? (facultatif)',
+                  hintText: AppLocalizations.of(context)!.rateDriverHint,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   counterText: '',
                 ),
@@ -167,12 +167,13 @@ class _RatingPromptSheetState extends ConsumerState<RatingPromptSheet> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Text('Envoyer', style: TextStyle(fontWeight: FontWeight.w600)),
+                      : Text(AppLocalizations.of(context)!.rateDriverSend,
+                          style: const TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ),
               TextButton(
                 onPressed: _submitting ? null : () => Navigator.pop(context),
-                child: Text('Plus tard', style: TextStyle(color: Colors.grey[600])),
+                child: Text(AppLocalizations.of(context)!.rateDriverLater, style: TextStyle(color: Colors.grey[600])),
               ),
             ],
           ),

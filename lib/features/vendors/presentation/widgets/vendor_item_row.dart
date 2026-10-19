@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/models/vendor.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -58,6 +59,7 @@ class VendorItemRow extends ConsumerWidget {
 
   Future<void> _addToCart(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
     // Même règle que partout ailleurs : un panier appartient à une seule
     // boutique, sinon la commande part au mauvais commerçant.
     final added =
@@ -67,7 +69,7 @@ class VendorItemRow extends ConsumerWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('${item.name} ajouté au panier'),
+          content: Text(l10n.addedToCart(item.name)),
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../data/saved_recipient.dart';
@@ -37,7 +38,7 @@ class SavedRecipientsSection extends StatelessWidget {
             const Icon(Icons.bookmarks_outlined, color: kCourierPurple, size: 16),
             SizedBox(width: w * 0.015),
             Text(
-              'Destinataires enregistrés',
+              AppLocalizations.of(context)!.courierSavedRecipients,
               style: TextStyle(
                 fontSize: w * 0.035,
                 fontWeight: FontWeight.w600,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import 'facture_colors.dart';
 
@@ -37,9 +38,9 @@ class SendRequestButton extends StatelessWidget {
                   color: Colors.white,
                 ),
               )
-            : const Text(
-                'Envoyer la demande',
-                style: TextStyle(
+            : Text(
+                AppLocalizations.of(context)!.factureSendRequest,
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                 ),

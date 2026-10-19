@@ -120,7 +120,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.camera_alt_rounded),
-              title: const Text('Prendre une photo'),
+              title: Text(AppLocalizations.of(context)!.photoTakePicture),
               onTap: () {
                 Navigator.pop(context);
                 _pickPhoto(ImageSource.camera);
@@ -128,7 +128,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_rounded),
-              title: const Text('Choisir depuis la galerie'),
+              title: Text(AppLocalizations.of(context)!.photoChooseFromGallery),
               onTap: () {
                 Navigator.pop(context);
                 _pickPhoto(ImageSource.gallery);
@@ -145,7 +145,8 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
     final address = await Navigator.push<DeliveryAddress>(
       context,
       MaterialPageRoute(
-        builder: (_) => const MapAddressPicker(label: 'Votre adresse'),
+        builder: (_) =>
+            MapAddressPicker(label: AppLocalizations.of(context)!.yourAddress),
       ),
     );
     if (address != null) setState(() => _customerAddress = address);
@@ -155,7 +156,8 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
     final address = await Navigator.push<DeliveryAddress>(
       context,
       MaterialPageRoute(
-        builder: (_) => const MapAddressPicker(label: 'Bureau de paiement'),
+        builder: (_) =>
+            MapAddressPicker(label: AppLocalizations.of(context)!.paymentOffice),
       ),
     );
     if (address != null) setState(() => _officeAddress = address);
@@ -178,19 +180,22 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
   Future<void> _submitRequest() async {
     if (_selectedBillType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner le type de facture')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!.factureSelectBillType)),
       );
       return;
     }
     if (_customerAddress == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez indiquer votre adresse de ramassage')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!.factureEnterPickupAddress)),
       );
       return;
     }
     if (_officeAddress == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez indiquer l\'adresse du bureau')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!.factureEnterOfficeAddress)),
       );
       return;
     }
@@ -199,7 +204,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
     setState(() => _submitting = true);
     try {
       final user = _supabase.auth.currentUser;
-      if (user == null) throw 'Non connecté';
+      if (user == null) throw AppLocalizations.of(context)!.factureNotSignedIn;
 
       final billPhotoUrl = await _uploadBillPhoto(user.id);
       final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
@@ -252,7 +257,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur: $e'),
+          content: Text(AppLocalizations.of(context)!.commonErrorWith('$e')),
           backgroundColor: AppColors.error,
         ),
       );
@@ -265,27 +270,27 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
 
   String? _validateReference(String? v) {
     if (v == null || v.trim().isEmpty) {
-      return 'Obligatoire — numéro de référence';
+      return AppLocalizations.of(context)!.factureReferenceRequired;
     }
     return null;
   }
 
   String? _validateAmount(String? v) {
     if (v == null || v.trim().isEmpty) {
-      return 'Obligatoire — montant de la facture';
+      return AppLocalizations.of(context)!.factureAmountRequired;
     }
     final parsed = double.tryParse(v.trim());
     if (parsed == null || parsed <= 0) {
-      return 'Montant invalide';
+      return AppLocalizations.of(context)!.commonInvalidAmount;
     }
     return null;
   }
 
   String? _validatePhone(String? v) {
     final val = v?.trim() ?? '';
-    if (val.isEmpty) return 'Obligatoire — numéro de téléphone';
+    if (val.isEmpty) return AppLocalizations.of(context)!.facturePhoneRequired;
     if (!RegExp(_tunisianPhone).hasMatch(val)) {
-      return 'Numéro invalide — exactement 8 chiffres requis';
+      return AppLocalizations.of(context)!.commonInvalidPhone8;
     }
     return null;
   }
@@ -294,6 +299,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       // Bottom padding clears the floating bottom nav bar (~11.5% of screen
       // height) so the "Envoyer la demande" button isn't hidden under it —
@@ -308,7 +314,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
             const SizedBox(height: 20),
 
             // ── Bill type ─────────────────────────────────────────────────
-            const FactureSectionTitle('Type de facture'),
+            FactureSectionTitle(l10n.factureBillTypeTitle),
             const SizedBox(height: 10),
             BillTypeGrid(
               selected: _selectedBillType,
@@ -317,11 +323,11 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
             const SizedBox(height: 20),
 
             // ── Bill details ──────────────────────────────────────────────
-            const FactureSectionTitle('Détails de la facture'),
+            FactureSectionTitle(l10n.billDetailsTitle),
             const SizedBox(height: 10),
             FactureTextField(
               controller: _referenceController,
-              label: 'Numéro de référence / contrat',
+              label: l10n.factureReferenceLabel,
               icon: Icons.tag_rounded,
               textInputAction: TextInputAction.next,
               validator: _validateReference,
@@ -329,7 +335,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
             const SizedBox(height: 12),
             FactureTextField(
               controller: _amountController,
-              label: 'Montant à payer (TND)',
+              label: l10n.factureAmountLabel,
               icon: Icons.payments_outlined,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
@@ -347,21 +353,22 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
             const SizedBox(height: 20),
 
             // ── Addresses ─────────────────────────────────────────────────
-            const FactureSectionTitle('Votre adresse (ramassage des espèces)'),
+            FactureSectionTitle(l10n.factureCustomerAddressTitle),
             const SizedBox(height: 10),
             FactureAddressTile(
               address: _customerAddress,
-              placeholder: 'Choisir votre adresse',
+              placeholder: l10n.factureChooseYourAddress,
               icon: Icons.home_outlined,
               onTap: _selectCustomerAddress,
               color: kFactureOrange,
             ),
             const SizedBox(height: 16),
-            FactureSectionTitle('Adresse du bureau ${_selectedBillType?.label ?? ''}'),
+            FactureSectionTitle(
+                l10n.factureOfficeAddressTitle(_selectedBillType?.label ?? '')),
             const SizedBox(height: 10),
             FactureAddressTile(
               address: _officeAddress,
-              placeholder: 'Choisir l\'adresse du bureau',
+              placeholder: l10n.factureChooseOfficeAddress,
               icon: Icons.business_outlined,
               onTap: _selectOfficeAddress,
               color: kFactureOrange,
@@ -369,11 +376,11 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
             const SizedBox(height: 20),
 
             // ── Phone ─────────────────────────────────────────────────────
-            const FactureSectionTitle('Votre numéro de téléphone'),
+            FactureSectionTitle(l10n.facturePhoneTitle),
             const SizedBox(height: 10),
             FactureTextField(
               controller: _phoneController,
-              label: 'Téléphone (8 chiffres)',
+              label: l10n.facturePhoneLabel,
               icon: Icons.phone_rounded,
               keyboardType: TextInputType.phone,
               maxLength: 8,

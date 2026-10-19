@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import 'courier_text_field.dart';
 
@@ -31,7 +32,7 @@ class CourierPhoneField extends StatelessWidget {
       maxLength: 8,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       decoration: courierInputDecoration(
-        'Ex: 20123456',
+        AppLocalizations.of(context)!.courierPhoneExample,
         icon,
         screenWidth,
       ).copyWith(counterText: ''),
@@ -39,7 +40,7 @@ class CourierPhoneField extends StatelessWidget {
         final val = v?.trim() ?? '';
         if (val.isEmpty) return requiredMessage;
         if (!RegExp(_tunisianPhone).hasMatch(val)) {
-          return 'Numéro invalide — exactement 8 chiffres requis';
+          return AppLocalizations.of(context)!.commonInvalidPhone8;
         }
         return null;
       },

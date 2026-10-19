@@ -1454,4 +1454,523 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get colisShareSubject => 'رمز التسليم أمانة';
+
+  @override
+  String get mapGpsUnavailable => 'تعذّر الحصول على موقع GPS';
+
+  @override
+  String get mapUseCurrentLocation => 'استخدام موقعي الحالي';
+
+  @override
+  String get mapOr => 'أو';
+
+  @override
+  String get mapSearchHint => 'ابحث عن عنوان أو مكان…';
+
+  @override
+  String get mapTypeStreetHint => 'اكتب اسم شارع أو حي أو مكان…';
+
+  @override
+  String get mapNoResults => 'لا توجد نتائج';
+
+  @override
+  String get mapLocating => 'جارٍ تحديد الموقع…';
+
+  @override
+  String get mapLocatingInProgress => 'جارٍ تحديد موقعك…';
+
+  @override
+  String get mapDragToAdjust => 'اسحب لضبط الموقع';
+
+  @override
+  String get mapDragToPlace => 'اسحب الخريطة إلى المكان المطلوب';
+
+  @override
+  String get mapConfirmLocation => 'تأكيد هذا الموقع';
+
+  @override
+  String get authErrorInvalidCredentials =>
+      'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+
+  @override
+  String get authErrorAccountExists =>
+      'يوجد حساب بهذا البريد الإلكتروني بالفعل';
+
+  @override
+  String get authErrorEmailNotConfirmed =>
+      'يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول';
+
+  @override
+  String get authErrorNoInternet => 'مشكلة في الاتصال بالإنترنت';
+
+  @override
+  String get authErrorTimeout =>
+      'الخادم يستغرق وقتاً طويلاً للرد. حاول مرة أخرى.';
+
+  @override
+  String get authErrorServiceUnavailable =>
+      'الخدمة غير متاحة مؤقتاً. حاول مرة أخرى بعد قليل.';
+
+  @override
+  String get authErrorGeneric => 'حدث خطأ، يرجى المحاولة مرة أخرى';
+
+  @override
+  String get authCheckFormFields => 'تحقّق من حقول النموذج';
+
+  @override
+  String get authAccountCreatedConfirmEmail =>
+      'تم إنشاء الحساب! افتح رسالة التأكيد التي أرسلناها للتو، ثم سجّل الدخول.';
+
+  @override
+  String get billsTitle => 'فواتيري';
+
+  @override
+  String get billsLoadError => 'تعذّر تحميل الفواتير';
+
+  @override
+  String get billsEmptyTitle => 'لا توجد فواتير مدفوعة';
+
+  @override
+  String get billsEmptySubtitle => 'ستظهر مدفوعات فواتيرك هنا';
+
+  @override
+  String billsReference(String reference) {
+    return 'المرجع: $reference';
+  }
+
+  @override
+  String get billsReceiptAvailable => 'الإيصال متوفّر';
+
+  @override
+  String get billsLabelSteg => 'STEG — الكهرباء';
+
+  @override
+  String get billsLabelSonede => 'SONEDE — الماء';
+
+  @override
+  String get billsLabelTopnet => 'Topnet — الإنترنت';
+
+  @override
+  String get billsLabelOther => 'فاتورة أخرى';
+
+  @override
+  String get billStatusPaid => 'مدفوعة';
+
+  @override
+  String get billStatusInProgress => 'قيد التنفيذ';
+
+  @override
+  String get commonDelete => 'حذف';
+
+  @override
+  String commonErrorWith(String error) {
+    return 'خطأ: $error';
+  }
+
+  @override
+  String get commonInvalidAmount => 'مبلغ غير صالح';
+
+  @override
+  String get commonInvalidPhone8 =>
+      'رقم غير صالح — يجب أن يتكوّن من 8 أرقام بالضبط';
+
+  @override
+  String get photoTakePicture => 'التقاط صورة';
+
+  @override
+  String get photoChooseFromGallery => 'اختيار من المعرض';
+
+  @override
+  String get courierDeleteRecipientTitle => 'حذف هذا المستلم؟';
+
+  @override
+  String courierDeleteRecipientBody(String name) {
+    return 'ستتم إزالة $name من جهات الاتصال المحفوظة.';
+  }
+
+  @override
+  String get courierPickupAddress => 'عنوان الاستلام';
+
+  @override
+  String get courierConfirmNoForbidden =>
+      'أكّد أن طردك لا يحتوي على أي مادة ممنوعة.';
+
+  @override
+  String get courierAcceptPhotoProof =>
+      'وافق على أن تكون الصورة والموقع بمثابة دليل.';
+
+  @override
+  String get courierDeclaredValueRequired => 'أدخل قيمة طردك';
+
+  @override
+  String get courierDeclaredValuePositive => 'يجب أن تكون القيمة أكبر من 0';
+
+  @override
+  String courierDeclaredValueMax(String max) {
+    return 'الحد الأقصى $max TND — قسّم شحنتك';
+  }
+
+  @override
+  String get courierDescriptionRequired => 'صِف محتوى طردك';
+
+  @override
+  String get courierReceiverLabelRequired => 'حدّد لمن سيُسلَّم الطرد';
+
+  @override
+  String get courierSenderPhone => 'هاتف المُرسِل';
+
+  @override
+  String get courierSenderPhoneHint => 'الشخص الذي يسلّم الطرد';
+
+  @override
+  String get courierSenderPhoneRequired => 'إلزامي — رقم المُرسِل';
+
+  @override
+  String get courierRecipientName => 'اسم المستلم';
+
+  @override
+  String get courierRecipientNameHint =>
+      'اختياري — يساعد السائق على التعرّف على المستلم';
+
+  @override
+  String get courierRecipientNameExample => 'مثال: محمد بن علي';
+
+  @override
+  String get courierRecipientPhone => 'هاتف المستلم';
+
+  @override
+  String get courierRecipientPhoneHint => 'الشخص الذي يستلم الطرد';
+
+  @override
+  String get courierRecipientPhoneRequired => 'إلزامي — رقم المستلم';
+
+  @override
+  String get courierContentsTitle => 'ماذا يحتوي طردك؟';
+
+  @override
+  String get courierContentsExample => 'مثال: هاتف Samsung A15، وثائق، ملابس…';
+
+  @override
+  String get courierDeclaredValue => 'القيمة المصرّح بها';
+
+  @override
+  String courierDeclaredValueCap(String max) {
+    return 'الحد الأقصى: $max TND. فوق ذلك، قسّم شحنتك إلى عدة طرود.';
+  }
+
+  @override
+  String get courierDeclaredValueHint => 'القيمة بالدينار (TND)';
+
+  @override
+  String get courierPhotoTitle => 'صورة الطرد';
+
+  @override
+  String get courierPhotoHint => 'اختياري — يساعد السائق على التعرّف على طردك';
+
+  @override
+  String get courierSizeTitle => 'حجم الطرد';
+
+  @override
+  String get courierConfirmSend => 'تأكيد الإرسال';
+
+  @override
+  String get courierTapToSelect => 'اضغط للاختيار';
+
+  @override
+  String get courierPhoneExample => 'مثال: 20123456';
+
+  @override
+  String get courierEstimatedPrice => 'السعر التقديري';
+
+  @override
+  String get courierEstimatedPriceLoyaltyFree =>
+      'السعر التقديري — الولاء: توصيل مجاني';
+
+  @override
+  String get courierEstimatedPriceLoyaltyHalf =>
+      'السعر التقديري — الولاء: -50%';
+
+  @override
+  String get courierPriceBase => '3.500 TND أساسي';
+
+  @override
+  String get courierReceiverLabelExample =>
+      'مثال: حارس المدرسة، جار الطابق الثالث…';
+
+  @override
+  String get courierAcceptPhotoProofCheckbox =>
+      'أوافق على أن يكون دليل التسليم هو صورة السائق وموقعه.';
+
+  @override
+  String get courierForbiddenTitle => 'ممنوع في الطرد';
+
+  @override
+  String get courierForbiddenConfirm =>
+      'أؤكّد أن طردي لا يحتوي على أي من هذه المواد';
+
+  @override
+  String get courierPhotoChange => 'تغيير';
+
+  @override
+  String get courierPhotoAdd => 'إضافة صورة للطرد';
+
+  @override
+  String get courierPhotoTapHint => 'اضغط لالتقاط/اختيار صورة';
+
+  @override
+  String get courierSizeSmall => 'صغير';
+
+  @override
+  String get courierSizeMedium => 'متوسط';
+
+  @override
+  String get courierSizeLarge => 'كبير';
+
+  @override
+  String get courierSizeSmallDesc => 'وثائق، أغراض صغيرة';
+
+  @override
+  String get courierSizeMediumDesc => 'ملابس، إكسسوارات';
+
+  @override
+  String get courierSizeLargeDesc => 'أمتعة، طرود كبيرة';
+
+  @override
+  String get courierSaveRecipient => 'حفظ هذا المستلم للمرة القادمة';
+
+  @override
+  String get courierSavedRecipients => 'المستلمون المحفوظون';
+
+  @override
+  String get factureSelectBillType => 'يرجى اختيار نوع الفاتورة';
+
+  @override
+  String get factureEnterPickupAddress => 'يرجى تحديد عنوان الاستلام';
+
+  @override
+  String get factureEnterOfficeAddress => 'يرجى تحديد عنوان المكتب';
+
+  @override
+  String get factureNotSignedIn => 'غير مسجّل الدخول';
+
+  @override
+  String get factureReferenceRequired => 'إلزامي — الرقم المرجعي';
+
+  @override
+  String get factureAmountRequired => 'إلزامي — مبلغ الفاتورة';
+
+  @override
+  String get facturePhoneRequired => 'إلزامي — رقم الهاتف';
+
+  @override
+  String get factureBillTypeTitle => 'نوع الفاتورة';
+
+  @override
+  String get factureReferenceLabel => 'الرقم المرجعي / رقم العقد';
+
+  @override
+  String get factureAmountLabel => 'المبلغ المطلوب دفعه (TND)';
+
+  @override
+  String get factureCustomerAddressTitle => 'عنوانك (استلام المبلغ نقداً)';
+
+  @override
+  String get factureChooseYourAddress => 'اختر عنوانك';
+
+  @override
+  String factureOfficeAddressTitle(String billType) {
+    return 'عنوان المكتب $billType';
+  }
+
+  @override
+  String get factureChooseOfficeAddress => 'اختر عنوان المكتب';
+
+  @override
+  String get facturePhoneTitle => 'رقم هاتفك';
+
+  @override
+  String get facturePhoneLabel => 'الهاتف (8 أرقام)';
+
+  @override
+  String get factureAddBillPhoto => 'إضافة صورة الفاتورة (اختياري)';
+
+  @override
+  String get factureRemovePhoto => 'حذف الصورة';
+
+  @override
+  String get factureBillAmount => 'مبلغ الفاتورة';
+
+  @override
+  String get factureCollectedInCash => '(يُحصَّل نقداً)';
+
+  @override
+  String get factureServiceFee => 'رسوم الخدمة';
+
+  @override
+  String get factureLoyaltyHalf => 'الولاء — -50%';
+
+  @override
+  String get factureSendRequest => 'إرسال الطلب';
+
+  @override
+  String get colisDisputeExplain =>
+      'صِف ما حدث. سيراجع أحد المسؤولين الأدلة (الصور، الوقت، الموقع) قبل اتخاذ القرار.';
+
+  @override
+  String get colisDisputeMessageHint => 'رسالتك (اختياري)';
+
+  @override
+  String get colisDisputeSendFailed => 'تعذّر إرسال البلاغ.';
+
+  @override
+  String get colisReceiptTitle => 'وصل الاستلام';
+
+  @override
+  String get colisReceiptDeclaredContents => 'المحتوى المصرّح به';
+
+  @override
+  String get colisReceiptHandedTo => 'سُلِّم إلى';
+
+  @override
+  String get colisReceiptPlate => 'اللوحة';
+
+  @override
+  String get colisReceiptDistanceToAddress => 'المسافة إلى العنوان';
+
+  @override
+  String get colisProofPickup => 'الاستلام';
+
+  @override
+  String get colisProofDelivery => 'التسليم';
+
+  @override
+  String get colisDisputeSent => 'تم إرسال البلاغ. سيراجعه أحد المسؤولين.';
+
+  @override
+  String get colisDisputeWindow =>
+      'هل هناك مشكلة؟ لديك 24 ساعة بعد التسليم للإبلاغ عنها.';
+
+  @override
+  String get colisDisputeNotReceivedTitle => 'لم يتم استلام الطرد';
+
+  @override
+  String get colisDisputeNotReceived => 'لم يُستلَم';
+
+  @override
+  String get colisDisputeProblem => 'مشكلة في الطرد';
+
+  @override
+  String get colisCodeCopy => 'نسخ';
+
+  @override
+  String get colisCodeCopied => 'تم نسخ الرمز';
+
+  @override
+  String get colisCodeShare => 'مشاركة';
+
+  @override
+  String get loyaltyAppliedFree =>
+      '🎉 تم تطبيق التوصيل المجاني — شكراً على وفائك!';
+
+  @override
+  String get loyaltyAppliedHalf =>
+      '🎉 تم تطبيق خصم 50% على التوصيل — شكراً على وفائك!';
+
+  @override
+  String loyaltyProgressOrders(String progress) {
+    return '$progress/5 طلبات قبل خصمك القادم';
+  }
+
+  @override
+  String get loyaltyBadgeFree => '🎉 توصيل مجاني';
+
+  @override
+  String get loyaltyBadgeHalf => '🎉 خصم 50% على التوصيل';
+
+  @override
+  String get reorderButton => 'اطلب مرة أخرى';
+
+  @override
+  String get reorderReplaceCartTitle => 'استبدال السلة؟';
+
+  @override
+  String get reorderReplaceCartBody =>
+      'سلتك الحالية تحتوي على منتجات. هل تريد استبدالها بمنتجات هذا الطلب؟';
+
+  @override
+  String get reorderReplace => 'استبدال';
+
+  @override
+  String get reorderNothingAvailable => 'لا يتوفر حالياً أي منتج من هذا الطلب.';
+
+  @override
+  String reorderSkipped(String count) {
+    return 'تم تجاهل $count منتج(ات) غير متوفر(ة).';
+  }
+
+  @override
+  String get reorderFailed => 'حدث خطأ أثناء إعادة الطلب. حاول مرة أخرى.';
+
+  @override
+  String get orderTypeFacture => 'دفع فاتورة';
+
+  @override
+  String get orderShopSupermarket => 'سوبرماركت';
+
+  @override
+  String get orderShopBakery => 'مخبزة';
+
+  @override
+  String get orderShopFlowers => 'زهور';
+
+  @override
+  String get orderShopPets => 'متجر الحيوانات';
+
+  @override
+  String get orderShopGifts => 'هدايا';
+
+  @override
+  String get orderShopElectronics => 'إلكترونيات';
+
+  @override
+  String get orderShopRestaurant => 'مطعم';
+
+  @override
+  String get homeEmptyBakery => 'لا توجد مخبزة متاحة بالقرب منك.';
+
+  @override
+  String get homeEmptyFlowers => 'لا يوجد بائع زهور متاح بالقرب منك.';
+
+  @override
+  String get homeEmptyPets => 'لا يوجد متجر حيوانات متاح بالقرب منك.';
+
+  @override
+  String get homeEmptyGifts => 'لا يوجد متجر هدايا بالقرب منك.';
+
+  @override
+  String get homeEmptyElectronics => 'لا يوجد متجر إلكترونيات بالقرب منك.';
+
+  @override
+  String get homeEmptyShops => 'لا يوجد متجر متاح بالقرب منك.';
+
+  @override
+  String get profileUploadFailed => 'فشل التحميل. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get profileBillReminders => 'تذكيرات الفواتير';
+
+  @override
+  String get ratingOrderQuestion => 'كيف كان طلبك؟';
+
+  @override
+  String get vendorCatalogueLoadError => 'تعذّر تحميل الكتالوج';
+
+  @override
+  String get vendorNoItemsYet => 'لا توجد منتجات حالياً.';
+
+  @override
+  String get vendorDefaultSection => 'المنتجات';
+
+  @override
+  String get vendorClosedNotice => 'هذا المتجر مغلق حالياً.';
 }

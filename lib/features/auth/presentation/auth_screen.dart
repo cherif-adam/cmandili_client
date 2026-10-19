@@ -22,31 +22,31 @@ import 'widgets/social_sign_in_button.dart';
 /// act on. Matched on the exception's own toString() rather than importing
 /// the exception type, since the client only needs a handful of known
 /// substrings and this keeps the check trivially portable.
-String friendlyAuthErrorMessage(Object e) {
+String friendlyAuthErrorMessage(AppLocalizations l10n, Object e) {
   final raw = e.toString().toLowerCase();
   if (raw.contains('invalid login credentials') || raw.contains('invalid_credentials')) {
-    return 'Email ou mot de passe incorrect';
+    return l10n.authErrorInvalidCredentials;
   }
   if (raw.contains('user already registered') || raw.contains('already registered')) {
-    return 'Un compte existe déjà avec cet email';
+    return l10n.authErrorAccountExists;
   }
   if (raw.contains('email not confirmed')) {
-    return 'Veuillez confirmer votre email avant de vous connecter';
+    return l10n.authErrorEmailNotConfirmed;
   }
   if (raw.contains('password') && raw.contains('6 characters')) {
-    return 'Le mot de passe doit contenir au moins 6 caractères';
+    return l10n.passwordLength;
   }
   if (raw.contains('socketexception') ||
       raw.contains('network') ||
       raw.contains('failed host lookup') ||
       raw.contains('connection')) {
-    return 'Problème de connexion internet';
+    return l10n.authErrorNoInternet;
   }
   // Serveur injoignable ou en panne : 502/503/504 et les délais dépassés.
   // Sans ces cas, une panne Supabase tombait dans le message generique
   // « une erreur est survenue », qui laisse croire a une faute de saisie.
   if (raw.contains('timeout') || raw.contains('timed out')) {
-    return 'Le serveur met trop de temps à répondre. Réessayez.';
+    return l10n.authErrorTimeout;
   }
   if (raw.contains('statuscode: 50') ||
       raw.contains('502') ||
@@ -54,9 +54,9 @@ String friendlyAuthErrorMessage(Object e) {
       raw.contains('504') ||
       raw.contains('service unavailable') ||
       raw.contains('bad gateway')) {
-    return 'Le service est momentanément indisponible. Réessayez dans un instant.';
+    return l10n.authErrorServiceUnavailable;
   }
-  return 'Une erreur est survenue, veuillez réessayer';
+  return l10n.authErrorGeneric;
 }
 
 /// Sign in / sign up, top to bottom:
@@ -174,7 +174,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     // et le bouton passe alors pour mort. Un message par-dessus dit au moins
     // qu'il y a quelque chose a corriger.
     if (!_formKey.currentState!.validate()) {
-      _showAuthMessage('Vérifiez les champs du formulaire');
+      _showAuthMessage(AppLocalizations.of(context)!.authCheckFormFields);
       return;
     }
 
@@ -207,14 +207,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           if (mounted) {
             _tabController.animateTo(0); // ready to sign in once confirmed
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
-                  "Compte créé ! Ouvrez l'email de confirmation que nous "
-                  "venons d'envoyer, puis connectez-vous.",
+                  AppLocalizations.of(context)!.authAccountCreatedConfirmEmail,
                 ),
                 backgroundColor: AppColors.success,
                 behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 6),
+                duration: const Duration(seconds: 6),
               ),
             );
           }
@@ -232,7 +231,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(friendlyAuthErrorMessage(e)),
+            content: Text(
+                friendlyAuthErrorMessage(AppLocalizations.of(context)!, e)),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -259,7 +259,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(friendlyAuthErrorMessage(e)),
+            content: Text(
+                friendlyAuthErrorMessage(AppLocalizations.of(context)!, e)),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),

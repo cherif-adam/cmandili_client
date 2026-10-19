@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import 'courier_colors.dart';
@@ -56,7 +57,7 @@ class SaveRecipientToggle extends StatelessWidget {
               SizedBox(width: w * 0.03),
               Expanded(
                 child: Text(
-                  'Enregistrer ce destinataire pour la prochaine fois',
+                  AppLocalizations.of(context)!.courierSaveRecipient,
                   style: TextStyle(
                     fontSize: w * 0.036,
                     fontWeight:

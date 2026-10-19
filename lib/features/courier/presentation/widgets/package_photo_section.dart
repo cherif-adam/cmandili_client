@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 /// The optional parcel photo: a grey "Ajouter une photo du colis" box, or
 /// — once picked — the photo with a × (remove) and "Changer" on top.
@@ -62,14 +63,14 @@ class PackagePhotoSection extends StatelessWidget {
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.edit, color: Colors.white, size: 14),
-                    SizedBox(width: 4),
+                    const Icon(Icons.edit, color: Colors.white, size: 14),
+                    const SizedBox(width: 4),
                     Text(
-                      'Changer',
-                      style: TextStyle(color: Colors.white, fontSize: 12),
+                      AppLocalizations.of(context)!.courierPhotoChange,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ],
                 ),
@@ -110,7 +111,7 @@ class PackagePhotoSection extends StatelessWidget {
             ),
             SizedBox(height: h * 0.008),
             Text(
-              'Ajouter une photo du colis',
+              AppLocalizations.of(context)!.courierPhotoAdd,
               style: TextStyle(
                 color: Colors.grey.shade500,
                 fontSize: w * 0.035,
@@ -119,7 +120,7 @@ class PackagePhotoSection extends StatelessWidget {
             ),
             SizedBox(height: h * 0.004),
             Text(
-              'Appuyer pour prendre/choisir une photo',
+              AppLocalizations.of(context)!.courierPhotoTapHint,
               style: TextStyle(
                 color: Colors.grey.shade400,
                 fontSize: w * 0.03,

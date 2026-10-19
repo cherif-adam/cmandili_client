@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 /// Green "🎉 Livraison gratuite appliquée — merci de votre fidélité !"
 /// (or "-50 %") on a delivered order that used the loyalty discount.
@@ -25,8 +26,8 @@ class LoyaltyAppliedBanner extends StatelessWidget {
           Expanded(
             child: Text(
               milestoneType == 'free'
-                  ? '🎉 Livraison gratuite appliquée — merci de votre fidélité !'
-                  : '🎉 -50% sur la livraison appliqué — merci de votre fidélité !',
+                  ? AppLocalizations.of(context)!.loyaltyAppliedFree
+                  : AppLocalizations.of(context)!.loyaltyAppliedHalf,
               style: const TextStyle(
                 color: Colors.green,
                 fontWeight: FontWeight.bold,

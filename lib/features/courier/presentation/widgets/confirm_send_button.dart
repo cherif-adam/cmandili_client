@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import 'courier_colors.dart';
 
@@ -50,7 +51,7 @@ class ConfirmSendButton extends StatelessWidget {
                     const Icon(Icons.send_rounded),
                     SizedBox(width: w * 0.02),
                     Text(
-                      'Confirmer l\'envoi',
+                      AppLocalizations.of(context)!.courierConfirmSend,
                       style: TextStyle(
                         fontSize: w * 0.045,
                         fontWeight: FontWeight.bold,

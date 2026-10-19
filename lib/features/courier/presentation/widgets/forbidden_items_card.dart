@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../data/colis_repository.dart';
@@ -34,7 +35,7 @@ class ForbiddenItemsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Interdit dans un colis',
+            AppLocalizations.of(context)!.courierForbiddenTitle,
             style: TextStyle(
                 fontSize: w * 0.038, fontWeight: FontWeight.w700),
           ),
@@ -65,7 +66,7 @@ class ForbiddenItemsCard extends StatelessWidget {
             dense: true,
             activeColor: AppColors.primary,
             title: Text(
-              'Je confirme que mon colis ne contient aucun de ces articles',
+              AppLocalizations.of(context)!.courierForbiddenConfirm,
               style: TextStyle(fontSize: w * 0.034),
             ),
           ),

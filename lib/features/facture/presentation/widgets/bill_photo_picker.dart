@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import 'facture_colors.dart';
@@ -25,7 +26,7 @@ class BillPhotoPicker extends StatelessWidget {
       return OutlinedButton.icon(
         onPressed: onAdd,
         icon: const Icon(Icons.camera_alt_outlined),
-        label: const Text('Ajouter photo de la facture (optionnel)'),
+        label: Text(AppLocalizations.of(context)!.factureAddBillPhoto),
         style: OutlinedButton.styleFrom(
           foregroundColor: kFactureOrange,
           side: const BorderSide(color: kFactureOrange),
@@ -54,7 +55,7 @@ class BillPhotoPicker extends StatelessWidget {
         TextButton.icon(
           onPressed: onRemove,
           icon: const Icon(Icons.delete_outline, size: 16),
-          label: const Text('Supprimer la photo'),
+          label: Text(AppLocalizations.of(context)!.factureRemovePhoto),
           style: TextButton.styleFrom(foregroundColor: AppColors.error),
         ),
       ],

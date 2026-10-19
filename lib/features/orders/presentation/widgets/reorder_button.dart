@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../cart/presentation/cart_screen.dart';
@@ -31,7 +32,7 @@ class ReorderButton extends ConsumerWidget {
         onPressed: () => _reorder(context, ref),
         icon: Icon(Icons.replay, size: sw * 0.042, color: AppColors.primary),
         label: Text(
-          'Commander à nouveau',
+          AppLocalizations.of(context)!.reorderButton,
           style: TextStyle(
             color: AppColors.primary,
             fontWeight: FontWeight.w600,
@@ -55,18 +56,18 @@ class ReorderButton extends ConsumerWidget {
       final replace = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Remplacer le panier ?'),
-          content: const Text(
-            'Votre panier actuel contient déjà des articles. Le remplacer par ceux de cette commande ?',
+          title: Text(AppLocalizations.of(ctx)!.reorderReplaceCartTitle),
+          content: Text(
+            AppLocalizations.of(ctx)!.reorderReplaceCartBody,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
+              child: Text(AppLocalizations.of(ctx)!.cancel),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Remplacer'),
+              child: Text(AppLocalizations.of(ctx)!.reorderReplace),
             ),
           ],
         ),
@@ -92,8 +93,9 @@ class ReorderButton extends ConsumerWidget {
       if (result.items.isEmpty) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Aucun article de cette commande n\'est disponible actuellement.'),
+            SnackBar(
+              content: Text(
+                  AppLocalizations.of(context)!.reorderNothingAvailable),
             ),
           );
         }
@@ -111,7 +113,8 @@ class ReorderButton extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${result.skippedCount} article(s) non disponible(s) ont été ignoré(s).',
+              AppLocalizations.of(context)!
+                  .reorderSkipped('${result.skippedCount}'),
             ),
           ),
         );
@@ -125,7 +128,8 @@ class ReorderButton extends ConsumerWidget {
       if (context.mounted) Navigator.pop(context);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la recommande. Réessayez.')),
+          SnackBar(
+              content: Text(AppLocalizations.of(context)!.reorderFailed)),
         );
       }
     }

@@ -105,18 +105,17 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Décrivez ce qui s\'est passé. Un administrateur examinera les '
-              'preuves (photos, heure, position) avant de décider.',
-              style: TextStyle(fontSize: 13),
+            Text(
+              AppLocalizations.of(ctx)!.colisDisputeExplain,
+              style: const TextStyle(fontSize: 13),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
               maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Votre message (facultatif)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: AppLocalizations.of(ctx)!.colisDisputeMessageHint,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -124,10 +123,10 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Annuler')),
+              child: Text(AppLocalizations.of(ctx)!.cancel)),
           ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Envoyer')),
+              child: Text(AppLocalizations.of(ctx)!.rateDriverSend)),
         ],
       ),
     );
@@ -145,7 +144,7 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(e is PostgrestException
             ? e.message
-            : 'Le signalement n\'a pas pu être envoyé.'),
+            : AppLocalizations.of(context)!.colisDisputeSendFailed),
         backgroundColor: Colors.red,
       ));
     }
@@ -155,6 +154,7 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
   Widget build(BuildContext context) {
     if (_loading || _receipt == null) return const SizedBox.shrink();
     final r = _receipt!;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -169,13 +169,13 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.receipt_long_rounded, size: 20),
-              SizedBox(width: 8),
-              Text('Bon de prise en charge',
-                  style:
-                      TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              const Icon(Icons.receipt_long_rounded, size: 20),
+              const SizedBox(width: 8),
+              Text(l10n.colisReceiptTitle,
+                  style: const TextStyle(
+                      fontSize: 15, fontWeight: FontWeight.w800)),
             ],
           ),
           const SizedBox(height: 14),
@@ -183,23 +183,25 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
           // ── Le code, tant que le colis n'est pas remis ───────────────────
           if (_code != null && r['delivery_at'] == null) _DeliveryCodeBlock(code: _code!, onShare: _shareCode),
 
-          _ReceiptLine('Contenu déclaré', (r['description'] ?? '—').toString()),
+          _ReceiptLine(l10n.colisReceiptDeclaredContents,
+              (r['description'] ?? '—').toString()),
           _ReceiptLine(
-            'Valeur déclarée',
+            l10n.courierDeclaredValue,
             r['declared_value'] == null
                 ? '—'
                 : '${(r['declared_value'] as num).toStringAsFixed(3)} TND',
           ),
           if (r['delivery_mode'] == 'no_code')
-            _ReceiptLine('Remise à', (r['receiver_label'] ?? '—').toString()),
+            _ReceiptLine(l10n.colisReceiptHandedTo,
+                (r['receiver_label'] ?? '—').toString()),
           if (r['driver_name'] != null)
-            _ReceiptLine('Livreur', r['driver_name'].toString()),
+            _ReceiptLine(l10n.driverLabel, r['driver_name'].toString()),
           // La plaque est figée à la prise en charge : un livreur qui la
           // modifie ensuite ne réécrit pas une preuve passée.
           if (r['driver_plate'] != null)
-            _ReceiptLine('Plaque', r['driver_plate'].toString()),
+            _ReceiptLine(l10n.colisReceiptPlate, r['driver_plate'].toString()),
           if (r['delivery_distance_m'] != null)
-            _ReceiptLine('Distance à l\'adresse',
+            _ReceiptLine(l10n.colisReceiptDistanceToAddress,
                 '${r['delivery_distance_m']} m'),
 
           if (_pickupUrl != null || _deliveryUrl != null) ...[
@@ -207,11 +209,11 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
             Row(
               children: [
                 if (_pickupUrl != null)
-                  Expanded(child: _ProofPhoto('Prise en charge', _pickupUrl!)),
+                  Expanded(child: _ProofPhoto(l10n.colisProofPickup, _pickupUrl!)),
                 if (_pickupUrl != null && _deliveryUrl != null)
                   const SizedBox(width: 10),
                 if (_deliveryUrl != null)
-                  Expanded(child: _ProofPhoto('Remise', _deliveryUrl!)),
+                  Expanded(child: _ProofPhoto(l10n.colisProofDelivery, _deliveryUrl!)),
               ],
             ),
           ],
@@ -221,15 +223,14 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
             const Divider(height: 1),
             const SizedBox(height: 10),
             if (_disputeSent)
-              const Text(
-                'Signalement envoyé. Un administrateur va l\'examiner.',
-                style: TextStyle(fontSize: 12.5, color: Colors.green),
+              Text(
+                l10n.colisDisputeSent,
+                style: const TextStyle(fontSize: 12.5, color: Colors.green),
               )
             else ...[
-              const Text(
-                'Un problème ? Vous avez 24 h après la livraison pour le '
-                'signaler.',
-                style: TextStyle(fontSize: 12, color: Colors.black54),
+              Text(
+                l10n.colisDisputeWindow,
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -237,15 +238,15 @@ class _ColisReceiptCardState extends State<ColisReceiptCard> {
                 children: [
                   OutlinedButton(
                     onPressed: () =>
-                        _openDispute('not_received', 'Colis non reçu'),
-                    child: const Text('Non reçu',
-                        style: TextStyle(fontSize: 12.5)),
+                        _openDispute('not_received', l10n.colisDisputeNotReceivedTitle),
+                    child: Text(l10n.colisDisputeNotReceived,
+                        style: const TextStyle(fontSize: 12.5)),
                   ),
                   OutlinedButton(
                     onPressed: () => _openDispute(
-                        'parcel_problem', 'Problème avec le colis'),
-                    child: const Text('Problème avec le colis',
-                        style: TextStyle(fontSize: 12.5)),
+                        'parcel_problem', l10n.colisDisputeProblem),
+                    child: Text(l10n.colisDisputeProblem,
+                        style: const TextStyle(fontSize: 12.5)),
                   ),
                 ],
               ),
@@ -303,17 +304,17 @@ class _DeliveryCodeBlock extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Copier',
+                tooltip: l10n.colisCodeCopy,
                 icon: const Icon(Icons.copy_rounded, size: 20),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: code));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Code copié')),
+                    SnackBar(content: Text(l10n.colisCodeCopied)),
                   );
                 },
               ),
               IconButton(
-                tooltip: 'Partager',
+                tooltip: l10n.colisCodeShare,
                 icon: const Icon(Icons.share_rounded, size: 20),
                 onPressed: onShare,
               ),

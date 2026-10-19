@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../core/models/vendor.dart';
 import '../../../core/providers/vendor_provider.dart';
@@ -53,7 +54,8 @@ class VendorDetailScreen extends ConsumerWidget {
             ],
             data: (items) => items.isEmpty
                 ? [const SliverToBoxAdapter(child: _NoItemsYet())]
-                : _catalogueSections(items),
+                : _catalogueSections(
+                    items, AppLocalizations.of(context)!.vendorDefaultSection),
           ),
         ],
       ),
@@ -66,12 +68,13 @@ class VendorDetailScreen extends ConsumerWidget {
 
   /// One title + list per in-shop section, in the order the rows came back
   /// (sort_order), so the shop controls how its catalogue reads.
-  List<Widget> _catalogueSections(List<VendorItem> items) {
+  List<Widget> _catalogueSections(
+      List<VendorItem> items, String defaultSection) {
     final grouped = <String, List<VendorItem>>{};
     for (final item in items) {
       final key = (item.category?.trim().isNotEmpty ?? false)
           ? item.category!.trim()
-          : 'Articles';
+          : defaultSection;
       grouped.putIfAbsent(key, () => []).add(item);
     }
 
@@ -118,12 +121,12 @@ class _CatalogueError extends StatelessWidget {
           const Icon(Icons.cloud_off_rounded,
               size: 36, color: AppColors.textLight),
           const SizedBox(height: 10),
-          const Text('Impossible de charger le catalogue',
-              style: TextStyle(color: AppColors.textSecondary)),
+          Text(AppLocalizations.of(context)!.vendorCatalogueLoadError,
+              style: const TextStyle(color: AppColors.textSecondary)),
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: onRetry,
-            child: const Text('Réessayer'),
+            child: Text(AppLocalizations.of(context)!.retry),
           ),
         ],
       ),
@@ -137,12 +140,12 @@ class _NoItemsYet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 56),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 56),
       child: Center(
         child: Text(
-          'Aucun article pour le moment.',
-          style: TextStyle(color: AppColors.textSecondary),
+          AppLocalizations.of(context)!.vendorNoItemsYet,
+          style: const TextStyle(color: AppColors.textSecondary),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../utils/location_service.dart';
 import '../../../features/checkout/data/models/delivery_address.dart';
@@ -357,7 +358,7 @@ class _MapTopBar extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Localisation…',
+                                  AppLocalizations.of(context)!.mapLocating,
                                   style: TextStyle(
                                     color: Colors.grey.shade500,
                                     fontSize: 13,
@@ -449,12 +450,12 @@ class _ConfirmPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                   isBusy
-                      ? 'Localisation en cours…'
+                      ? AppLocalizations.of(context)!.mapLocatingInProgress
                       : !userHasDragged
-                          ? 'Glissez pour ajuster la position'
+                          ? AppLocalizations.of(context)!.mapDragToAdjust
                           : hasAddress
                               ? addressText
-                              : 'Glissez la carte vers l\'emplacement souhaité',
+                              : AppLocalizations.of(context)!.mapDragToPlace,
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -478,14 +479,14 @@ class _ConfirmPanel extends StatelessWidget {
               ),
               elevation: 4,
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline_rounded, size: 20),
-                SizedBox(width: 8),
+                const Icon(Icons.check_circle_outline_rounded, size: 20),
+                const SizedBox(width: 8),
                 Text(
-                  'Confirmer cet emplacement',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  AppLocalizations.of(context)!.mapConfirmLocation,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                 ),
               ],
             ),

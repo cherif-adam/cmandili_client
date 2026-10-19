@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../utils/location_service.dart';
 
@@ -53,7 +54,7 @@ class _AddressChoiceScreenState extends State<AddressChoiceScreen> {
       if (pos == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Impossible d\'obtenir la position GPS')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.mapGpsUnavailable)),
           );
         }
         return;
@@ -221,9 +222,9 @@ class _GpsButton extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.my_location_rounded, size: 20),
-              label: const Text(
-                'Utiliser ma position actuelle',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              label: Text(
+                AppLocalizations.of(context)!.mapUseCurrentLocation,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ),
     );
@@ -243,7 +244,7 @@ class _OrDivider extends StatelessWidget {
           Expanded(child: Divider(color: Colors.grey.shade300)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Text('ou', style: TextStyle(color: Colors.grey.shade500)),
+            child: Text(AppLocalizations.of(context)!.mapOr, style: TextStyle(color: Colors.grey.shade500)),
           ),
           Expanded(child: Divider(color: Colors.grey.shade300)),
         ],
@@ -279,7 +280,7 @@ class _AddressSearchField extends StatelessWidget {
         onChanged: onChanged,
         autofocus: false,
         decoration: InputDecoration(
-          hintText: 'Rechercher une adresse ou un lieu…',
+          hintText: AppLocalizations.of(context)!.mapSearchHint,
           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           prefixIcon: const Icon(Icons.search, color: _purple),
           suffixIcon: isSearching
@@ -333,8 +334,8 @@ class _SuggestionList extends StatelessWidget {
       return Center(
         child: Text(
           !hasQuery
-              ? 'Tapez un nom de rue, quartier ou lieu…'
-              : 'Aucun résultat',
+              ? AppLocalizations.of(context)!.mapTypeStreetHint
+              : AppLocalizations.of(context)!.mapNoResults,
           style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
           textAlign: TextAlign.center,
         ),

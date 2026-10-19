@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
@@ -37,7 +38,8 @@ class LoyaltyProgressCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$progressInCycle/5 commandes avant votre prochaine réduction',
+                  AppLocalizations.of(context)!
+                      .loyaltyProgressOrders('$progressInCycle'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: sw * 0.035,

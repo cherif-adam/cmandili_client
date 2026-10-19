@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../data/package_size.dart';
@@ -24,10 +25,11 @@ class PackageSizeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = screenWidth;
     final h = screenHeight;
+    final l10n = AppLocalizations.of(context)!;
     final sizes = [
-      (PackageSize.petit, 'Petit', '📄', 'Documents, petits objets'),
-      (PackageSize.moyen, 'Moyen', '📦', 'Vêtements, accessoires'),
-      (PackageSize.grand, 'Grand', '🧳', 'Bagages, gros colis'),
+      (PackageSize.petit, l10n.courierSizeSmall, '📄', l10n.courierSizeSmallDesc),
+      (PackageSize.moyen, l10n.courierSizeMedium, '📦', l10n.courierSizeMediumDesc),
+      (PackageSize.grand, l10n.courierSizeLarge, '🧳', l10n.courierSizeLargeDesc),
     ];
 
     return Row(

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/models/vendor.dart';
 import '../../../../core/providers/nearby_provider.dart';
@@ -94,7 +95,7 @@ class _VendorPhoto extends StatelessWidget {
                 color: Colors.black.withValues(alpha: 0.45),
                 alignment: Alignment.center,
                 child: Text(
-                  opensAt ?? 'Fermé',
+                  opensAt ?? AppLocalizations.of(context)!.shopClosed,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -112,9 +113,9 @@ class _VendorPhoto extends StatelessWidget {
                   color: AppColors.secondary,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  'Nouveau',
-                  style: TextStyle(
+                child: Text(
+                  AppLocalizations.of(context)!.newShopBadge,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,

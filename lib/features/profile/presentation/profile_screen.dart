@@ -105,7 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       setState(() => _localAvatar = null);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Échec du chargement. Veuillez réessayer.'),
+          content: Text(AppLocalizations.of(context)!.profileUploadFailed),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
@@ -196,7 +196,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 item(
                   icon: Icons.electric_bolt_rounded,
-                  title: 'Mes factures',
+                  title: l.billsTitle,
                   onTap: () => _open(const MesFacturesScreen()),
                 ),
                 item(
@@ -225,7 +225,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 ProfileSwitchItem(
                   icon: Icons.alarm_rounded,
-                  title: 'Rappels de factures',
+                  title: l.profileBillReminders,
                   value: _billRemindersEnabled,
                   onChanged: (v) async {
                     setState(() => _billRemindersEnabled = v);

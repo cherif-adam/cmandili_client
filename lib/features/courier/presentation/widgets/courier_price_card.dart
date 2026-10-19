@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../loyalty/data/loyalty_eligibility.dart';
 import 'courier_colors.dart';
@@ -72,10 +73,12 @@ class CourierPriceCard extends StatelessWidget {
                     children: [
                       Text(
                         loyaltyPreview == null
-                            ? 'Prix estimé'
+                            ? AppLocalizations.of(context)!.courierEstimatedPrice
                             : loyaltyPreview!.type == 'free'
-                                ? 'Prix estimé — fidélité : livraison gratuite'
-                                : 'Prix estimé — fidélité : -50%',
+                                ? AppLocalizations.of(context)!
+                                    .courierEstimatedPriceLoyaltyFree
+                                : AppLocalizations.of(context)!
+                                    .courierEstimatedPriceLoyaltyHalf,
                         style: TextStyle(
                             color: Colors.white70, fontSize: w * 0.033),
                       ),
@@ -127,7 +130,7 @@ class CourierPriceCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('3.500 TND base',
+                    Text(AppLocalizations.of(context)!.courierPriceBase,
                         style: TextStyle(
                             color: Colors.white60, fontSize: w * 0.028)),
                     Text('+0.500/km > 3km',

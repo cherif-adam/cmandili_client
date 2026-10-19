@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../core/models/service_category.dart';
 import '../../../core/providers/nearby_provider.dart';
@@ -175,7 +176,8 @@ class _HomeTabState extends ConsumerState<HomeTab> {
               selectedService != ServiceType.supermarket)
             VendorListScreen(
               category: selectedService.vendorCategory!,
-              emptyLabel: _emptyLabelFor(selectedService),
+              emptyLabel:
+                  _emptyLabelFor(AppLocalizations.of(context)!, selectedService),
             ),
 
           // ── Colis ──────────────────────────────────────────────────────
@@ -203,20 +205,20 @@ class _HomeTabState extends ConsumerState<HomeTab> {
   /// Category-appropriate wording for the "nothing here yet" state. A
   /// generic "no shops" reads as a bug; naming the category makes it clear
   /// the category is simply new.
-  static String _emptyLabelFor(ServiceType service) {
+  static String _emptyLabelFor(AppLocalizations l10n, ServiceType service) {
     switch (service) {
       case ServiceType.bakery:
-        return 'Aucune pâtisserie disponible près de vous.';
+        return l10n.homeEmptyBakery;
       case ServiceType.flowers:
-        return 'Aucun fleuriste disponible près de vous.';
+        return l10n.homeEmptyFlowers;
       case ServiceType.pets:
-        return 'Aucune animalerie disponible près de vous.';
+        return l10n.homeEmptyPets;
       case ServiceType.gifts:
-        return 'Aucune boutique de cadeaux près de vous.';
+        return l10n.homeEmptyGifts;
       case ServiceType.electronics:
-        return "Aucune boutique d'électronique près de vous.";
+        return l10n.homeEmptyElectronics;
       default:
-        return 'Aucune boutique disponible près de vous.';
+        return l10n.homeEmptyShops;
     }
   }
 }

@@ -2751,6 +2751,972 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Amana delivery code'**
   String get colisShareSubject;
+
+  /// No description provided for @mapGpsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get your GPS position'**
+  String get mapGpsUnavailable;
+
+  /// No description provided for @mapUseCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my current location'**
+  String get mapUseCurrentLocation;
+
+  /// No description provided for @mapOr.
+  ///
+  /// In en, this message translates to:
+  /// **'or'**
+  String get mapOr;
+
+  /// No description provided for @mapSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for an address or place…'**
+  String get mapSearchHint;
+
+  /// No description provided for @mapTypeStreetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a street, neighbourhood or place…'**
+  String get mapTypeStreetHint;
+
+  /// No description provided for @mapNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get mapNoResults;
+
+  /// No description provided for @mapLocating.
+  ///
+  /// In en, this message translates to:
+  /// **'Locating…'**
+  String get mapLocating;
+
+  /// No description provided for @mapLocatingInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your location…'**
+  String get mapLocatingInProgress;
+
+  /// No description provided for @mapDragToAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to adjust the position'**
+  String get mapDragToAdjust;
+
+  /// No description provided for @mapDragToPlace.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag the map to the spot you want'**
+  String get mapDragToPlace;
+
+  /// No description provided for @mapConfirmLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm this location'**
+  String get mapConfirmLocation;
+
+  /// No description provided for @authErrorInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Incorrect email or password'**
+  String get authErrorInvalidCredentials;
+
+  /// No description provided for @authErrorAccountExists.
+  ///
+  /// In en, this message translates to:
+  /// **'An account already exists with this email'**
+  String get authErrorAccountExists;
+
+  /// No description provided for @authErrorEmailNotConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your email before signing in'**
+  String get authErrorEmailNotConfirmed;
+
+  /// No description provided for @authErrorNoInternet.
+  ///
+  /// In en, this message translates to:
+  /// **'Internet connection problem'**
+  String get authErrorNoInternet;
+
+  /// No description provided for @authErrorTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The server is taking too long to respond. Try again.'**
+  String get authErrorTimeout;
+
+  /// No description provided for @authErrorServiceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The service is temporarily unavailable. Try again in a moment.'**
+  String get authErrorServiceUnavailable;
+
+  /// No description provided for @authErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong, please try again'**
+  String get authErrorGeneric;
+
+  /// No description provided for @authCheckFormFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the form fields'**
+  String get authCheckFormFields;
+
+  /// No description provided for @authAccountCreatedConfirmEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Account created! Open the confirmation email we just sent, then sign in.'**
+  String get authAccountCreatedConfirmEmail;
+
+  /// No description provided for @billsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My bills'**
+  String get billsTitle;
+
+  /// No description provided for @billsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your bills'**
+  String get billsLoadError;
+
+  /// No description provided for @billsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No bills paid yet'**
+  String get billsEmptyTitle;
+
+  /// No description provided for @billsEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your bill payments will appear here'**
+  String get billsEmptySubtitle;
+
+  /// No description provided for @billsReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Ref: {reference}'**
+  String billsReference(String reference);
+
+  /// No description provided for @billsReceiptAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt available'**
+  String get billsReceiptAvailable;
+
+  /// No description provided for @billsLabelSteg.
+  ///
+  /// In en, this message translates to:
+  /// **'STEG — Electricity'**
+  String get billsLabelSteg;
+
+  /// No description provided for @billsLabelSonede.
+  ///
+  /// In en, this message translates to:
+  /// **'SONEDE — Water'**
+  String get billsLabelSonede;
+
+  /// No description provided for @billsLabelTopnet.
+  ///
+  /// In en, this message translates to:
+  /// **'Topnet — Internet'**
+  String get billsLabelTopnet;
+
+  /// No description provided for @billsLabelOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other bill'**
+  String get billsLabelOther;
+
+  /// No description provided for @billStatusPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get billStatusPaid;
+
+  /// No description provided for @billStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get billStatusInProgress;
+
+  /// No description provided for @commonDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get commonDelete;
+
+  /// No description provided for @commonErrorWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {error}'**
+  String commonErrorWith(String error);
+
+  /// No description provided for @commonInvalidAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid amount'**
+  String get commonInvalidAmount;
+
+  /// No description provided for @commonInvalidPhone8.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid number — exactly 8 digits required'**
+  String get commonInvalidPhone8;
+
+  /// No description provided for @photoTakePicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get photoTakePicture;
+
+  /// No description provided for @photoChooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get photoChooseFromGallery;
+
+  /// No description provided for @courierDeleteRecipientTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this recipient?'**
+  String get courierDeleteRecipientTitle;
+
+  /// No description provided for @courierDeleteRecipientBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will be removed from your saved contacts.'**
+  String courierDeleteRecipientBody(String name);
+
+  /// No description provided for @courierPickupAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup address'**
+  String get courierPickupAddress;
+
+  /// No description provided for @courierConfirmNoForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm that your parcel contains no forbidden items.'**
+  String get courierConfirmNoForbidden;
+
+  /// No description provided for @courierAcceptPhotoProof.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept that the photo and location will serve as proof.'**
+  String get courierAcceptPhotoProof;
+
+  /// No description provided for @courierDeclaredValueRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the value of your parcel'**
+  String get courierDeclaredValueRequired;
+
+  /// No description provided for @courierDeclaredValuePositive.
+  ///
+  /// In en, this message translates to:
+  /// **'The value must be greater than 0'**
+  String get courierDeclaredValuePositive;
+
+  /// No description provided for @courierDeclaredValueMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum {max} TND — split your shipment'**
+  String courierDeclaredValueMax(String max);
+
+  /// No description provided for @courierDescriptionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what is in your parcel'**
+  String get courierDescriptionRequired;
+
+  /// No description provided for @courierReceiverLabelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Say who the parcel will be handed to'**
+  String get courierReceiverLabelRequired;
+
+  /// No description provided for @courierSenderPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Sender\'s phone'**
+  String get courierSenderPhone;
+
+  /// No description provided for @courierSenderPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The person handing over the parcel'**
+  String get courierSenderPhoneHint;
+
+  /// No description provided for @courierSenderPhoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required — sender\'s number'**
+  String get courierSenderPhoneRequired;
+
+  /// No description provided for @courierRecipientName.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient\'s name'**
+  String get courierRecipientName;
+
+  /// No description provided for @courierRecipientNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — helps the driver identify the recipient'**
+  String get courierRecipientNameHint;
+
+  /// No description provided for @courierRecipientNameExample.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g. Mohamed Ben Ali'**
+  String get courierRecipientNameExample;
+
+  /// No description provided for @courierRecipientPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient\'s phone'**
+  String get courierRecipientPhone;
+
+  /// No description provided for @courierRecipientPhoneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The person receiving the parcel'**
+  String get courierRecipientPhoneHint;
+
+  /// No description provided for @courierRecipientPhoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required — recipient\'s number'**
+  String get courierRecipientPhoneRequired;
+
+  /// No description provided for @courierContentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What is in your parcel?'**
+  String get courierContentsTitle;
+
+  /// No description provided for @courierContentsExample.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g. Samsung A15 phone, documents, clothes…'**
+  String get courierContentsExample;
+
+  /// No description provided for @courierDeclaredValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Declared value'**
+  String get courierDeclaredValue;
+
+  /// No description provided for @courierDeclaredValueCap.
+  ///
+  /// In en, this message translates to:
+  /// **'Limit: {max} TND. Above that, split your shipment into several parcels.'**
+  String courierDeclaredValueCap(String max);
+
+  /// No description provided for @courierDeclaredValueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Value in TND'**
+  String get courierDeclaredValueHint;
+
+  /// No description provided for @courierPhotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Parcel photo'**
+  String get courierPhotoTitle;
+
+  /// No description provided for @courierPhotoHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — helps the driver identify your parcel'**
+  String get courierPhotoHint;
+
+  /// No description provided for @courierSizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Parcel size'**
+  String get courierSizeTitle;
+
+  /// No description provided for @courierConfirmSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm sending'**
+  String get courierConfirmSend;
+
+  /// No description provided for @courierTapToSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to select'**
+  String get courierTapToSelect;
+
+  /// No description provided for @courierPhoneExample.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g. 20123456'**
+  String get courierPhoneExample;
+
+  /// No description provided for @courierEstimatedPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated price'**
+  String get courierEstimatedPrice;
+
+  /// No description provided for @courierEstimatedPriceLoyaltyFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated price — loyalty: free delivery'**
+  String get courierEstimatedPriceLoyaltyFree;
+
+  /// No description provided for @courierEstimatedPriceLoyaltyHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated price — loyalty: -50%'**
+  String get courierEstimatedPriceLoyaltyHalf;
+
+  /// No description provided for @courierPriceBase.
+  ///
+  /// In en, this message translates to:
+  /// **'3.500 TND base'**
+  String get courierPriceBase;
+
+  /// No description provided for @courierReceiverLabelExample.
+  ///
+  /// In en, this message translates to:
+  /// **'E.g. school caretaker, neighbour on the 3rd floor…'**
+  String get courierReceiverLabelExample;
+
+  /// No description provided for @courierAcceptPhotoProofCheckbox.
+  ///
+  /// In en, this message translates to:
+  /// **'I accept that the proof of delivery is the driver\'s photo and location.'**
+  String get courierAcceptPhotoProofCheckbox;
+
+  /// No description provided for @courierForbiddenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not allowed in a parcel'**
+  String get courierForbiddenTitle;
+
+  /// No description provided for @courierForbiddenConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'I confirm that my parcel contains none of these items'**
+  String get courierForbiddenConfirm;
+
+  /// No description provided for @courierPhotoChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get courierPhotoChange;
+
+  /// No description provided for @courierPhotoAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a photo of the parcel'**
+  String get courierPhotoAdd;
+
+  /// No description provided for @courierPhotoTapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to take/choose a photo'**
+  String get courierPhotoTapHint;
+
+  /// No description provided for @courierSizeSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get courierSizeSmall;
+
+  /// No description provided for @courierSizeMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get courierSizeMedium;
+
+  /// No description provided for @courierSizeLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get courierSizeLarge;
+
+  /// No description provided for @courierSizeSmallDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents, small items'**
+  String get courierSizeSmallDesc;
+
+  /// No description provided for @courierSizeMediumDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Clothes, accessories'**
+  String get courierSizeMediumDesc;
+
+  /// No description provided for @courierSizeLargeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Luggage, large parcels'**
+  String get courierSizeLargeDesc;
+
+  /// No description provided for @courierSaveRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this recipient for next time'**
+  String get courierSaveRecipient;
+
+  /// No description provided for @courierSavedRecipients.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved recipients'**
+  String get courierSavedRecipients;
+
+  /// No description provided for @factureSelectBillType.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select the bill type'**
+  String get factureSelectBillType;
+
+  /// No description provided for @factureEnterPickupAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your pickup address'**
+  String get factureEnterPickupAddress;
+
+  /// No description provided for @factureEnterOfficeAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the office address'**
+  String get factureEnterOfficeAddress;
+
+  /// No description provided for @factureNotSignedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Not signed in'**
+  String get factureNotSignedIn;
+
+  /// No description provided for @factureReferenceRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required — reference number'**
+  String get factureReferenceRequired;
+
+  /// No description provided for @factureAmountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required — bill amount'**
+  String get factureAmountRequired;
+
+  /// No description provided for @facturePhoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Required — phone number'**
+  String get facturePhoneRequired;
+
+  /// No description provided for @factureBillTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill type'**
+  String get factureBillTypeTitle;
+
+  /// No description provided for @factureReferenceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference / contract number'**
+  String get factureReferenceLabel;
+
+  /// No description provided for @factureAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount to pay (TND)'**
+  String get factureAmountLabel;
+
+  /// No description provided for @factureCustomerAddressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your address (cash pickup)'**
+  String get factureCustomerAddressTitle;
+
+  /// No description provided for @factureChooseYourAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your address'**
+  String get factureChooseYourAddress;
+
+  /// No description provided for @factureOfficeAddressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Office address {billType}'**
+  String factureOfficeAddressTitle(String billType);
+
+  /// No description provided for @factureChooseOfficeAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the office address'**
+  String get factureChooseOfficeAddress;
+
+  /// No description provided for @facturePhoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone number'**
+  String get facturePhoneTitle;
+
+  /// No description provided for @facturePhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone (8 digits)'**
+  String get facturePhoneLabel;
+
+  /// No description provided for @factureAddBillPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a photo of the bill (optional)'**
+  String get factureAddBillPhoto;
+
+  /// No description provided for @factureRemovePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the photo'**
+  String get factureRemovePhoto;
+
+  /// No description provided for @factureBillAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill amount'**
+  String get factureBillAmount;
+
+  /// No description provided for @factureCollectedInCash.
+  ///
+  /// In en, this message translates to:
+  /// **'(collected in cash)'**
+  String get factureCollectedInCash;
+
+  /// No description provided for @factureServiceFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Service fee'**
+  String get factureServiceFee;
+
+  /// No description provided for @factureLoyaltyHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty — -50%'**
+  String get factureLoyaltyHalf;
+
+  /// No description provided for @factureSendRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the request'**
+  String get factureSendRequest;
+
+  /// No description provided for @colisDisputeExplain.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what happened. An administrator will review the evidence (photos, time, location) before deciding.'**
+  String get colisDisputeExplain;
+
+  /// No description provided for @colisDisputeMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your message (optional)'**
+  String get colisDisputeMessageHint;
+
+  /// No description provided for @colisDisputeSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The report could not be sent.'**
+  String get colisDisputeSendFailed;
+
+  /// No description provided for @colisReceiptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup receipt'**
+  String get colisReceiptTitle;
+
+  /// No description provided for @colisReceiptDeclaredContents.
+  ///
+  /// In en, this message translates to:
+  /// **'Declared contents'**
+  String get colisReceiptDeclaredContents;
+
+  /// No description provided for @colisReceiptHandedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Handed to'**
+  String get colisReceiptHandedTo;
+
+  /// No description provided for @colisReceiptPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate'**
+  String get colisReceiptPlate;
+
+  /// No description provided for @colisReceiptDistanceToAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance to the address'**
+  String get colisReceiptDistanceToAddress;
+
+  /// No description provided for @colisProofPickup.
+  ///
+  /// In en, this message translates to:
+  /// **'Pickup'**
+  String get colisProofPickup;
+
+  /// No description provided for @colisProofDelivery.
+  ///
+  /// In en, this message translates to:
+  /// **'Handover'**
+  String get colisProofDelivery;
+
+  /// No description provided for @colisDisputeSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Report sent. An administrator will review it.'**
+  String get colisDisputeSent;
+
+  /// No description provided for @colisDisputeWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'A problem? You have 24 h after delivery to report it.'**
+  String get colisDisputeWindow;
+
+  /// No description provided for @colisDisputeNotReceivedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Parcel not received'**
+  String get colisDisputeNotReceivedTitle;
+
+  /// No description provided for @colisDisputeNotReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Not received'**
+  String get colisDisputeNotReceived;
+
+  /// No description provided for @colisDisputeProblem.
+  ///
+  /// In en, this message translates to:
+  /// **'Problem with the parcel'**
+  String get colisDisputeProblem;
+
+  /// No description provided for @colisCodeCopy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get colisCodeCopy;
+
+  /// No description provided for @colisCodeCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied'**
+  String get colisCodeCopied;
+
+  /// No description provided for @colisCodeShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get colisCodeShare;
+
+  /// No description provided for @loyaltyAppliedFree.
+  ///
+  /// In en, this message translates to:
+  /// **'🎉 Free delivery applied — thank you for your loyalty!'**
+  String get loyaltyAppliedFree;
+
+  /// No description provided for @loyaltyAppliedHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'🎉 -50% on delivery applied — thank you for your loyalty!'**
+  String get loyaltyAppliedHalf;
+
+  /// No description provided for @loyaltyProgressOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress}/5 orders until your next discount'**
+  String loyaltyProgressOrders(String progress);
+
+  /// No description provided for @loyaltyBadgeFree.
+  ///
+  /// In en, this message translates to:
+  /// **'🎉 Free delivery'**
+  String get loyaltyBadgeFree;
+
+  /// No description provided for @loyaltyBadgeHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'🎉 -50% on delivery'**
+  String get loyaltyBadgeHalf;
+
+  /// No description provided for @reorderButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Order again'**
+  String get reorderButton;
+
+  /// No description provided for @reorderReplaceCartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace the cart?'**
+  String get reorderReplaceCartTitle;
+
+  /// No description provided for @reorderReplaceCartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your cart already has items. Replace them with the ones from this order?'**
+  String get reorderReplaceCartBody;
+
+  /// No description provided for @reorderReplace.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get reorderReplace;
+
+  /// No description provided for @reorderNothingAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'None of the items from this order are available right now.'**
+  String get reorderNothingAvailable;
+
+  /// No description provided for @reorderSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unavailable item(s) were skipped.'**
+  String reorderSkipped(String count);
+
+  /// No description provided for @reorderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while reordering. Try again.'**
+  String get reorderFailed;
+
+  /// No description provided for @orderTypeFacture.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill payment'**
+  String get orderTypeFacture;
+
+  /// No description provided for @orderShopSupermarket.
+  ///
+  /// In en, this message translates to:
+  /// **'Supermarket'**
+  String get orderShopSupermarket;
+
+  /// No description provided for @orderShopBakery.
+  ///
+  /// In en, this message translates to:
+  /// **'Bakery'**
+  String get orderShopBakery;
+
+  /// No description provided for @orderShopFlowers.
+  ///
+  /// In en, this message translates to:
+  /// **'Flowers'**
+  String get orderShopFlowers;
+
+  /// No description provided for @orderShopPets.
+  ///
+  /// In en, this message translates to:
+  /// **'Pet shop'**
+  String get orderShopPets;
+
+  /// No description provided for @orderShopGifts.
+  ///
+  /// In en, this message translates to:
+  /// **'Gifts'**
+  String get orderShopGifts;
+
+  /// No description provided for @orderShopElectronics.
+  ///
+  /// In en, this message translates to:
+  /// **'Electronics'**
+  String get orderShopElectronics;
+
+  /// No description provided for @orderShopRestaurant.
+  ///
+  /// In en, this message translates to:
+  /// **'Restaurant'**
+  String get orderShopRestaurant;
+
+  /// No description provided for @homeEmptyBakery.
+  ///
+  /// In en, this message translates to:
+  /// **'No bakery available near you.'**
+  String get homeEmptyBakery;
+
+  /// No description provided for @homeEmptyFlowers.
+  ///
+  /// In en, this message translates to:
+  /// **'No florist available near you.'**
+  String get homeEmptyFlowers;
+
+  /// No description provided for @homeEmptyPets.
+  ///
+  /// In en, this message translates to:
+  /// **'No pet shop available near you.'**
+  String get homeEmptyPets;
+
+  /// No description provided for @homeEmptyGifts.
+  ///
+  /// In en, this message translates to:
+  /// **'No gift shop near you.'**
+  String get homeEmptyGifts;
+
+  /// No description provided for @homeEmptyElectronics.
+  ///
+  /// In en, this message translates to:
+  /// **'No electronics shop near you.'**
+  String get homeEmptyElectronics;
+
+  /// No description provided for @homeEmptyShops.
+  ///
+  /// In en, this message translates to:
+  /// **'No shop available near you.'**
+  String get homeEmptyShops;
+
+  /// No description provided for @profileUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed. Please try again.'**
+  String get profileUploadFailed;
+
+  /// No description provided for @profileBillReminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill reminders'**
+  String get profileBillReminders;
+
+  /// No description provided for @ratingOrderQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'How was your order?'**
+  String get ratingOrderQuestion;
+
+  /// No description provided for @vendorCatalogueLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the catalogue'**
+  String get vendorCatalogueLoadError;
+
+  /// No description provided for @vendorNoItemsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No items yet.'**
+  String get vendorNoItemsYet;
+
+  /// No description provided for @vendorDefaultSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Items'**
+  String get vendorDefaultSection;
+
+  /// No description provided for @vendorClosedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This shop is currently closed.'**
+  String get vendorClosedNotice;
 }
 
 class _AppLocalizationsDelegate
