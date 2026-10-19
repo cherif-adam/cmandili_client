@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/models/vendor.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/delivery_fee.dart';
+import '../../../../../core/models/vendor.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/utils/delivery_fee.dart';
 
 /// Under the shop's photo:
 ///   name

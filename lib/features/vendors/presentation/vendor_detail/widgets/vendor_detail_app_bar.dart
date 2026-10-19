@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/models/vendor.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/models/vendor.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The shop's photo at the top of its page (a shop icon when there is none).
 ///

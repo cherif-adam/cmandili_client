@@ -9,7 +9,7 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/currency_formatter.dart';
 import '../../../../../core/utils/delivery_fee.dart';
 import '../../../../../core/utils/venue_hours.dart';
-import '../../vendor_detail_screen.dart';
+import '../../vendor_detail/vendor_detail_screen.dart';
 
 /// One shop in the florist / pet shop / gift / bakery / electronics list.
 /// Deliberately the same shape for every category. Opens the shop's page.

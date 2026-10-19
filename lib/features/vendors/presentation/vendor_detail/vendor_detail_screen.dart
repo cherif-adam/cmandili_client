@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../core/models/vendor.dart';
-import '../../../core/providers/vendor_provider.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../../core/models/vendor.dart';
+import '../../../../core/theme/app_colors.dart';
+import 'vendor_detail_controller.dart';
 import 'widgets/vendor_cart_button.dart';
 import 'widgets/vendor_detail_app_bar.dart';
 import 'widgets/vendor_info_header.dart';
@@ -20,7 +20,8 @@ import 'widgets/vendor_item_row.dart';
 ///   VendorCartButton     floating, once the cart has something
 ///
 /// Each row adds straight to the shared cart — the same cart the food and
-/// grocery flows use.
+/// grocery flows use. UI only: the catalogue, its grouping and the retry
+/// live in [VendorDetailController].
 class VendorDetailScreen extends ConsumerWidget {
   final Vendor vendor;
 
@@ -28,7 +29,8 @@ class VendorDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final itemsAsync = ref.watch(vendorItemsProvider(vendor.id));
+    final itemsAsync = ref.watch(vendorDetailControllerProvider(vendor.id));
+    final controller = ref.read(vendorDetailControllerProvider(vendor.id).notifier);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -47,15 +49,23 @@ class VendorDetailScreen extends ConsumerWidget {
             ],
             error: (e, _) => [
               SliverToBoxAdapter(
-                child: _CatalogueError(
-                  onRetry: () => ref.invalidate(vendorItemsProvider(vendor.id)),
-                ),
+                child: _CatalogueError(onRetry: controller.retry),
               )
             ],
             data: (items) => items.isEmpty
                 ? [const SliverToBoxAdapter(child: _NoItemsYet())]
-                : _catalogueSections(
-                    items, AppLocalizations.of(context)!.vendorDefaultSection),
+                : [
+                    for (final section in controller
+                        .sections(items,
+                            AppLocalizations.of(context)!.vendorDefaultSection)
+                        .entries)
+                      _CatalogueSection(
+                        title: section.key,
+                        items: section.value,
+                        enabled: vendor.isOpen,
+                      ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                  ],
           ),
         ],
       ),
@@ -66,25 +76,31 @@ class VendorDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// One title + list per in-shop section, in the order the rows came back
-  /// (sort_order), so the shop controls how its catalogue reads.
-  List<Widget> _catalogueSections(
-      List<VendorItem> items, String defaultSection) {
-    final grouped = <String, List<VendorItem>>{};
-    for (final item in items) {
-      final key = (item.category?.trim().isNotEmpty ?? false)
-          ? item.category!.trim()
-          : defaultSection;
-      grouped.putIfAbsent(key, () => []).add(item);
-    }
+}
 
-    return [
-      for (final entry in grouped.entries) ...[
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// One in-shop section: its title, then one VendorItemRow per item.
+class _CatalogueSection extends StatelessWidget {
+  final String title;
+  final List<VendorItem> items;
+  final bool enabled;
+
+  const _CatalogueSection({
+    required this.title,
+    required this.items,
+    required this.enabled,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverMainAxisGroup(
+      slivers: [
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
             child: Text(
-              entry.key,
+              title,
               style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold),
             ),
           ),
@@ -92,17 +108,16 @@ class VendorDetailScreen extends ConsumerWidget {
         SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverList.separated(
-            itemCount: entry.value.length,
+            itemCount: items.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, i) => VendorItemRow(
-              item: entry.value[i],
-              enabled: vendor.isOpen,
+              item: items[i],
+              enabled: enabled,
             ),
           ),
         ),
       ],
-      const SliverToBoxAdapter(child: SizedBox(height: 100)),
-    ];
+    );
   }
 }
 

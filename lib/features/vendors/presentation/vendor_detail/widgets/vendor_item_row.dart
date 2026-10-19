@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/models/vendor.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/widgets/new_item_badge.dart';
-import '../../../cart/data/models/cart_item.dart';
-import '../../../cart/presentation/add_to_cart_guard.dart';
+import '../../../../../core/models/vendor.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/widgets/new_item_badge.dart';
+import '../../../../cart/data/models/cart_item.dart';
+import '../../../../cart/presentation/add_to_cart_guard.dart';
 
 /// One product in a shop's catalogue:
 ///

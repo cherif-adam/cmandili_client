@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../cart/presentation/cart/cart_screen.dart';
-import '../../../cart/providers/cart_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../cart/presentation/cart/cart_screen.dart';
+import '../../../../cart/providers/cart_provider.dart';
 
 /// The wide green "(2)  Voir le panier  105,00 DT" button floating at the
 /// bottom of a shop's page. Hidden while the cart is empty.
