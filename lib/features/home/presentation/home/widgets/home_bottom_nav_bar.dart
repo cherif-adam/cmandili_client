@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The floating white menu bar at the bottom of the home screen:
 /// Home · Favorites · Orders · Cart (with item count) · Profile.
