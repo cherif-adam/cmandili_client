@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../ai_search/presentation/ai_search_screen.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../ai_search/presentation/ai_search_screen.dart';
 
 /// The white search box under the home header. Filters the restaurant list
 /// as the customer types; the ✨ button on the right opens AI search, and

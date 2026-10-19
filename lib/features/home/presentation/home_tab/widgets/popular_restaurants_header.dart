@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// "Restaurants populaires ........ Voir tout" above the restaurant list.
 /// "Voir tout" clears the cuisine filter and the search.

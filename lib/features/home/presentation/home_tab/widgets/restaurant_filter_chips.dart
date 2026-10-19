@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/cuisine_labels.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/cuisine_labels.dart';
 
 /// The horizontal row of cuisine filters above the restaurant list:
 /// Tout · Pâtisseries · Pizza · Burgers…  The selected one is orange.

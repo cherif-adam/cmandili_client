@@ -6,7 +6,7 @@ import '../../../cart/providers/cart_provider.dart';
 import '../../../favorites/presentation/favorites/favorites_screen.dart';
 import '../../../orders/presentation/order_history/order_history_screen.dart';
 import '../../../profile/presentation/profile_screen.dart';
-import '../home_tab.dart';
+import '../home_tab/home_tab.dart';
 import 'home_controller.dart';
 import 'widgets/active_order_pill.dart';
 import 'widgets/ai_chat_fab.dart';

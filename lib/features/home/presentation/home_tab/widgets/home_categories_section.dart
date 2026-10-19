@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import 'service_selector.dart';
+import '../../widgets/service_selector.dart';
 
 /// "Catégories" title + the grid of category tiles (Restaurants,
 /// Supermarché, Pâtisserie, Fleurs… Colis, Facture).

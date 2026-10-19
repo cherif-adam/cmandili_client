@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/providers/nearby_provider.dart';
-import '../../../restaurant/presentation/widgets/restaurant_card.dart';
-import '../../../restaurant/providers/restaurant_provider.dart';
-import '../../data/models/restaurant.dart';
+import '../../../../../core/providers/nearby_provider.dart';
+import '../../../../restaurant/presentation/widgets/restaurant_card.dart';
+import '../../../../restaurant/providers/restaurant_provider.dart';
+import '../../../data/models/restaurant.dart';
 
 /// The restaurant cards of the home tab, filtered by the selected cuisine
 /// and the search text. Also shows the loading, error and "nothing within

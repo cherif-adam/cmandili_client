@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../notifications/presentation/notification/notification_screen.dart';
-import '../../../notifications/providers/notification_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../notifications/presentation/notification/notification_screen.dart';
+import '../../../../notifications/providers/notification_provider.dart';
 
 /// The bell in the home header, with a red badge for unread notifications.
 /// Tapping it opens the notifications screen.

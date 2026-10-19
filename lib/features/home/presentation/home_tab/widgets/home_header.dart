@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/models/service_category.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/models/service_category.dart';
+import '../../../../../core/theme/app_colors.dart';
 import 'deliver_to_button.dart';
 import 'home_search_field.dart';
 import 'notification_bell_button.dart';
