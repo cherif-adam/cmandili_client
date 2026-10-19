@@ -13,7 +13,7 @@ import '../../auth/presentation/change_password_screen.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../bills/presentation/mes_factures_screen.dart';
 import '../../bills/services/bill_reminder_service.dart';
-import '../../notifications/presentation/notification_screen.dart';
+import '../../notifications/presentation/notification/notification_screen.dart';
 import '../../orders/presentation/order_history/order_history_screen.dart';
 import '../data/profile_repository.dart';
 import 'edit_profile_screen.dart';

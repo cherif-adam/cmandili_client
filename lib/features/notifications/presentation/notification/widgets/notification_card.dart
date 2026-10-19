@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/notification.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/models/notification.dart';
 
 /// One notification. Unread ones are tinted green with a dot.
 /// Swipe left to delete.
