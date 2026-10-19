@@ -1,51 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../home/data/models/restaurant.dart';
+import '../data/favorites_repository.dart';
 
 class FavoritesNotifier extends StateNotifier<List<Restaurant>> {
-  final _supabase = Supabase.instance.client;
+  final _repository = FavoritesRepository();
 
   FavoritesNotifier() : super([]) {
     _loadFavorites();
   }
 
   Future<void> _loadFavorites() async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _repository.currentUserId;
     if (userId == null) return;
     try {
-      final rows = await _supabase
-          .from('user_favorites')
-          // See order_repository: user_favorites.restaurant_id also still FKs
-          // to restaurants_legacy, so embed through it and alias back.
-          .select('restaurant_id, restaurants:restaurants_legacy(*)')
-          .eq('user_id', userId);
-
-      state = (rows as List).map((row) {
-        final r = row['restaurants'] as Map<String, dynamic>;
-        return Restaurant(
-          id: r['id'] as String,
-          name: r['name'] as String? ?? '',
-          description: r['description'] as String? ?? '',
-          imageUrl: r['image_url'] as String? ?? '',
-          rating: (r['rating'] as num?)?.toDouble() ?? 0,
-          reviewCount: (r['review_count'] as num?)?.toInt() ?? 0,
-          deliveryTime: (r['delivery_time_min'] as num?)?.toInt() ?? 30,
-          deliveryFee: (r['delivery_fee'] as num?)?.toDouble() ?? 0,
-          minimumOrder: (r['min_order'] as num?)?.toDouble() ?? 0,
-          categories: r['categories'] != null
-              ? List<String>.from(r['categories'] as List)
-              : [],
-          isOpen: r['is_open'] as bool? ?? true,
-          latitude: (r['latitude'] as num?)?.toDouble() ?? 0,
-          longitude: (r['longitude'] as num?)?.toDouble() ?? 0,
-          openingTime: r['opening_time'] as String?,
-        );
-      }).toList();
+      state = await _repository.getFavorites(userId);
     } catch (_) {}
   }
 
   Future<void> toggleFavorite(Restaurant restaurant) async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _repository.currentUserId;
     final isFav = state.any((r) => r.id == restaurant.id);
 
     // Optimistic UI update
@@ -58,16 +31,9 @@ class FavoritesNotifier extends StateNotifier<List<Restaurant>> {
     if (userId == null) return;
     try {
       if (isFav) {
-        await _supabase
-            .from('user_favorites')
-            .delete()
-            .eq('user_id', userId)
-            .eq('restaurant_id', restaurant.id);
+        await _repository.remove(userId, restaurant.id);
       } else {
-        await _supabase.from('user_favorites').insert({
-          'user_id': userId,
-          'restaurant_id': restaurant.id,
-        });
+        await _repository.add(userId, restaurant.id);
       }
     } catch (_) {
       // Revert optimistic update on failure
