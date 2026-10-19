@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../cart/presentation/widgets/cart_fab.dart';
-import '../../happy_hour/presentation/widgets/deals_scaffold.dart';
-import '../../happy_hour/presentation/widgets/deals_tab.dart';
-import '../../happy_hour/providers/deal_categories_provider.dart';
+import '../../../cart/presentation/widgets/cart_fab.dart';
+import '../../../happy_hour/presentation/widgets/deals_scaffold.dart';
+import '../../../happy_hour/presentation/widgets/deals_tab.dart';
+import '../../../happy_hour/providers/deal_categories_provider.dart';
 
 /// Le bleu des promotions, partagé avec sa bannière d'accueil. Il distingue
 /// d'un coup d'œil une remise en pourcentage d'un Happy Hour, qui est orange.

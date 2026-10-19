@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/happy_hour/presentation/happy_hour/happy_hour_screen.dart';
-import '../../features/promos/presentation/promos_screen.dart';
+import '../../features/promos/presentation/promos/promos_screen.dart';
 
 /// Root navigator, so a tapped notification can open a screen from outside
 /// the widget tree (MaterialApp.navigatorKey is set to this in main.dart).

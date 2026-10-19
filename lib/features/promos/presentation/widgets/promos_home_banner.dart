@@ -4,7 +4,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../happy_hour/presentation/widgets/deals_home_banner.dart';
 import '../../../happy_hour/providers/deal_categories_provider.dart';
-import '../promos_screen.dart';
+import '../promos/promos_screen.dart';
 
 /// Point d'entrée PROMOS sur l'accueil : la jumelle bleue de la bannière
 /// Happy Hour.
