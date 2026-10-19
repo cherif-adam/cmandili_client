@@ -13,7 +13,7 @@ import '../data/saved_recipient_repository.dart';
 import '../../../core/data/package_photo_storage.dart';
 import '../../../core/widgets/map_address_picker.dart';
 import '../../checkout/data/models/delivery_address.dart';
-import '../../orders/presentation/order_success_screen.dart';
+import '../../orders/presentation/order_success/order_success_screen.dart';
 import '../../loyalty/data/loyalty_eligibility.dart';
 import '../data/package_size.dart';
 import '../data/saved_recipient.dart';

@@ -1,0 +1,298 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../order_tracking_screen.dart';
+import 'order_success_controller.dart';
+import 'widgets/animated_checkmark.dart';
+
+/// Photo, then at the bottom: AnimatedCheckmark, title, "Réf. …",
+/// "Suivre ma commande" and "Retour à l'accueil".
+///
+/// Shown right after a colis/supermarket/facture order is successfully
+/// created — between the form (or checkout) and the tracking screen. Purely
+/// a UI hand-off: the loyalty bottom sheet still lives on
+/// [OrderTrackingScreen] and fires exactly as before once the user taps the
+/// track button.
+///
+///   _BackgroundPhoto, _BottomOverlay, then _SuccessContent at the bottom.
+/// UI only: the reference comes from [OrderSuccessController.shortRef].
+class OrderSuccessScreen extends StatefulWidget {
+  final String orderId;
+  final String imageAsset;
+  final String title;
+  final String trackButtonLabel;
+
+  const OrderSuccessScreen({
+    super.key,
+    required this.orderId,
+    required this.imageAsset,
+    required this.title,
+    required this.trackButtonLabel,
+  });
+
+  @override
+  State<OrderSuccessScreen> createState() => _OrderSuccessScreenState();
+}
+
+class _OrderSuccessScreenState extends State<OrderSuccessScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final Animation<double> _entranceFade;
+  late final Animation<Offset> _contentSlide;
+
+  late final AnimationController _checkController;
+  late final Animation<double> _checkProgress;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _entranceFade = CurvedAnimation(
+      parent: _entranceController,
+      curve: Curves.easeOut,
+    );
+    _contentSlide = Tween<Offset>(
+      begin: const Offset(0, 0.08),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _entranceController, curve: Curves.easeOut));
+
+    _checkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+    _checkProgress = CurvedAnimation(parent: _checkController, curve: Curves.easeInOut);
+    _checkController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        HapticFeedback.lightImpact();
+      }
+    });
+
+    _entranceController.forward().whenComplete(() {
+      if (mounted) _checkController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    _checkController.dispose();
+    super.dispose();
+  }
+
+  void _goToTracking() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => OrderTrackingScreen(orderId: widget.orderId, justPlaced: true),
+      ),
+    );
+  }
+
+  void _goHome() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          _BackgroundPhoto(imageAsset: widget.imageAsset, opacity: _entranceFade),
+          const _BottomOverlay(),
+          _SuccessContent(
+            fade: _entranceFade,
+            slide: _contentSlide,
+            checkProgress: _checkProgress,
+            title: widget.title,
+            shortRef: OrderSuccessController.shortRef(widget.orderId),
+            trackButtonLabel: widget.trackButtonLabel,
+            onTrack: _goToTracking,
+            onHome: _goHome,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// The full-screen photo, fading in.
+class _BackgroundPhoto extends StatelessWidget {
+  final String imageAsset;
+  final Animation<double> opacity;
+
+  const _BackgroundPhoto({required this.imageAsset, required this.opacity});
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: opacity,
+      child: Image.asset(
+        imageAsset,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => const DecoratedBox(
+          decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom 45% dark-emerald overlay so content stays readable.
+class _BottomOverlay extends StatelessWidget {
+  const _BottomOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Align(
+      alignment: Alignment.bottomCenter,
+      child: FractionallySizedBox(
+        heightFactor: 0.45,
+        widthFactor: 1,
+        child: DecoratedBox(
+          decoration: BoxDecoration(gradient: AppColors.orderSuccessOverlayGradient),
+        ),
+      ),
+    );
+  }
+}
+
+/// Checkmark, title, "Réf. …", the track button and "Retour à l'accueil",
+/// sliding up from the bottom.
+class _SuccessContent extends StatelessWidget {
+  final Animation<double> fade;
+  final Animation<Offset> slide;
+  final Animation<double> checkProgress;
+  final String title;
+  final String shortRef;
+  final String trackButtonLabel;
+  final VoidCallback onTrack;
+  final VoidCallback onHome;
+
+  const _SuccessContent({
+    required this.fade,
+    required this.slide,
+    required this.checkProgress,
+    required this.title,
+    required this.shortRef,
+    required this.trackButtonLabel,
+    required this.onTrack,
+    required this.onHome,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final size = MediaQuery.of(context).size;
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: FadeTransition(
+        opacity: fade,
+        child: SlideTransition(
+          position: slide,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                size.width * 0.08,
+                0,
+                size.width * 0.08,
+                size.height * 0.035,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedCheckmark(progress: checkProgress, size: size.width * 0.2),
+                  SizedBox(height: size.height * 0.025),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: size.width * 0.065,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: size.height * 0.008),
+                  Text(
+                    l10n.orderSuccessTrackingRef(shortRef),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.orderSuccessSubtitleMint,
+                      fontSize: size.width * 0.038,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: size.height * 0.035),
+                  _TrackButton(
+                    label: trackButtonLabel,
+                    onTap: onTrack,
+                  ),
+                  SizedBox(height: size.height * 0.008),
+                  TextButton(
+                    onPressed: onHome,
+                    child: Text(
+                      l10n.backToHome,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: size.width * 0.036,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The wide green-gradient "Suivre ma commande" button.
+class _TrackButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _TrackButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return SizedBox(
+      width: double.infinity,
+      height: size.height * 0.065,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppColors.orderSuccessButtonGradient,
+          borderRadius: BorderRadius.circular(size.width * 0.04),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(size.width * 0.04),
+            onTap: onTap,
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: size.width * 0.042,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

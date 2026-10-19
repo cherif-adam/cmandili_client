@@ -10,7 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/map_address_picker.dart';
 import '../../../checkout/data/models/delivery_address.dart';
 import '../../../loyalty/data/loyalty_eligibility.dart';
-import '../../../orders/presentation/order_success_screen.dart';
+import '../../../orders/presentation/order_success/order_success_screen.dart';
 import '../../data/bill_type.dart';
 import 'facture_controller.dart';
 import 'widgets/bill_photo_picker.dart';

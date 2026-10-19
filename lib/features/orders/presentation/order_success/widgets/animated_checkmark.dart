@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// White-ringed circle with an emerald checkmark that draws itself as
 /// [progress] animates from 0 to 1.

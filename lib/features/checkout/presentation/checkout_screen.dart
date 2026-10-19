@@ -9,7 +9,7 @@ import '../../../core/payment/payment_service.dart';
 import '../data/models/delivery_address.dart';
 import 'address_selection_screen.dart';
 import '../../orders/presentation/order_tracking_screen.dart';
-import '../../orders/presentation/order_success_screen.dart';
+import '../../orders/presentation/order_success/order_success_screen.dart';
 import '../../cart/providers/cart_provider.dart';
 import '../../orders/data/models/order.dart';
 import '../../orders/providers/order_provider.dart';
