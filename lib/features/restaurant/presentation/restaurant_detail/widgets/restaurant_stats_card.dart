@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/delivery_fee.dart';
-import '../../../home/data/models/restaurant.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/utils/delivery_fee.dart';
+import '../../../../home/data/models/restaurant.dart';
 
 /// The white card with three columns on a restaurant's page:
 ///   ★ 4.6 / 214 avis  |  🕒 25 min / Temps de livraison  |  🛵 3,50 DT / Frais

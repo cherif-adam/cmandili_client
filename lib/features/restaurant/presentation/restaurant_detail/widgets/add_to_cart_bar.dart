@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
 
 /// The white bar at the bottom of the food sheet with the big
 /// "Ajouter au panier • 18,500 DT" button. The button looks faded while

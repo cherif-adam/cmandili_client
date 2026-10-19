@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/widgets/new_item_badge.dart';
-import '../../data/models/food_item.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/widgets/new_item_badge.dart';
+import '../../../data/models/food_item.dart';
 import 'food_item_customization_sheet.dart';
 
 /// One dish on a restaurant's menu. Tapping it opens the options sheet

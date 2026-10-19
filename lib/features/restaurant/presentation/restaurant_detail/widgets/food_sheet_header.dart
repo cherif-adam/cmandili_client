@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../data/models/food_item.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../data/models/food_item.dart';
 
 /// Top of the food customization sheet: the big rounded photo, then the
 /// name with the price on the right, then the description.

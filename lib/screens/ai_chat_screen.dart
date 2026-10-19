@@ -22,7 +22,7 @@ import 'package:permission_handler/permission_handler.dart';
 // Import your actual screens/models here:
 import '../models/chat_message.dart';
 import '../services/ai_chat_service.dart';
-import '../features/restaurant/presentation/restaurant_detail_screen.dart';
+import '../features/restaurant/presentation/restaurant_detail/restaurant_detail_screen.dart';
 import '../features/home/data/models/restaurant.dart';
 import '../core/data/vendor_repository.dart';
 import '../core/models/service_category.dart';

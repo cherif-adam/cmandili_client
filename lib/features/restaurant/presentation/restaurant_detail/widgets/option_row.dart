@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
 
 /// One choice in an option group: radio (single choice) or checkbox
 /// (multiple), the name, and "+1,500 DT" on the right.

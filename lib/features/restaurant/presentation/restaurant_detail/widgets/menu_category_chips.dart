@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The row of menu sections on a restaurant's page: Tout · Pizzas ·
 /// Salades… The selected one is orange. 60 px high.

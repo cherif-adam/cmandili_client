@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../home/data/models/restaurant.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../home/data/models/restaurant.dart';
 import 'restaurant_stats_card.dart';
 
 /// Under the photo of a restaurant's page: its name, description and the

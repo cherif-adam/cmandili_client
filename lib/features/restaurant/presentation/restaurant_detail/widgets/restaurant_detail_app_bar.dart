@@ -4,9 +4,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../favorites/providers/favorites_provider.dart';
-import '../../../home/data/models/restaurant.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../favorites/providers/favorites_provider.dart';
+import '../../../../home/data/models/restaurant.dart';
 
 /// The big photo at the top of a restaurant's page, with three round
 /// white buttons over it: ← back · ♡ favourite · share.

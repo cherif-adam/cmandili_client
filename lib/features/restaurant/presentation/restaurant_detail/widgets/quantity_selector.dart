@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// "Quantity" on the left and a grey − 2 + stepper on the right.
 class QuantitySelector extends StatelessWidget {

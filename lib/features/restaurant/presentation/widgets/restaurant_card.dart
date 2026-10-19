@@ -12,7 +12,7 @@ import '../../../../core/widgets/shop_card/closed_photo_overlay.dart';
 import '../../../../core/widgets/shop_card/photo_pill.dart';
 import '../../../../core/widgets/shop_card/shop_info_item.dart';
 import '../../../home/data/models/restaurant.dart';
-import '../restaurant_detail_screen.dart';
+import '../restaurant_detail/restaurant_detail_screen.dart';
 
 /// A restaurant in the home list (also used by the favourites). Opens the
 /// restaurant's page.
