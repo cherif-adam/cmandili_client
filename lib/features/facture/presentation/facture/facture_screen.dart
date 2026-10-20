@@ -246,7 +246,7 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
       final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.commonErrorWith(
+          content: Text(l10n.genericErrorWith(
               e is FactureNotSignedInException ? l10n.factureNotSignedIn : '$e')),
           backgroundColor: AppColors.error,
         ),

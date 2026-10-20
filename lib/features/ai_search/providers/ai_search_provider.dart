@@ -13,10 +13,19 @@ final aiSearchRepositoryProvider = Provider<AiSearchRepository>(
 
 enum AiSearchMode { none, text, image }
 
+/// What went wrong, so the screen can say it in the customer's language.
+/// [other] is the server's own message, shown as is.
+enum AiSearchErrorKind { network, unavailable, noDish, imageTooLarge, unknown, other }
+
 class AiSearchState {
   final AiSearchMode mode;
   final bool isLoading;
+
+  /// Set together with [errorKind]: the server's message for
+  /// [AiSearchErrorKind.other], the size in MB for imageTooLarge, the
+  /// details (possibly empty) for unknown.
   final String? errorMessage;
+  final AiSearchErrorKind? errorKind;
 
   /// The last conversational search response.
   final AiTextSearchResponse? textResponse;
@@ -31,6 +40,7 @@ class AiSearchState {
     this.mode = AiSearchMode.none,
     this.isLoading = false,
     this.errorMessage,
+    this.errorKind,
     this.textResponse,
     this.imageResponse,
     this.selectedImageFile,
@@ -49,6 +59,7 @@ class AiSearchState {
     AiSearchMode? mode,
     bool? isLoading,
     String? errorMessage,
+    AiSearchErrorKind? errorKind,
     AiTextSearchResponse? textResponse,
     AiImageSearchResponse? imageResponse,
     File? selectedImageFile,
@@ -61,6 +72,7 @@ class AiSearchState {
       mode: mode ?? this.mode,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      errorKind: clearError ? null : (errorKind ?? this.errorKind),
       textResponse: clearTextResponse ? null : (textResponse ?? this.textResponse),
       imageResponse: clearImageResponse ? null : (imageResponse ?? this.imageResponse),
       selectedImageFile: clearImage ? null : (selectedImageFile ?? this.selectedImageFile),
@@ -96,9 +108,11 @@ class AiSearchNotifier extends StateNotifier<AiSearchState> {
         clearImageResponse: true,
       );
     } catch (e) {
+      final (kind, message) = _classifyError(e);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: _friendlyError(e),
+        errorMessage: message,
+        errorKind: kind,
       );
     }
   }
@@ -120,9 +134,11 @@ class AiSearchNotifier extends StateNotifier<AiSearchState> {
         clearTextResponse: true,
       );
     } catch (e) {
+      final (kind, message) = _classifyError(e);
       state = state.copyWith(
         isLoading: false,
-        errorMessage: _friendlyError(e),
+        errorMessage: message,
+        errorKind: kind,
       );
     }
   }
@@ -137,18 +153,26 @@ class AiSearchNotifier extends StateNotifier<AiSearchState> {
     state = state.copyWith(clearError: true);
   }
 
-  String _friendlyError(Object e) {
+  /// Same tests, in the same order, as when this returned the English text;
+  /// the screen now words each case.
+  (AiSearchErrorKind, String) _classifyError(Object e) {
     final msg = e.toString();
     if (msg.contains('SocketException') || msg.contains('network')) {
-      return 'Network error. Please check your connection.';
+      return (AiSearchErrorKind.network, msg);
     }
     if (msg.contains('Server misconfiguration')) {
-      return 'Service temporarily unavailable. Try again later.';
+      return (AiSearchErrorKind.unavailable, msg);
     }
     if (msg.contains('No food dish detected')) {
-      return 'Could not identify a dish in this photo. Try a clearer image.';
+      return (AiSearchErrorKind.noDish, msg);
     }
-    return msg.replaceFirst('Exception: ', '');
+    if (e is AiImageTooLargeException) {
+      return (AiSearchErrorKind.imageTooLarge, e.megabytes.toStringAsFixed(1));
+    }
+    if (e is AiSearchUnknownException) {
+      return (AiSearchErrorKind.unknown, e.details ?? '');
+    }
+    return (AiSearchErrorKind.other, msg.replaceFirst('Exception: ', ''));
   }
 }
 

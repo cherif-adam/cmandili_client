@@ -1563,11 +1563,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get commonDelete => 'حذف';
 
   @override
-  String commonErrorWith(String error) {
-    return 'خطأ: $error';
-  }
-
-  @override
   String get commonInvalidAmount => 'مبلغ غير صالح';
 
   @override
@@ -1973,4 +1968,94 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vendorClosedNotice => 'هذا المتجر مغلق حالياً.';
+
+  @override
+  String get forgotPasswordIntro =>
+      'أدخل بريدك الإلكتروني وسنرسل لك\nرمز إعادة تعيين من 6 أرقام.';
+
+  @override
+  String voiceRecordStartFailed(String error) {
+    return 'تعذّر بدء التسجيل: $error';
+  }
+
+  @override
+  String voiceRecordStopFailed(String error) {
+    return 'تعذّر إيقاف التسجيل: $error';
+  }
+
+  @override
+  String voicePlayFailed(String error) {
+    return 'تعذّر تشغيل الصوت: $error';
+  }
+
+  @override
+  String get addressLabelRequired => 'يرجى إدخال اسم للعنوان';
+
+  @override
+  String get addressRequired => 'يرجى إدخال عنوان';
+
+  @override
+  String addressAptFloor(String apartment, String floor) {
+    return 'شقة: $apartment، طابق: $floor';
+  }
+
+  @override
+  String get aiChatTooltip => 'المساعد الذكي';
+
+  @override
+  String get ordersLoadError => 'تعذّر تحميل الطلبات';
+
+  @override
+  String get orderTypeCourier => 'إرسال طرد';
+
+  @override
+  String etaMinutes(String minutes) {
+    return '$minutes دقيقة';
+  }
+
+  @override
+  String get helpEmailUs => 'راسلنا عبر البريد';
+
+  @override
+  String get quantity => 'الكمية';
+
+  @override
+  String restaurantShareText(
+      String name, String description, String rating, String minutes) {
+    return 'اكتشف $name!\n$description\nالتقييم: $rating ⭐\nالتوصيل: $minutes دقيقة';
+  }
+
+  @override
+  String get aiChipSpicy => '🌶 حار';
+
+  @override
+  String get aiChipVegetarian => '🥦 نباتي';
+
+  @override
+  String get aiChipFast => '⚡ سريع';
+
+  @override
+  String get aiBadgeVeg => '🥦 نباتي';
+
+  @override
+  String get aiThisDish => 'هذا الطبق';
+
+  @override
+  String get aiSearchErrorNetwork => 'خطأ في الشبكة. تحقّق من اتصالك.';
+
+  @override
+  String get aiSearchErrorUnavailable =>
+      'الخدمة غير متاحة مؤقتًا. حاول مرة أخرى لاحقًا.';
+
+  @override
+  String get aiSearchErrorNoDish =>
+      'تعذّر التعرّف على طبق في هذه الصورة. جرّب صورة أوضح.';
+
+  @override
+  String aiSearchErrorImageTooLarge(String size) {
+    return 'الصورة كبيرة جدًا ($size ميغابايت). استخدم صورة أصغر من 10 ميغابايت.';
+  }
+
+  @override
+  String get aiSearchErrorUnknown => 'خطأ غير معروف';
 }

@@ -29,7 +29,7 @@ class OrdersErrorView extends StatelessWidget {
             Icon(Icons.error_outline, size: sw * 0.15, color: AppColors.error),
             SizedBox(height: sh * 0.02),
             Text(
-              'Failed to load orders',
+              AppLocalizations.of(context)!.ordersLoadError,
               style: TextStyle(
                 fontSize: sw * 0.045,
                 fontWeight: FontWeight.bold,

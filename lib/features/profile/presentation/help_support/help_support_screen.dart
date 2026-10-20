@@ -195,9 +195,9 @@ class _ContactOptions extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const ContactOptionTile(
+        ContactOptionTile(
           icon: Icons.email_outlined,
-          title: 'Email Us',
+          title: AppLocalizations.of(context)!.helpEmailUs,
           subtitle: 'support@amana.tn',
         ),
         ContactOptionTile(

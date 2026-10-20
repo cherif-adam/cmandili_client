@@ -34,10 +34,12 @@ class RestaurantDetailAppBar extends StatelessWidget {
           icon: Icons.share_outlined,
           onPressed: () {
             Share.share(
-              'Check out ${restaurant.name}!\n'
-              '${restaurant.description}\n'
-              'Rating: ${restaurant.rating} ⭐\n'
-              'Delivery: ${restaurant.deliveryTime} min',
+              AppLocalizations.of(context)!.restaurantShareText(
+                restaurant.name,
+                restaurant.description,
+                '${restaurant.rating}',
+                '${restaurant.deliveryTime}',
+              ),
               subject: restaurant.name,
             );
           },

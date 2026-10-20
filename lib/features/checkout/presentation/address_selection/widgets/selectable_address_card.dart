@@ -90,7 +90,8 @@ class SelectableAddressCard extends StatelessWidget {
                     if (address.apartmentNumber != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        'Apt: ${address.apartmentNumber}, Floor: ${address.floor}',
+                        AppLocalizations.of(context)!.addressAptFloor(
+                            '${address.apartmentNumber}', '${address.floor}'),
                         style: const TextStyle(
                           color: AppColors.textLight,
                           fontSize: 12,

@@ -3,6 +3,30 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models/search_result.dart';
 
+/// The photo is over the 10 MB the visual search accepts. [toString] is the
+/// message this used to be thrown with.
+class AiImageTooLargeException implements Exception {
+  const AiImageTooLargeException(this.megabytes);
+
+  final double megabytes;
+
+  @override
+  String toString() => 'Exception: Image is too large '
+      '(${megabytes.toStringAsFixed(1)} MB). Please use an image smaller than 10 MB.';
+}
+
+/// The Edge Function answered with an error but no message. [toString] is
+/// the message this used to be thrown with.
+class AiSearchUnknownException implements Exception {
+  const AiSearchUnknownException(this.details);
+
+  final String? details;
+
+  @override
+  String toString() =>
+      'Exception: Unknown error${details != null ? '\n$details' : ''}';
+}
+
 /// Repository that orchestrates calls to the `ai-search` Supabase Edge Function.
 ///
 /// There are two entry points:
@@ -63,10 +87,7 @@ class AiSearchRepository {
     // Sanity-check: Gemini 1.5 Flash supports up to 20MB inline data.
     // Warn if the image is unusually large.
     if (imageBytes.lengthInBytes > 10 * 1024 * 1024) {
-      throw Exception(
-        'Image is too large (${(imageBytes.lengthInBytes / 1024 / 1024).toStringAsFixed(1)} MB). '
-        'Please use an image smaller than 10 MB.',
-      );
+      throw AiImageTooLargeException(imageBytes.lengthInBytes / 1024 / 1024);
     }
 
     final response = await supabase.functions.invoke(
@@ -99,8 +120,9 @@ class AiSearchRepository {
     // inside the body with a 2xx status. Handle both cases.
     final data = response.data;
     if (data is Map<String, dynamic> && data.containsKey('error')) {
-      final msg = data['error'] as String? ?? 'Unknown error';
+      final msg = data['error'] as String?;
       final details = data['details'] as String?;
+      if (msg == null) throw AiSearchUnknownException(details);
       throw Exception('$msg${details != null ? '\n$details' : ''}');
     }
   }

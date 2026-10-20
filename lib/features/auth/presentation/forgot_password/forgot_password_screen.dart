@@ -183,7 +183,7 @@ class _Header extends StatelessWidget {
         ),
         SizedBox(height: sh * 0.01),
         Text(
-          "Enter your email and we'll send\nyou a 6-digit reset code.",
+          l.forgotPasswordIntro,
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: sw * 0.038,

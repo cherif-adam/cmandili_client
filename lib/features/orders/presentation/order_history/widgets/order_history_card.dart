@@ -247,9 +247,9 @@ class OrderHistoryCard extends StatelessWidget {
             ? order.restaurantName
             : _shopCategoryLabel(l10n, order.type);
       case OrderType.courier:
-        return 'Courier Delivery';
+        return l10n.orderTypeCourier;
       case OrderType.billPayment:
-        return 'Bill Payment';
+        return l10n.orderTypeFacture;
       case OrderType.facture:
         return l10n.orderTypeFacture;
     }

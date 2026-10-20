@@ -277,7 +277,7 @@ class _SettingsSection extends StatelessWidget {
         _menuItem(
           context,
           icon: Icons.help_outline_rounded,
-          title: 'Help & Support',
+          title: l.helpSupport,
           onTap: () => onOpen(const HelpSupportScreen()),
         ),
         SizedBox(height: size.height * 0.03),

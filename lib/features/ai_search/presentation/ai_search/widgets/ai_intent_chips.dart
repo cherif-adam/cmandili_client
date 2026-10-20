@@ -20,12 +20,12 @@ class AiIntentChips extends StatelessWidget {
       chips.add('🍽 ${intent.category}');
     }
     if (intent.keyword != null) chips.add('🔍 ${intent.keyword}');
-    if (intent.spicy == true) chips.add('🌶 Spicy');
-    if (intent.vegetarian == true) chips.add('🥦 Vegetarian');
+    if (intent.spicy == true) chips.add(l10n.aiChipSpicy);
+    if (intent.vegetarian == true) chips.add(l10n.aiChipVegetarian);
     if (intent.maxPrice != null) {
       chips.add('≤ ${intent.maxPrice!.toStringAsFixed(0)} DT');
     }
-    if (intent.deliveryTime == 'fast') chips.add('⚡ Fast');
+    if (intent.deliveryTime == 'fast') chips.add(l10n.aiChipFast);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),

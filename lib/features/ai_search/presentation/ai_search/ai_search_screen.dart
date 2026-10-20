@@ -107,6 +107,28 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
     );
   }
 
+  /// The search error in the customer's language.
+  static String _errorText(AppLocalizations l10n, AiSearchState state) {
+    final message = state.errorMessage ?? '';
+    switch (state.errorKind) {
+      case AiSearchErrorKind.network:
+        return l10n.aiSearchErrorNetwork;
+      case AiSearchErrorKind.unavailable:
+        return l10n.aiSearchErrorUnavailable;
+      case AiSearchErrorKind.noDish:
+        return l10n.aiSearchErrorNoDish;
+      case AiSearchErrorKind.imageTooLarge:
+        return l10n.aiSearchErrorImageTooLarge(message);
+      case AiSearchErrorKind.unknown:
+        return message.isEmpty
+            ? l10n.aiSearchErrorUnknown
+            : '${l10n.aiSearchErrorUnknown}\n$message';
+      case AiSearchErrorKind.other:
+      case null:
+        return message;
+    }
+  }
+
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -156,7 +178,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           else if (state.errorMessage != null)
             SliverToBoxAdapter(
               child: AiErrorView(
-                message: state.errorMessage!,
+                message: _errorText(AppLocalizations.of(context)!, state),
                 onRetry: () => ref.read(aiSearchProvider.notifier).clearError(),
               ),
             )

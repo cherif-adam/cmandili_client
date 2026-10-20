@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 
@@ -30,7 +31,7 @@ class EmptyOrdersView extends StatelessWidget {
           ),
           SizedBox(height: sh * 0.03),
           Text(
-            'No orders yet',
+            AppLocalizations.of(context)!.noOrdersYet,
             style: TextStyle(
               fontSize: sw * 0.055,
               fontWeight: FontWeight.bold,
@@ -38,7 +39,7 @@ class EmptyOrdersView extends StatelessWidget {
           ),
           SizedBox(height: sh * 0.01),
           Text(
-            'Your order history will appear here',
+            AppLocalizations.of(context)!.startOrderingMessage,
             style: TextStyle(
               fontSize: sw * 0.038,
               color: Colors.grey[500],

@@ -127,7 +127,7 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start recording: $e'),
+            content: Text(AppLocalizations.of(context)!.voiceRecordStartFailed('$e')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -144,7 +144,7 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to stop recording: $e'),
+            content: Text(AppLocalizations.of(context)!.voiceRecordStopFailed('$e')),
             backgroundColor: AppColors.error,
           ),
         );
@@ -172,7 +172,7 @@ class _OrderCustomizationWidgetState extends State<OrderCustomizationWidget>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to play audio: $e'),
+            content: Text(AppLocalizations.of(context)!.voicePlayFailed('$e')),
             backgroundColor: AppColors.error,
           ),
         );

@@ -375,7 +375,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.commonErrorWith('$e')),
+            content: Text(AppLocalizations.of(context)!.genericErrorWith('$e')),
             backgroundColor: AppColors.error,
           ),
         );

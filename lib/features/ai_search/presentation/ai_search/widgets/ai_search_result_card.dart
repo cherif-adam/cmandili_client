@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../data/models/search_result.dart';
 
@@ -130,9 +131,12 @@ class AiSearchResultCard extends StatelessWidget {
                     spacing: 6,
                     runSpacing: 4,
                     children: [
-                      if (item.isSpicy) const _Badge('🌶 Spicy', AppColors.error),
+                      if (item.isSpicy)
+                        _Badge(AppLocalizations.of(context)!.aiChipSpicy,
+                            AppColors.error),
                       if (item.isVegetarian)
-                        const _Badge('🥦 Veg', AppColors.success),
+                        _Badge(AppLocalizations.of(context)!.aiBadgeVeg,
+                            AppColors.success),
                       _Badge(
                         '⏱ ${item.preparationTime} min',
                         AppColors.textSecondary,

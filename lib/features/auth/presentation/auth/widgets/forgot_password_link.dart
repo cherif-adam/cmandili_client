@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../forgot_password/forgot_password_screen.dart';
@@ -34,7 +35,7 @@ class ForgotPasswordLink extends StatelessWidget {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         child: Text(
-          'Forgot Password?',
+          AppLocalizations.of(context)!.forgotPassword,
           style: TextStyle(
             fontSize: screenWidth * 0.037,
             fontWeight: FontWeight.w600,

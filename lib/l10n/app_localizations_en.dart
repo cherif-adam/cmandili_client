@@ -1566,11 +1566,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonDelete => 'Delete';
 
   @override
-  String commonErrorWith(String error) {
-    return 'Error: $error';
-  }
-
-  @override
   String get commonInvalidAmount => 'Invalid amount';
 
   @override
@@ -1982,4 +1977,95 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vendorClosedNotice => 'This shop is currently closed.';
+
+  @override
+  String get forgotPasswordIntro =>
+      'Enter your email and we\'ll send\nyou a 6-digit reset code.';
+
+  @override
+  String voiceRecordStartFailed(String error) {
+    return 'Failed to start recording: $error';
+  }
+
+  @override
+  String voiceRecordStopFailed(String error) {
+    return 'Failed to stop recording: $error';
+  }
+
+  @override
+  String voicePlayFailed(String error) {
+    return 'Failed to play audio: $error';
+  }
+
+  @override
+  String get addressLabelRequired => 'Please enter a label';
+
+  @override
+  String get addressRequired => 'Please enter an address';
+
+  @override
+  String addressAptFloor(String apartment, String floor) {
+    return 'Apt: $apartment, Floor: $floor';
+  }
+
+  @override
+  String get aiChatTooltip => 'AI Chat';
+
+  @override
+  String get ordersLoadError => 'Failed to load orders';
+
+  @override
+  String get orderTypeCourier => 'Parcel delivery';
+
+  @override
+  String etaMinutes(String minutes) {
+    return '$minutes minutes';
+  }
+
+  @override
+  String get helpEmailUs => 'Email us';
+
+  @override
+  String get quantity => 'Quantity';
+
+  @override
+  String restaurantShareText(
+      String name, String description, String rating, String minutes) {
+    return 'Check out $name!\n$description\nRating: $rating ⭐\nDelivery: $minutes min';
+  }
+
+  @override
+  String get aiChipSpicy => '🌶 Spicy';
+
+  @override
+  String get aiChipVegetarian => '🥦 Vegetarian';
+
+  @override
+  String get aiChipFast => '⚡ Fast';
+
+  @override
+  String get aiBadgeVeg => '🥦 Veg';
+
+  @override
+  String get aiThisDish => 'this dish';
+
+  @override
+  String get aiSearchErrorNetwork =>
+      'Network error. Please check your connection.';
+
+  @override
+  String get aiSearchErrorUnavailable =>
+      'Service temporarily unavailable. Try again later.';
+
+  @override
+  String get aiSearchErrorNoDish =>
+      'Could not identify a dish in this photo. Try a clearer image.';
+
+  @override
+  String aiSearchErrorImageTooLarge(String size) {
+    return 'Image is too large ($size MB). Please use an image smaller than 10 MB.';
+  }
+
+  @override
+  String get aiSearchErrorUnknown => 'Unknown error';
 }

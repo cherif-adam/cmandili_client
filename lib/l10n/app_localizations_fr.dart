@@ -1593,11 +1593,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonDelete => 'Supprimer';
 
   @override
-  String commonErrorWith(String error) {
-    return 'Erreur: $error';
-  }
-
-  @override
   String get commonInvalidAmount => 'Montant invalide';
 
   @override
@@ -1960,10 +1955,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderTypeFacture => 'Paiement de facture';
 
   @override
-  String get orderShopSupermarket => 'Supermarche';
+  String get orderShopSupermarket => 'Supermarché';
 
   @override
-  String get orderShopBakery => 'Patisserie';
+  String get orderShopBakery => 'Pâtisserie';
 
   @override
   String get orderShopFlowers => 'Fleurs';
@@ -1975,7 +1970,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get orderShopGifts => 'Cadeaux';
 
   @override
-  String get orderShopElectronics => 'Electronique';
+  String get orderShopElectronics => 'Électronique';
 
   @override
   String get orderShopRestaurant => 'Restaurant';
@@ -2019,4 +2014,94 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get vendorClosedNotice => 'Cette boutique est actuellement fermée.';
+
+  @override
+  String get forgotPasswordIntro =>
+      'Saisissez votre email et nous vous enverrons\nun code de réinitialisation à 6 chiffres.';
+
+  @override
+  String voiceRecordStartFailed(String error) {
+    return 'Impossible de démarrer l\'enregistrement : $error';
+  }
+
+  @override
+  String voiceRecordStopFailed(String error) {
+    return 'Impossible d\'arrêter l\'enregistrement : $error';
+  }
+
+  @override
+  String voicePlayFailed(String error) {
+    return 'Impossible de lire l\'audio : $error';
+  }
+
+  @override
+  String get addressLabelRequired => 'Veuillez saisir un nom';
+
+  @override
+  String get addressRequired => 'Veuillez saisir une adresse';
+
+  @override
+  String addressAptFloor(String apartment, String floor) {
+    return 'Appt : $apartment, Étage : $floor';
+  }
+
+  @override
+  String get aiChatTooltip => 'Assistant IA';
+
+  @override
+  String get ordersLoadError => 'Impossible de charger les commandes';
+
+  @override
+  String get orderTypeCourier => 'Envoi de colis';
+
+  @override
+  String etaMinutes(String minutes) {
+    return '$minutes minutes';
+  }
+
+  @override
+  String get helpEmailUs => 'Écrivez-nous';
+
+  @override
+  String get quantity => 'Quantité';
+
+  @override
+  String restaurantShareText(
+      String name, String description, String rating, String minutes) {
+    return 'Découvrez $name !\n$description\nNote : $rating ⭐\nLivraison : $minutes min';
+  }
+
+  @override
+  String get aiChipSpicy => '🌶 Épicé';
+
+  @override
+  String get aiChipVegetarian => '🥦 Végétarien';
+
+  @override
+  String get aiChipFast => '⚡ Rapide';
+
+  @override
+  String get aiBadgeVeg => '🥦 Végé';
+
+  @override
+  String get aiThisDish => 'ce plat';
+
+  @override
+  String get aiSearchErrorNetwork => 'Erreur réseau. Vérifiez votre connexion.';
+
+  @override
+  String get aiSearchErrorUnavailable =>
+      'Service temporairement indisponible. Réessayez plus tard.';
+
+  @override
+  String get aiSearchErrorNoDish =>
+      'Aucun plat reconnu sur cette photo. Essayez une image plus nette.';
+
+  @override
+  String aiSearchErrorImageTooLarge(String size) {
+    return 'L\'image est trop lourde ($size Mo). Utilisez une image de moins de 10 Mo.';
+  }
+
+  @override
+  String get aiSearchErrorUnknown => 'Erreur inconnue';
 }

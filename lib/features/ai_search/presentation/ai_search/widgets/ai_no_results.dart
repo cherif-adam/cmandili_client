@@ -14,7 +14,7 @@ class AiNoResults extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final message = state.mode == AiSearchMode.image
-        ? l10n.aiSearchNoResultsPhoto(state.imageResponse?.dishName ?? 'this dish')
+        ? l10n.aiSearchNoResultsPhoto(state.imageResponse?.dishName ?? l10n.aiThisDish)
         : l10n.aiSearchNoResultsText;
     return Padding(
       padding: const EdgeInsets.all(40),

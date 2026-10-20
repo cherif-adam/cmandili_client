@@ -2950,12 +2950,6 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get commonDelete;
 
-  /// No description provided for @commonErrorWith.
-  ///
-  /// In en, this message translates to:
-  /// **'Error: {error}'**
-  String commonErrorWith(String error);
-
   /// No description provided for @commonInvalidAmount.
   ///
   /// In en, this message translates to:
@@ -3717,6 +3711,151 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This shop is currently closed.'**
   String get vendorClosedNotice;
+
+  /// No description provided for @forgotPasswordIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email and we\'ll send\nyou a 6-digit reset code.'**
+  String get forgotPasswordIntro;
+
+  /// No description provided for @voiceRecordStartFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start recording: {error}'**
+  String voiceRecordStartFailed(String error);
+
+  /// No description provided for @voiceRecordStopFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to stop recording: {error}'**
+  String voiceRecordStopFailed(String error);
+
+  /// No description provided for @voicePlayFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to play audio: {error}'**
+  String voicePlayFailed(String error);
+
+  /// No description provided for @addressLabelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a label'**
+  String get addressLabelRequired;
+
+  /// No description provided for @addressRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter an address'**
+  String get addressRequired;
+
+  /// No description provided for @addressAptFloor.
+  ///
+  /// In en, this message translates to:
+  /// **'Apt: {apartment}, Floor: {floor}'**
+  String addressAptFloor(String apartment, String floor);
+
+  /// No description provided for @aiChatTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Chat'**
+  String get aiChatTooltip;
+
+  /// No description provided for @ordersLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load orders'**
+  String get ordersLoadError;
+
+  /// No description provided for @orderTypeCourier.
+  ///
+  /// In en, this message translates to:
+  /// **'Parcel delivery'**
+  String get orderTypeCourier;
+
+  /// No description provided for @etaMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} minutes'**
+  String etaMinutes(String minutes);
+
+  /// No description provided for @helpEmailUs.
+  ///
+  /// In en, this message translates to:
+  /// **'Email us'**
+  String get helpEmailUs;
+
+  /// No description provided for @quantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get quantity;
+
+  /// No description provided for @restaurantShareText.
+  ///
+  /// In en, this message translates to:
+  /// **'Check out {name}!\n{description}\nRating: {rating} ⭐\nDelivery: {minutes} min'**
+  String restaurantShareText(
+      String name, String description, String rating, String minutes);
+
+  /// No description provided for @aiChipSpicy.
+  ///
+  /// In en, this message translates to:
+  /// **'🌶 Spicy'**
+  String get aiChipSpicy;
+
+  /// No description provided for @aiChipVegetarian.
+  ///
+  /// In en, this message translates to:
+  /// **'🥦 Vegetarian'**
+  String get aiChipVegetarian;
+
+  /// No description provided for @aiChipFast.
+  ///
+  /// In en, this message translates to:
+  /// **'⚡ Fast'**
+  String get aiChipFast;
+
+  /// No description provided for @aiBadgeVeg.
+  ///
+  /// In en, this message translates to:
+  /// **'🥦 Veg'**
+  String get aiBadgeVeg;
+
+  /// No description provided for @aiThisDish.
+  ///
+  /// In en, this message translates to:
+  /// **'this dish'**
+  String get aiThisDish;
+
+  /// No description provided for @aiSearchErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network error. Please check your connection.'**
+  String get aiSearchErrorNetwork;
+
+  /// No description provided for @aiSearchErrorUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Service temporarily unavailable. Try again later.'**
+  String get aiSearchErrorUnavailable;
+
+  /// No description provided for @aiSearchErrorNoDish.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not identify a dish in this photo. Try a clearer image.'**
+  String get aiSearchErrorNoDish;
+
+  /// No description provided for @aiSearchErrorImageTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Image is too large ({size} MB). Please use an image smaller than 10 MB.'**
+  String aiSearchErrorImageTooLarge(String size);
+
+  /// No description provided for @aiSearchErrorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown error'**
+  String get aiSearchErrorUnknown;
 }
 
 class _AppLocalizationsDelegate

@@ -70,7 +70,7 @@ class HomeSearchField extends StatelessWidget {
                     onPressed: onCleared,
                   )
                 : Tooltip(
-                    message: 'AI Search',
+                    message: AppLocalizations.of(context)!.aiSearchTitle,
                     child: IconButton(
                       icon: const Icon(
                         Icons.auto_awesome_rounded,

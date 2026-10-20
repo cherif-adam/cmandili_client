@@ -37,16 +37,16 @@ class TrackingStatusHeader extends StatelessWidget {
           )
         else if (order.estimatedDeliveryTime != null)
           Text(
-            l.estimatedDeliveryAt(_formatTime(order.estimatedDeliveryTime!)),
+            l.estimatedDeliveryAt(_formatTime(l, order.estimatedDeliveryTime!)),
             style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
           ),
       ],
     );
   }
 
-  static String _formatTime(DateTime time) {
+  static String _formatTime(AppLocalizations l, DateTime time) {
     final difference = time.difference(DateTime.now());
-    if (difference.inMinutes < 60) return '${difference.inMinutes} minutes';
+    if (difference.inMinutes < 60) return l.etaMinutes('${difference.inMinutes}');
     return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
   }
 }

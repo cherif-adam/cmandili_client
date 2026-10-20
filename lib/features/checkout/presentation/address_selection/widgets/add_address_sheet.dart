@@ -100,7 +100,9 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
                   prefixIcon: const Icon(Icons.label_outline),
                 ),
                 validator: (value) =>
-                    value?.isEmpty ?? true ? 'Please enter a label' : null,
+                    value?.isEmpty ?? true
+                        ? AppLocalizations.of(context)!.addressLabelRequired
+                        : null,
               ),
               const SizedBox(height: 16),
 
@@ -112,7 +114,9 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
                 ),
                 maxLines: 2,
                 validator: (value) =>
-                    value?.isEmpty ?? true ? 'Please enter an address' : null,
+                    value?.isEmpty ?? true
+                        ? AppLocalizations.of(context)!.addressRequired
+                        : null,
               ),
               const SizedBox(height: 16),
 

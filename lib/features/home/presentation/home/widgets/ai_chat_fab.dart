@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../../screens/ai_chat_screen.dart';
 
@@ -19,7 +20,7 @@ class AiChatFab extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const AiChatScreen()),
         ),
         backgroundColor: const Color(0xFF6C3DE1),
-        tooltip: 'AI Chat',
+        tooltip: AppLocalizations.of(context)!.aiChatTooltip,
         child: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white),
       ),
     );
