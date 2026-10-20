@@ -2,7 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../reset_password_screen.dart';
+import '../reset_password/reset_password_screen.dart';
 import '../widgets/password_glass_card.dart';
 import '../widgets/password_page_background.dart';
 import '../widgets/password_page_icon.dart';
