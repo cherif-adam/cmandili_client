@@ -36,7 +36,7 @@ class DriverRatingSheet extends ConsumerStatefulWidget {
     }
     try {
       final canRate =
-          await ref.read(orderRepositoryProvider).canRateDriver(order.id);
+          await ref.read(orderRatingRepositoryProvider).canRateDriver(order.id);
       if (!canRate || !context.mounted) return;
       await showModalBottomSheet<void>(
         context: context,
@@ -70,7 +70,7 @@ class _DriverRatingSheetState extends ConsumerState<DriverRatingSheet> {
     final l = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
 
-    final success = await ref.read(orderRepositoryProvider).submitDriverRating(
+    final success = await ref.read(orderRatingRepositoryProvider).submitDriverRating(
           orderId: widget.order.id,
           driverId: widget.order.driverId!,
           rating: _stars,

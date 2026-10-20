@@ -43,7 +43,9 @@ import 'package:cmandili_mobile/features/checkout/data/models/delivery_address.d
 import 'package:cmandili_mobile/features/checkout/presentation/address_selection/address_selection_screen.dart';
 import 'package:cmandili_mobile/features/checkout/presentation/checkout/checkout_screen.dart';
 import 'package:cmandili_mobile/features/orders/data/models/order.dart';
-import 'package:cmandili_mobile/features/orders/data/order_repository.dart';
+import 'package:cmandili_mobile/features/orders/data/order_live_repository.dart';
+import 'package:cmandili_mobile/features/orders/data/order_placement_repository.dart';
+import 'package:cmandili_mobile/features/orders/data/order_status_repository.dart';
 import 'package:cmandili_mobile/features/orders/presentation/order_tracking/order_tracking_screen.dart';
 import 'package:cmandili_mobile/features/orders/providers/order_provider.dart';
 import 'package:cmandili_mobile/features/promo/data/models/promo_code_response.dart';
@@ -96,7 +98,7 @@ typedef _Created = ({
   DateTime? estimatedDeliveryTime,
 });
 
-class _FakeOrderRepository extends OrderRepository {
+class _FakeOrderRepository extends OrderPlacementRepository {
   _FakeOrderRepository({required this.orderId, required this.chargedTotal});
 
   final String orderId;
@@ -153,13 +155,23 @@ class _FakeOrderRepository extends OrderRepository {
     );
   }
 
+}
+
+/// Les annulations vont dans le même relevé que les commandes qu'elles visent.
+class _FakeOrderStatus extends OrderStatusRepository {
+  _FakeOrderStatus(this.orders);
+
+  final _FakeOrderRepository orders;
+
   @override
   Future<bool> cancelOrder(String orderId) async {
-    cancelled.add(orderId);
+    orders.cancelled.add(orderId);
     return true;
   }
+}
 
-  // L'écran de suivi s'ouvre après une commande réussie : il ne reçoit rien.
+// L'écran de suivi s'ouvre après une commande réussie : il ne reçoit rien.
+class _QuietLive extends OrderLiveRepository {
   @override
   Stream<List<Map<String, dynamic>>> streamDeliveryRows(String orderId) =>
       StreamController<List<Map<String, dynamic>>>().stream;
@@ -300,7 +312,9 @@ Future<_Checkout> _pumpCheckout(
   final promos = _FakePromoRepository(commit: promoCommit);
   final payments = _RecordingPaymentService(refuse: refusePayment);
   final container = ProviderContainer(overrides: [
-    orderRepositoryProvider.overrideWithValue(orders),
+    orderPlacementRepositoryProvider.overrideWithValue(orders),
+    orderStatusRepositoryProvider.overrideWithValue(_FakeOrderStatus(orders)),
+    orderLiveRepositoryProvider.overrideWithValue(_QuietLive()),
     promoRepositoryProvider.overrideWithValue(promos),
     paymentServiceProvider.overrideWithValue(payments),
     // Le suivi ouvert après une commande réussie reste sur « chargement ».

@@ -33,7 +33,7 @@ class RatingPromptSheet extends ConsumerStatefulWidget {
     if (order.type != OrderType.food || order.status != OrderStatus.delivered) return;
 
     try {
-      final alreadyRated = await ref.read(orderRepositoryProvider).hasRating(order.id);
+      final alreadyRated = await ref.read(orderRatingRepositoryProvider).hasRating(order.id);
       if (alreadyRated || !context.mounted) return;
       await showModalBottomSheet<void>(
         context: context,
@@ -66,7 +66,7 @@ class _RatingPromptSheetState extends ConsumerState<RatingPromptSheet> {
     if (_stars == 0 || _submitting) return;
     setState(() => _submitting = true);
 
-    final success = await ref.read(orderRepositoryProvider).submitRating(
+    final success = await ref.read(orderRatingRepositoryProvider).submitRating(
           orderId: widget.order.id,
           restaurantId: widget.order.restaurantId,
           rating: _stars,

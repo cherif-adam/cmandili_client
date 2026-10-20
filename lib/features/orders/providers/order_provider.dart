@@ -3,14 +3,27 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/order_live_repository.dart';
+import '../data/order_placement_repository.dart';
+import '../data/order_rating_repository.dart';
 import '../data/order_repository.dart';
+import '../data/order_status_repository.dart';
+import '../data/reorder_repository.dart';
 import '../data/models/order.dart';
 
 final orderRepositoryProvider = Provider((ref) => OrderRepository());
+final orderPlacementRepositoryProvider =
+    Provider((ref) => OrderPlacementRepository());
+final orderStatusRepositoryProvider =
+    Provider((ref) => OrderStatusRepository());
+final orderLiveRepositoryProvider = Provider((ref) => OrderLiveRepository());
+final orderRatingRepositoryProvider =
+    Provider((ref) => OrderRatingRepository());
+final reorderRepositoryProvider = Provider((ref) => ReorderRepository());
 
 // Stream provider for tracking a specific order
 final orderStreamProvider = StreamProvider.family<Order, String>((ref, orderId) {
-  final repository = ref.watch(orderRepositoryProvider);
+  final repository = ref.watch(orderLiveRepositoryProvider);
   return repository.streamOrder(orderId);
 });
 
@@ -29,6 +42,7 @@ final userOrdersProvider = FutureProvider<List<Order>>((ref) async {
 /// or a login that happened after this provider was first built.
 final activeOrderProvider = StreamProvider<Order?>((ref) {
   final repository = ref.watch(orderRepositoryProvider);
+  final live = ref.watch(orderLiveRepositoryProvider);
   final controller = StreamController<Order?>();
   StreamSubscription<Order?>? realtime;
   Timer? timer;
@@ -42,7 +56,7 @@ final activeOrderProvider = StreamProvider<Order?>((ref) {
     if (realtime != null || Supabase.instance.client.auth.currentUser == null) {
       return;
     }
-    realtime = repository.streamActiveOrder().listen(
+    realtime = live.streamActiveOrder().listen(
       emit,
       onError: (Object e) {
         debugPrint('activeOrderProvider: realtime failed $e');
@@ -112,7 +126,7 @@ final receiptPendingOrderProvider = StreamProvider<Order?>((ref) {
 /// Invalidated after a rating is sent.
 final canRateDriverProvider =
     FutureProvider.autoDispose.family<bool, String>((ref, orderId) {
-  return ref.watch(orderRepositoryProvider).canRateDriver(orderId);
+  return ref.watch(orderRatingRepositoryProvider).canRateDriver(orderId);
 });
 
 // Future provider for fetching facture (bill payment) orders only

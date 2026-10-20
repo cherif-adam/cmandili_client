@@ -22,7 +22,8 @@ import 'package:cmandili_mobile/core/providers/vendor_provider.dart';
 import 'package:cmandili_mobile/core/widgets/app_map.dart';
 import 'package:cmandili_mobile/features/checkout/data/models/delivery_address.dart';
 import 'package:cmandili_mobile/features/orders/data/models/order.dart';
-import 'package:cmandili_mobile/features/orders/data/order_repository.dart';
+import 'package:cmandili_mobile/features/orders/data/order_live_repository.dart';
+import 'package:cmandili_mobile/features/orders/data/order_rating_repository.dart';
 import 'package:cmandili_mobile/features/orders/presentation/order_tracking/order_tracking_controller.dart';
 import 'package:cmandili_mobile/features/orders/presentation/order_tracking/order_tracking_screen.dart';
 import 'package:cmandili_mobile/features/orders/providers/order_provider.dart';
@@ -32,7 +33,7 @@ typedef _Rows = List<Map<String, dynamic>>;
 
 /// Dépôt sans réseau : chaque flux est un StreamController dont on sait s'il
 /// est encore écouté.
-class _FakeOrderRepository extends OrderRepository {
+class _FakeOrderRepository extends OrderLiveRepository {
   final deliveries = <String, StreamController<_Rows>>{};
   final drivers = <String, StreamController<_Rows>>{};
   final cancelled = <String>[];
@@ -52,7 +53,10 @@ class _FakeOrderRepository extends OrderRepository {
     drivers[driverId] = c;
     return c.stream;
   }
+}
 
+/// La feuille de suivi demande si le livreur peut être noté : non, sans réseau.
+class _NoDriverRating extends OrderRatingRepository {
   @override
   Future<bool> canRateDriver(String orderId) async => false;
 }
@@ -85,7 +89,7 @@ void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     SharedPreferences.setMockInitialValues({});
-    // OrderRepository() résout Supabase.instance.client dans son
+    // OrderLiveRepository() résout Supabase.instance.client dans son
     // constructeur, y compris pour le faux dépôt.
     await Supabase.initialize(
       url: 'http://localhost:54321',
@@ -104,7 +108,7 @@ void main() {
     setUp(() {
       repo = _FakeOrderRepository();
       container = ProviderContainer(
-          overrides: [orderRepositoryProvider.overrideWithValue(repo)]);
+          overrides: [orderLiveRepositoryProvider.overrideWithValue(repo)]);
       addTearDown(container.dispose);
       provider = orderTrackingControllerProvider(Object());
       // Ce que fait l'écran en s'affichant : il écoute son contrôleur.
@@ -204,7 +208,8 @@ void main() {
 
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        orderRepositoryProvider.overrideWithValue(repo),
+        orderLiveRepositoryProvider.overrideWithValue(repo),
+        orderRatingRepositoryProvider.overrideWithValue(_NoDriverRating()),
         orderStreamProvider.overrideWith((ref, id) => Stream.value(_order)),
         orderDetailsProvider.overrideWith((ref, id) async => null),
         vendorCategoriesProvider

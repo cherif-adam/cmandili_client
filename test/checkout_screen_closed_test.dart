@@ -34,7 +34,8 @@ import 'package:cmandili_mobile/features/checkout/presentation/address_selection
 import 'package:cmandili_mobile/features/checkout/presentation/checkout/checkout_controller.dart';
 import 'package:cmandili_mobile/features/checkout/presentation/checkout/checkout_screen.dart';
 import 'package:cmandili_mobile/features/orders/data/models/order.dart';
-import 'package:cmandili_mobile/features/orders/data/order_repository.dart';
+import 'package:cmandili_mobile/features/orders/data/order_placement_repository.dart';
+import 'package:cmandili_mobile/features/orders/data/order_status_repository.dart';
 import 'package:cmandili_mobile/features/orders/providers/order_provider.dart';
 import 'package:cmandili_mobile/features/promo/data/models/promo_code_response.dart';
 import 'package:cmandili_mobile/features/promo/data/promo_repository.dart';
@@ -118,7 +119,7 @@ class _FakePromoRepository extends PromoRepository {
   }
 }
 
-class _FakeOrderRepository extends OrderRepository {
+class _FakeOrderRepository extends OrderPlacementRepository {
   _FakeOrderRepository(this.gates, {this.createFails = false});
 
   final _Gates gates;
@@ -160,10 +161,18 @@ class _FakeOrderRepository extends OrderRepository {
     );
   }
 
+}
+
+/// Les annulations vont dans le même relevé que les commandes qu'elles visent.
+class _FakeOrderStatus extends OrderStatusRepository {
+  _FakeOrderStatus(this.orders);
+
+  final _FakeOrderRepository orders;
+
   @override
   Future<bool> cancelOrder(String orderId) async {
-    await gates.pass(_Step.cancelOrder);
-    cancelled.add(orderId);
+    await orders.gates.pass(_Step.cancelOrder);
+    orders.cancelled.add(orderId);
     return true;
   }
 }
@@ -254,7 +263,8 @@ Future<_World> _pump(
   final payments = _FakePaymentService(gates, refuse: refusePayment);
   final container = ProviderContainer(overrides: [
     checkoutRepositoryProvider.overrideWithValue(_FakeCheckoutRepository(gates)),
-    orderRepositoryProvider.overrideWithValue(orders),
+    orderPlacementRepositoryProvider.overrideWithValue(orders),
+    orderStatusRepositoryProvider.overrideWithValue(_FakeOrderStatus(orders)),
     promoRepositoryProvider.overrideWithValue(promos),
     paymentServiceProvider.overrideWithValue(payments),
     orderStreamProvider

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/widgets/app_map.dart';
 import '../../data/models/order.dart';
-import '../../data/order_repository.dart';
+import '../../data/order_live_repository.dart';
 import '../../providers/order_provider.dart';
 
 /// One controller per tracking screen on display (the argument is a key the
@@ -47,7 +47,7 @@ class OrderTrackingController
   StreamSubscription? _deliverySubscription;
   StreamSubscription? _driverSubscription;
   String? _driverId;
-  late OrderRepository _repository;
+  late OrderLiveRepository _repository;
 
   /// Set once the screen has closed: no event is applied after that.
   bool _stopped = false;
@@ -69,7 +69,7 @@ class OrderTrackingController
   /// Starts following the driver of [orderId]. Call once, from the screen's
   /// initState; [stopFollowing] ends it.
   void followDriver(String orderId) {
-    _repository = ref.read(orderRepositoryProvider);
+    _repository = ref.read(orderLiveRepositoryProvider);
     _subscribeToDelivery(orderId);
   }
 
@@ -123,11 +123,11 @@ class OrderTrackingController
   /// Whether the cancellation went through (false: too late, the shop is
   /// already preparing).
   Future<bool> cancelByCustomer(String orderId, String reason) =>
-      ref.read(orderRepositoryProvider).cancelOrderByCustomer(orderId, reason);
+      ref.read(orderStatusRepositoryProvider).cancelOrderByCustomer(orderId, reason);
 
   /// The customer confirms the recipient got the order.
   Future<void> confirmReceipt(String orderId) => ref
-      .read(orderRepositoryProvider)
+      .read(orderStatusRepositoryProvider)
       .updateOrderStatus(orderId, OrderStatus.delivered);
 
   // ── Helpers ───────────────────────────────────────────────────────────────

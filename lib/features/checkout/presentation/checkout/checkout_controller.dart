@@ -213,7 +213,8 @@ class CheckoutController
     final checkoutRepo = ref.read(checkoutRepositoryProvider);
     final profileRepo = ref.read(profileRepositoryProvider);
     final promoRepo = ref.read(promoRepositoryProvider);
-    final orderRepo = ref.read(orderRepositoryProvider);
+    final placementRepo = ref.read(orderPlacementRepositoryProvider);
+    final statusRepo = ref.read(orderStatusRepositoryProvider);
     final paymentService = ref.read(paymentServiceProvider);
     final cartNotifier = ref.read(cartProvider.notifier);
     final promoNotifier = ref.read(promoProvider.notifier);
@@ -383,7 +384,7 @@ class CheckoutController
       // persisted. The returned record reflects what was actually charged —
       // used below for payment instead of the sticker finalTotal, so a
       // loyalty order is never paid/recorded at the pre-discount amount.
-      final createdOrder = await orderRepo.createOrder(
+      final createdOrder = await placementRepo.createOrder(
             items: cartItems,
             deliveryAddress: addressWithContact,
             subtotal: effectiveSubtotal, // server-authorised value
@@ -408,7 +409,7 @@ class CheckoutController
       );
 
       if (!paymentResult.success) {
-        await orderRepo.cancelOrder(orderId);
+        await statusRepo.cancelOrder(orderId);
         if (promoCommitted) {
           await promoRepo.releaseUsage(promoCode: promoState.appliedCode);
         }

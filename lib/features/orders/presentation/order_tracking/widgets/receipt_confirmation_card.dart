@@ -123,7 +123,7 @@ class _ReceiptConfirmationCardState
 
       setState(() => _saving = true);
       final state = await ref
-          .read(orderRepositoryProvider)
+          .read(orderStatusRepositoryProvider)
           .confirmReceipt(widget.order.id, received: received);
       // The home-screen reminder for this order can go now.
       ref.invalidate(receiptPendingOrderProvider);

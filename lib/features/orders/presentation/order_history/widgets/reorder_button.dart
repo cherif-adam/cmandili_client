@@ -85,7 +85,7 @@ class ReorderButton extends ConsumerWidget {
     );
 
     try {
-      final repository = ref.read(orderRepositoryProvider);
+      final repository = ref.read(reorderRepositoryProvider);
       final result = await repository.getReorderItems(order.id);
 
       if (context.mounted) Navigator.pop(context);
