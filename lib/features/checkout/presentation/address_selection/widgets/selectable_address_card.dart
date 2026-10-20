@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/delivery_address.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/models/delivery_address.dart';
 
 /// One saved address in the address picker: icon (🏠 Home / 💼 Work / 📍),
 /// label (+ "Par défaut"), full address, apartment / floor. Tap to choose it.

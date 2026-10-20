@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../data/models/delivery_address.dart';
+import '../../../data/models/delivery_address.dart';
 
 /// Bottom sheet after the customer dropped a pin for a new saved address:
 /// label, full address (pre-filled), apartment, floor, "Enregistrer".
