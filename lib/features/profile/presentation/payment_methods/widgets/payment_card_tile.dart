@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../providers/payment_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../providers/payment_provider.dart';
 
 /// A saved card drawn like a bank card:
 ///   💳 ....................... DEFAULT

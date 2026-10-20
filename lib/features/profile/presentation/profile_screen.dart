@@ -18,7 +18,7 @@ import '../../orders/presentation/order_history/order_history_screen.dart';
 import '../data/profile_repository.dart';
 import 'edit_profile_screen.dart';
 import 'help_support_screen.dart';
-import 'payment_methods_screen.dart';
+import 'payment_methods/payment_methods_screen.dart';
 import 'saved_addresses_screen.dart';
 import 'widgets/language_picker_sheet.dart';
 import 'widgets/profile_header.dart';

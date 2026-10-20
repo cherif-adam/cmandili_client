@@ -1,68 +1,36 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-class PaymentMethod {
-  final String id;
-  final String cardHolderName;
-  final String lastFourDigits;
-  final String expiryDate;
-  final bool isDefault;
+import '../data/models/payment_method.dart';
+import '../data/payment_method_repository.dart';
 
-  PaymentMethod({
-    required this.id,
-    required this.cardHolderName,
-    required this.lastFourDigits,
-    required this.expiryDate,
-    this.isDefault = false,
-  });
+export '../data/models/payment_method.dart';
 
-  PaymentMethod copyWith({
-    String? id,
-    String? cardHolderName,
-    String? lastFourDigits,
-    String? expiryDate,
-    bool? isDefault,
-  }) {
-    return PaymentMethod(
-      id: id ?? this.id,
-      cardHolderName: cardHolderName ?? this.cardHolderName,
-      lastFourDigits: lastFourDigits ?? this.lastFourDigits,
-      expiryDate: expiryDate ?? this.expiryDate,
-      isDefault: isDefault ?? this.isDefault,
-    );
-  }
-}
-
+/// The payment-methods screen's controller: the saved cards, adding,
+/// deleting and choosing the default. Talks to PaymentMethodRepository.
 class PaymentNotifier extends StateNotifier<List<PaymentMethod>> {
-  final _supabase = Supabase.instance.client;
+  final _repository = PaymentMethodRepository();
 
   PaymentNotifier() : super([]) {
     _load();
   }
 
+  /// The "Enregistrer" rule of the add-card dialog: a name and at least 4
+  /// digits (the last 4 are what gets stored).
+  static bool canAddCard(String cardHolderName, String cardNumber) =>
+      cardHolderName.isNotEmpty && cardNumber.length >= 4;
+
   Future<void> _load() async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _repository.currentUserId;
     if (userId == null) return;
     try {
-      final rows = await _supabase
-          .from('payment_methods')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: true);
-      state = (rows as List).map((row) => PaymentMethod(
-            id: row['id'] as String,
-            cardHolderName: row['card_holder_name'] as String? ?? '',
-            lastFourDigits: row['last_four'] as String? ?? 'xxxx',
-            expiryDate: row['expiry_date'] as String? ?? '',
-            isDefault: row['is_default'] as bool? ?? false,
-          )).toList();
+      state = await _repository.getAll(userId);
     } catch (_) {}
   }
 
   // Only the last 4 digits and expiry are stored. Never store full PAN — PCI compliance.
   Future<void> addCard(String cardHolderName, String cardNumber, String expiryDate) async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _repository.currentUserId;
     final id = const Uuid().v4();
     final last4 = cardNumber.length >= 4
         ? cardNumber.substring(cardNumber.length - 4)
@@ -71,14 +39,14 @@ class PaymentNotifier extends StateNotifier<List<PaymentMethod>> {
 
     if (userId != null) {
       try {
-        await _supabase.from('payment_methods').insert({
-          'id': id,
-          'user_id': userId,
-          'card_holder_name': cardHolderName,
-          'last_four': last4,
-          'expiry_date': expiryDate,
-          'is_default': isFirst,
-        });
+        await _repository.add(
+          id: id,
+          userId: userId,
+          cardHolderName: cardHolderName,
+          lastFour: last4,
+          expiryDate: expiryDate,
+          isDefault: isFirst,
+        );
       } catch (_) {}
     }
 
@@ -96,23 +64,16 @@ class PaymentNotifier extends StateNotifier<List<PaymentMethod>> {
 
   Future<void> deleteCard(String id) async {
     try {
-      await _supabase.from('payment_methods').delete().eq('id', id);
+      await _repository.delete(id);
     } catch (_) {}
     state = state.where((c) => c.id != id).toList();
   }
 
   Future<void> setDefault(String id) async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _repository.currentUserId;
     if (userId != null) {
       try {
-        await _supabase
-            .from('payment_methods')
-            .update({'is_default': false})
-            .eq('user_id', userId);
-        await _supabase
-            .from('payment_methods')
-            .update({'is_default': true})
-            .eq('id', id);
+        await _repository.setDefault(userId, id);
       } catch (_) {}
     }
     state = [
