@@ -357,7 +357,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (!mounted) return;
 
       // ── Payment ────────────────────────────────────────────────────────
-      final paymentResult = await PaymentService().processAndRecord(
+      final paymentResult =
+          await ref.read(paymentServiceProvider).processAndRecord(
         orderId: orderId,
         amount: createdOrder.total,
         methodKey: _selectedPaymentMethod,

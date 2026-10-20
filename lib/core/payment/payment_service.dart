@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'payment_gateway.dart';
 import 'cash_gateway.dart';
+
+/// The app's [PaymentService]. A provider so a test can stand in a gateway
+/// that refuses; the app itself always gets the same service as before.
+final paymentServiceProvider =
+    Provider<PaymentService>((ref) => PaymentService());
 
 /// Orchestrates payment processing:
 ///   1. Delegates to the correct [PaymentGateway]
