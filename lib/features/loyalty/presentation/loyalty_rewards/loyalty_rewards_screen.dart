@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../orders/providers/order_provider.dart';
-import '../data/loyalty_eligibility.dart';
-import 'widgets/loyalty_progress_section.dart';
-import 'widgets/loyalty_stamp_grid.dart';
-
-enum _MilestoneState { achieved, current, locked }
+import '../../../../core/theme/app_colors.dart';
+import 'loyalty_rewards_controller.dart';
+import '../widgets/loyalty_progress_section.dart';
+import '../widgets/loyalty_stamp_grid.dart';
 
 /// "Mes récompenses" — destination for the sheet's "Voir mes récompenses"
 /// button. Shows the customer's confirmed progress in the current 10-order
 /// cycle (no pending-order awareness — this is a static snapshot, unlike the
 /// transient post-order sheet).
+///
+/// UI only: the cycle position and the milestone states come from
+/// [LoyaltyRewardsController].
 class LoyaltyRewardsScreen extends ConsumerWidget {
   const LoyaltyRewardsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final countAsync = ref.watch(loyaltyProgressProvider);
+    final cycleAsync = ref.watch(loyaltyRewardsControllerProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -32,11 +32,11 @@ class LoyaltyRewardsScreen extends ConsumerWidget {
         elevation: 0,
         backgroundColor: Colors.transparent,
       ),
-      body: countAsync.when(
+      body: cycleAsync.when(
         loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
         error: (_, __) => Center(
           child: ElevatedButton.icon(
-            onPressed: () => ref.invalidate(loyaltyProgressProvider),
+            onPressed: ref.read(loyaltyRewardsControllerProvider.notifier).retry,
             icon: const Icon(Icons.refresh),
             label: Text(l10n.retry),
             style: ElevatedButton.styleFrom(
@@ -46,7 +46,7 @@ class LoyaltyRewardsScreen extends ConsumerWidget {
             ),
           ),
         ),
-        data: (confirmedCount) => _RewardsBody(l10n: l10n, confirmedCount: confirmedCount),
+        data: (cycle) => _RewardsBody(l10n: l10n, cycle: cycle),
       ),
     );
   }
@@ -54,22 +54,19 @@ class LoyaltyRewardsScreen extends ConsumerWidget {
 
 class _RewardsBody extends StatelessWidget {
   final AppLocalizations l10n;
-  final int confirmedCount;
-  const _RewardsBody({required this.l10n, required this.confirmedCount});
+  final LoyaltyCycle cycle;
+  const _RewardsBody({required this.l10n, required this.cycle});
 
   @override
   Widget build(BuildContext context) {
-    final position = loyaltyCyclePosition(confirmedCount);
-    final halfAchieved = position >= 5;
-
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _HeaderCard(l10n: l10n, position: position, halfAchieved: halfAchieved),
+          _HeaderCard(l10n: l10n, cycle: cycle),
           const SizedBox(height: 20),
-          _MilestonesSection(l10n: l10n, halfAchieved: halfAchieved),
+          _MilestonesSection(l10n: l10n, cycle: cycle),
           const SizedBox(height: 20),
           _HowItWorksSection(l10n: l10n),
         ],
@@ -80,16 +77,14 @@ class _RewardsBody extends StatelessWidget {
 
 class _HeaderCard extends StatelessWidget {
   final AppLocalizations l10n;
-  final int position;
-  final bool halfAchieved;
-  const _HeaderCard({required this.l10n, required this.position, required this.halfAchieved});
+  final LoyaltyCycle cycle;
+  const _HeaderCard({required this.l10n, required this.cycle});
 
   @override
   Widget build(BuildContext context) {
-    const threshold = kLoyaltyTotalSlots;
-    final remainingText = halfAchieved
-        ? l10n.loyaltyRemainingFree(threshold - position)
-        : l10n.loyaltyRemainingHalf(5 - position);
+    final remainingText = cycle.halfAchieved
+        ? l10n.loyaltyRemainingFree(cycle.remainingToFree)
+        : l10n.loyaltyRemainingHalf(cycle.remainingToHalf);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -147,16 +142,16 @@ class _HeaderCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: LoyaltyStampGrid(
-                  earnedCount: position,
-                  totalSlots: threshold,
+                  earnedCount: cycle.position,
+                  totalSlots: cycle.totalSlots,
                   staggerIn: true,
                 ),
               ),
               const SizedBox(height: 16),
               LoyaltyProgressSection(
                 l10n: l10n,
-                filled: position,
-                total: threshold,
+                filled: cycle.position,
+                total: cycle.totalSlots,
                 remainingText: remainingText,
               ),
             ],
@@ -169,8 +164,8 @@ class _HeaderCard extends StatelessWidget {
 
 class _MilestonesSection extends StatelessWidget {
   final AppLocalizations l10n;
-  final bool halfAchieved;
-  const _MilestonesSection({required this.l10n, required this.halfAchieved});
+  final LoyaltyCycle cycle;
+  const _MilestonesSection({required this.l10n, required this.cycle});
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +176,7 @@ class _MilestonesSection extends StatelessWidget {
           icon: Icons.percent_rounded,
           title: l10n.loyaltyMilestoneHalfTitle,
           subtitle: l10n.loyaltyMilestoneHalfSubtitle,
-          state: halfAchieved ? _MilestoneState.achieved : _MilestoneState.current,
+          state: cycle.halfMilestone,
           l10n: l10n,
         ),
         const SizedBox(height: 10),
@@ -189,7 +184,7 @@ class _MilestonesSection extends StatelessWidget {
           icon: Icons.card_giftcard_rounded,
           title: l10n.loyaltyMilestoneFreeTitle,
           subtitle: l10n.loyaltyMilestoneFreeSubtitle,
-          state: halfAchieved ? _MilestoneState.current : _MilestoneState.locked,
+          state: cycle.freeMilestone,
           l10n: l10n,
         ),
       ],
@@ -201,7 +196,7 @@ class _MilestoneCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final _MilestoneState state;
+  final LoyaltyMilestoneState state;
   final AppLocalizations l10n;
 
   const _MilestoneCard({
@@ -219,17 +214,17 @@ class _MilestoneCard extends StatelessWidget {
     final Color iconColor;
     final String label;
     switch (state) {
-      case _MilestoneState.achieved:
+      case LoyaltyMilestoneState.achieved:
         bg = AppColors.loyaltyMilestoneAchievedBg;
         border = AppColors.loyaltyMilestoneAchievedBorder;
         iconColor = AppColors.loyaltyStampEarnedBorder;
         label = l10n.loyaltyStateAchieved;
-      case _MilestoneState.current:
+      case LoyaltyMilestoneState.current:
         bg = AppColors.loyaltyMilestoneCurrentBg;
         border = AppColors.loyaltyMilestoneCurrentBorder;
         iconColor = AppColors.loyaltyStampPendingIcon;
         label = l10n.loyaltyStateCurrent;
-      case _MilestoneState.locked:
+      case LoyaltyMilestoneState.locked:
         bg = AppColors.loyaltyMilestoneLockedBg;
         border = AppColors.loyaltyMilestoneLockedBorder;
         iconColor = AppColors.loyaltyMilestoneLockedIcon;
@@ -250,7 +245,7 @@ class _MilestoneCard extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.7)),
             child: Icon(
-              state == _MilestoneState.achieved ? Icons.check_rounded : icon,
+              state == LoyaltyMilestoneState.achieved ? Icons.check_rounded : icon,
               color: iconColor,
               size: 22,
             ),

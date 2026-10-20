@@ -5,7 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../orders/data/models/order.dart';
 import '../../orders/providers/order_provider.dart';
 import '../data/loyalty_eligibility.dart';
-import 'loyalty_rewards_screen.dart';
+import 'loyalty_rewards/loyalty_rewards_screen.dart';
 import 'widgets/loyalty_progress_section.dart';
 import 'widgets/loyalty_stamp.dart';
 import 'widgets/loyalty_stamp_grid.dart';
