@@ -3,10 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../auth/providers/auth_provider.dart';
-import '../../data/profile_repository.dart';
-
-final profileRepositoryProvider =
-    Provider<ProfileRepository>((ref) => ProfileRepository());
+import '../../providers/profile_repository_provider.dart';
 
 /// One controller per "Modifier le profil" screen on display (the argument
 /// is a key the screen creates for itself), auto-disposed with it like the

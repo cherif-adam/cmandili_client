@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../data/profile_repository.dart';
+import '../../../../core/theme/app_colors.dart';
+import 'phone_gate_controller.dart';
 import 'widgets/tunisian_phone_field.dart';
 
 /// Mandatory post-auth gate that collects the user's phone number when their
@@ -15,6 +14,9 @@ import 'widgets/tunisian_phone_field.dart';
 /// the field itself holds exactly the 8 local digits. Whatever the user types,
 /// the value persisted is always the full E.164 form (`+216XXXXXXXX`) so the
 /// driver/partner apps can dial it directly.
+///
+///   _Intro (icon, title, explanation), then _PhoneInput (field, Continuer).
+/// UI only: saving and the number rules live in [PhoneGateController].
 class PhoneGateScreen extends ConsumerStatefulWidget {
   final VoidCallback onSaved;
   const PhoneGateScreen({super.key, required this.onSaved});
@@ -24,10 +26,10 @@ class PhoneGateScreen extends ConsumerStatefulWidget {
 }
 
 class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
+  /// This screen's own controller (see [phoneGateControllerProvider]).
+  late final _provider = phoneGateControllerProvider(Object());
   final _formKey = GlobalKey<FormState>();
   final _phoneCtrl = TextEditingController();
-  final _profileRepo = ProfileRepository();
-  bool _saving = false;
 
   @override
   void initState() {
@@ -45,22 +47,12 @@ class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
     super.dispose();
   }
 
-  /// The 8 local digits, stripped of the spaces the input formatter adds.
-  String get _localDigits => _phoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
-
-  bool get _isComplete => _localDigits.length == 8;
-
   Future<void> _save() async {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
     try {
-      // Always persist E.164 -- never the bare local digits.
-      final ok = await _profileRepo.updateProfile(
-        phone: '$tunisianCountryCode$_localDigits',
-      );
+      final ok = await ref.read(_provider.notifier).save(_phoneCtrl.text);
       if (!mounted) return;
-      setState(() => _saving = false);
       if (ok) {
         widget.onSaved();
       } else {
@@ -68,7 +60,6 @@ class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _saving = false);
       _showError(e.toString());
     }
   }
@@ -96,12 +87,14 @@ class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
   }
 
   Future<void> _signOut() async {
-    await ref.read(authRepositoryProvider).signOut();
+    await ref.read(_provider.notifier).signOut();
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    final saving = ref.watch(_provider);
+    final isComplete = PhoneGateController.isComplete(_phoneCtrl.text);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -111,7 +104,7 @@ class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
         scrolledUnderElevation: 0,
         actions: [
           TextButton.icon(
-            onPressed: _saving ? null : _signOut,
+            onPressed: saving ? null : _signOut,
             icon: const Icon(Icons.logout, size: 18),
             label: Text(l.logout),
             style: TextButton.styleFrom(
@@ -133,40 +126,13 @@ class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const _PhoneIcon(),
-                    const SizedBox(height: 28),
-                    Text(
-                      l.addYourPhoneNumber,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                        letterSpacing: -0.3,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l.phoneRequiredExplain,
-                      style: const TextStyle(
-                        fontSize: 14.5,
-                        color: AppColors.textSecondary,
-                        height: 1.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+                    const _Intro(),
                     const SizedBox(height: 32),
-                    TunisianPhoneField(
+                    _PhoneInput(
                       controller: _phoneCtrl,
-                      enabled: !_saving,
-                      onSubmitted: (_) => _isComplete && !_saving ? _save() : null,
-                    ),
-                    const SizedBox(height: 28),
-                    _ContinueButton(
-                      enabled: _isComplete && !_saving,
-                      saving: _saving,
-                      label: l.continueButton,
-                      onPressed: _save,
+                      saving: saving,
+                      isComplete: isComplete,
+                      onSave: _save,
                     ),
                   ],
                 ),
@@ -175,6 +141,81 @@ class _PhoneGateScreenState extends ConsumerState<PhoneGateScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// The phone icon, "Ajoutez votre numéro" and why it is needed.
+class _Intro extends StatelessWidget {
+  const _Intro();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _PhoneIcon(),
+        const SizedBox(height: 28),
+        Text(
+          l.addYourPhoneNumber,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+            letterSpacing: -0.3,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 12),
+        Text(
+          l.phoneRequiredExplain,
+          style: const TextStyle(
+            fontSize: 14.5,
+            color: AppColors.textSecondary,
+            height: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+/// The +216 field, then "Continuer" (enabled once the 8 digits are typed).
+class _PhoneInput extends StatelessWidget {
+  const _PhoneInput({
+    required this.controller,
+    required this.saving,
+    required this.isComplete,
+    required this.onSave,
+  });
+
+  final TextEditingController controller;
+  final bool saving;
+  final bool isComplete;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TunisianPhoneField(
+          controller: controller,
+          enabled: !saving,
+          onSubmitted: (_) => isComplete && !saving ? onSave() : null,
+        ),
+        const SizedBox(height: 28),
+        _ContinueButton(
+          enabled: isComplete && !saving,
+          saving: saving,
+          label: AppLocalizations.of(context)!.continueButton,
+          onPressed: onSave,
+        ),
+      ],
     );
   }
 }

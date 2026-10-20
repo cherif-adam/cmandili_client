@@ -5,7 +5,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/home/presentation/home/home_screen.dart';
 import 'features/profile/data/profile_repository.dart';
-import 'features/profile/presentation/phone_gate_screen.dart';
+import 'features/profile/presentation/phone_gate/phone_gate_screen.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/app_localizations.dart';
