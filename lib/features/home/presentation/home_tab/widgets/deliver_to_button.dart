@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../../core/providers/location_provider.dart';
-import '../../../../profile/presentation/saved_addresses_screen.dart';
+import '../../../../profile/presentation/saved_addresses/saved_addresses_screen.dart';
 
 /// "Livrer à  📍 <current address> ⌄" in the home header.
 /// Tapping it opens the saved addresses.

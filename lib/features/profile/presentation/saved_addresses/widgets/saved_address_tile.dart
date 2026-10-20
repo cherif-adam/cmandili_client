@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../providers/address_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../providers/address_provider.dart';
 
 /// One saved address: 🏠 / 📍 name, full address, and either the green
 /// "Par défaut" chip or a "Définir par défaut" button. Swipe left (red

@@ -1,68 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-class Address {
-  final String id;
-  final String name; // Home, Work, etc.
-  final String fullAddress;
-  final bool isDefault;
-  final double latitude;
-  final double longitude;
+import '../data/address_repository.dart';
+import '../data/models/address.dart';
 
-  Address({
-    required this.id,
-    required this.name,
-    required this.fullAddress,
-    this.isDefault = false,
-    this.latitude = 0,
-    this.longitude = 0,
-  });
+export '../data/models/address.dart';
 
-  Address copyWith({
-    String? id,
-    String? name,
-    String? fullAddress,
-    bool? isDefault,
-    double? latitude,
-    double? longitude,
-  }) {
-    return Address(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      fullAddress: fullAddress ?? this.fullAddress,
-      isDefault: isDefault ?? this.isDefault,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-    );
-  }
-}
-
+/// The address book's controller (saved-addresses screen, checkout's
+/// address picker): the addresses, adding (with geocoding when needed),
+/// deleting and choosing the default. Talks to AddressRepository.
 class AddressNotifier extends StateNotifier<List<Address>> {
-  final _supabase = Supabase.instance.client;
+  final _repository = AddressRepository();
 
   AddressNotifier() : super([]) {
     _loadAddresses();
   }
 
+  /// The "Enregistrer" rule of the add-address dialog: a name is required.
+  static bool canSaveAddress(String name) => name.isNotEmpty;
+
   Future<void> _loadAddresses() async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _repository.currentUserId;
     if (userId == null) return;
     try {
-      final response = await _supabase
-          .from('user_addresses')
-          .select()
-          .eq('user_id', userId)
-          .order('created_at', ascending: true);
-      state = (response as List).map((row) => Address(
-        id: row['id'] as String,
-        name: row['name'] as String? ?? '',
-        fullAddress: row['full_address'] as String? ?? '',
-        isDefault: row['is_default'] as bool? ?? false,
-        latitude: (row['latitude'] as num?)?.toDouble() ?? 0,
-        longitude: (row['longitude'] as num?)?.toDouble() ?? 0,
-      )).toList();
+      state = await _repository.getAll(userId);
     } catch (_) {
       // Keep empty list on error — user can add manually
     }
@@ -83,7 +45,7 @@ class AddressNotifier extends StateNotifier<List<Address>> {
     double? latitude,
     double? longitude,
   }) async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _repository.currentUserId;
     final id = const Uuid().v4();
     final isFirst = state.isEmpty;
 
@@ -104,15 +66,15 @@ class AddressNotifier extends StateNotifier<List<Address>> {
 
     if (userId != null) {
       try {
-        await _supabase.from('user_addresses').insert({
-          'id': id,
-          'user_id': userId,
-          'name': name,
-          'full_address': fullAddress,
-          'is_default': isFirst,
-          'latitude': lat,
-          'longitude': lng,
-        });
+        await _repository.add(
+          id: id,
+          userId: userId,
+          name: name,
+          fullAddress: fullAddress,
+          isDefault: isFirst,
+          latitude: lat,
+          longitude: lng,
+        );
       } catch (_) {}
     }
 
@@ -124,23 +86,16 @@ class AddressNotifier extends StateNotifier<List<Address>> {
 
   Future<void> deleteAddress(String id) async {
     try {
-      await _supabase.from('user_addresses').delete().eq('id', id);
+      await _repository.delete(id);
     } catch (_) {}
     state = state.where((a) => a.id != id).toList();
   }
 
   Future<void> setDefault(String id) async {
-    final userId = _supabase.auth.currentUser?.id;
+    final userId = _repository.currentUserId;
     if (userId != null) {
       try {
-        await _supabase
-            .from('user_addresses')
-            .update({'is_default': false})
-            .eq('user_id', userId);
-        await _supabase
-            .from('user_addresses')
-            .update({'is_default': true})
-            .eq('id', id);
+        await _repository.setDefault(userId, id);
       } catch (_) {}
     }
     state = [
