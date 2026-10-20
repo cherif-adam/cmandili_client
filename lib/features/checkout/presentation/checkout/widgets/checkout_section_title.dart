@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// A bold section title of the checkout ("Adresse de livraison",
 /// "Moyen de paiement"…).

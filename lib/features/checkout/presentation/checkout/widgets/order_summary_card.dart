@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/utils/currency_formatter.dart';
-import '../../../promo/providers/promo_provider.dart';
-import '../../../loyalty/data/loyalty_eligibility.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/utils/currency_formatter.dart';
+import '../../../../promo/providers/promo_provider.dart';
+import '../../../../loyalty/data/loyalty_eligibility.dart';
 
 /// Order summary card that conditionally shows the discount line item.
 class OrderSummaryCard extends StatelessWidget {

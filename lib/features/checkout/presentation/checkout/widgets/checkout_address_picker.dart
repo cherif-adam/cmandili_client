@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/delivery_address.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/models/delivery_address.dart';
 
 /// The delivery address card of the checkout: the chosen address, or a
 /// prompt to choose one. Tap to open the address picker.

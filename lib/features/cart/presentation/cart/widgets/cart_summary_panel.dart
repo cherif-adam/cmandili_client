@@ -3,7 +3,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/currency_formatter.dart';
-import '../../../../checkout/presentation/checkout_screen.dart';
+import '../../../../checkout/presentation/checkout/checkout_screen.dart';
 
 /// The white panel at the bottom of the cart:
 ///

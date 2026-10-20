@@ -41,7 +41,7 @@ import 'package:cmandili_mobile/features/cart/data/models/cart_item.dart';
 import 'package:cmandili_mobile/features/cart/providers/cart_provider.dart';
 import 'package:cmandili_mobile/features/checkout/data/models/delivery_address.dart';
 import 'package:cmandili_mobile/features/checkout/presentation/address_selection/address_selection_screen.dart';
-import 'package:cmandili_mobile/features/checkout/presentation/checkout_screen.dart';
+import 'package:cmandili_mobile/features/checkout/presentation/checkout/checkout_screen.dart';
 import 'package:cmandili_mobile/features/orders/data/models/order.dart';
 import 'package:cmandili_mobile/features/orders/data/order_repository.dart';
 import 'package:cmandili_mobile/features/orders/presentation/order_tracking/order_tracking_screen.dart';
