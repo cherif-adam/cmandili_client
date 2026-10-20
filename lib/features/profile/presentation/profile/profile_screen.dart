@@ -8,7 +8,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/providers/localization_provider.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../auth/presentation/change_password_screen.dart';
+import '../../../auth/presentation/change_password/change_password_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../bills/presentation/mes_factures/mes_factures_screen.dart';
 import '../../../notifications/presentation/notification/notification_screen.dart';
