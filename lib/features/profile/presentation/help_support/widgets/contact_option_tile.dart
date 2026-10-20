@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// A white row on the help screen: (icon)  title / subtitle — e.g. the
 /// support e-mail or phone number.
