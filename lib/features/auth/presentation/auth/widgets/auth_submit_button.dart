@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The big green "Se connecter" / "Créer un compte" button; a white spinner
 /// while the request runs (and it can't be tapped).

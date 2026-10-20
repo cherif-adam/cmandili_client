@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// A field of the login form (name, e-mail, password): light grey, rounded,
 /// green icon; the password one has an 👁 button to show / hide it.

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/providers/localization_provider.dart';
+import '../../../../../core/providers/localization_provider.dart';
 
 /// The round 🌐 button at the top right of the login screen. Each tap
 /// switches language: English → العربية → Français → English.

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// A square white button with a provider logo (e.g. Google's "G").
 class SocialSignInButton extends StatelessWidget {
