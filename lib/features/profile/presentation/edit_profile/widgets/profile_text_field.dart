@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// A rounded text field with a green icon, as used on the edit-profile
 /// screen. Grey background when [enabled] is false (e.g. the e-mail).

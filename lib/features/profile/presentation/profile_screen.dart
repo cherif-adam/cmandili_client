@@ -16,7 +16,7 @@ import '../../bills/services/bill_reminder_service.dart';
 import '../../notifications/presentation/notification/notification_screen.dart';
 import '../../orders/presentation/order_history/order_history_screen.dart';
 import '../data/profile_repository.dart';
-import 'edit_profile_screen.dart';
+import 'edit_profile/edit_profile_screen.dart';
 import 'help_support/help_support_screen.dart';
 import 'payment_methods/payment_methods_screen.dart';
 import 'saved_addresses/saved_addresses_screen.dart';

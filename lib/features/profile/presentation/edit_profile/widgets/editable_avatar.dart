@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The big round picture on the edit-profile screen, with a green 📷
 /// button to pick a new one. Shows a person icon until one is picked.
