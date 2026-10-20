@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// A white tappable row with an emoji and an example query in italics
 /// (or, for the photo option, purple bold text and a camera icon).

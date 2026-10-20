@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/search_result.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/models/search_result.dart';
 
 /// Above text-search results: "✦ 3 résultats" and the filters the AI
 /// understood as small purple chips (🍽 pizza, 🌶 Spicy, ≤ 20 DT…).

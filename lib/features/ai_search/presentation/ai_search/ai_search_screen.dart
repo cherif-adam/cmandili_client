@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../core/theme/app_colors.dart';
-import '../providers/ai_search_provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../providers/ai_search_provider.dart';
 import 'widgets/ai_dish_badge.dart';
 import 'widgets/ai_empty_state.dart';
 import 'widgets/ai_error_view.dart';
@@ -26,7 +26,12 @@ import 'widgets/image_source_sheet.dart';
 ///   error     → AiErrorView
 ///   no search → AiEmptyState (example queries)
 ///   nothing   → AiNoResults
-///   results   → AiIntentChips / AiDishBadge + AiSearchResultCard list
+///   results   → _ResultsSection: AiIntentChips / AiDishBadge +
+///               AiSearchResultCard list
+///
+/// UI only: searching, the state and the retry live in [aiSearchProvider]
+/// (AiSearchNotifier, AiSearchRepository behind it). This screen keeps the
+/// text field, the focus, the animations and the photo picker.
 class AiSearchScreen extends ConsumerStatefulWidget {
   const AiSearchScreen({super.key});
 
@@ -165,27 +170,45 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
             )
           else if (!state.hasResults)
             SliverToBoxAdapter(child: AiNoResults(state: state))
-          else ...[
-            if (state.mode == AiSearchMode.text && state.textResponse != null)
-              SliverToBoxAdapter(
-                child: AiIntentChips(response: state.textResponse!),
-              ),
-            if (state.mode == AiSearchMode.image && state.imageResponse != null)
-              SliverToBoxAdapter(
-                child: AiDishBadge(response: state.imageResponse!),
-              ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (_, i) => AiSearchResultCard(item: state.results[i]),
-                  childCount: state.results.length,
-                ),
-              ),
-            ),
-          ],
+          else
+            _ResultsSection(state: state),
         ],
       ),
+    );
+  }
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// What the search understood (intent chips, or the recognised dish), then
+/// one AiSearchResultCard per result.
+class _ResultsSection extends StatelessWidget {
+  const _ResultsSection({required this.state});
+
+  final AiSearchState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverMainAxisGroup(
+      slivers: [
+        if (state.mode == AiSearchMode.text && state.textResponse != null)
+          SliverToBoxAdapter(
+            child: AiIntentChips(response: state.textResponse!),
+          ),
+        if (state.mode == AiSearchMode.image && state.imageResponse != null)
+          SliverToBoxAdapter(
+            child: AiDishBadge(response: state.imageResponse!),
+          ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => AiSearchResultCard(item: state.results[i]),
+              childCount: state.results.length,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

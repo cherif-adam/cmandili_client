@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The purple gradient app bar of AI search: round white back button and
 /// "✦ Recherche IA" centered. Use it directly inside the slivers list.

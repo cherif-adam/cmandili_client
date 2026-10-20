@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/search_result.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/models/search_result.dart';
 
 /// Card displaying a single food item from an AI search result.
 /// Shows the dish image, name, price, restaurant, and smart badges (spicy, veg, etc).

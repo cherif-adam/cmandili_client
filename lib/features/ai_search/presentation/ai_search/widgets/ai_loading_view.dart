@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../providers/ai_search_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../providers/ai_search_provider.dart';
 import 'ai_spinner.dart';
 
 /// While searching: the purple AiSpinner, "Analyse de la photo…" (or of

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 import 'example_query_tile.dart';
 
 /// Before any search: big purple ✦ circle, title, explanation, then three

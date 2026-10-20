@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The photo the user searched with: dark fade at the bottom, a purple
 /// "Recherche visuelle" badge and a white × to clear the search.

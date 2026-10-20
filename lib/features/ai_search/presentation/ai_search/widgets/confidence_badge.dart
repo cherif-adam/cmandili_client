@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// A small pill with how sure the AI is about the photo: green HIGH,
 /// orange MEDIUM, grey otherwise.

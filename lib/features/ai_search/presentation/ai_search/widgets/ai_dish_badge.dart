@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/search_result.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/models/search_result.dart';
 import 'confidence_badge.dart';
 
 /// Above photo-search results: "Couscous identifié — 4 résultats" and a
