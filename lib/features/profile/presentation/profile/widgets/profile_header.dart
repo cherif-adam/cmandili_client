@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../auth/data/auth_repository.dart' show User;
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../auth/data/auth_repository.dart' show User;
 import 'profile_avatar.dart';
 
 /// The green top of the profile tab: avatar, name, email.

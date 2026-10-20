@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The customer's round picture in the profile header, with a soft white
 /// ring and a green 📷 badge. Tap to pick a new one. While uploading: dimmed

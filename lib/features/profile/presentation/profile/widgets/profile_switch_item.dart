@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// A white row of the profile tab with an on/off switch:
 ///   (icon)  Title ................ [switch]
