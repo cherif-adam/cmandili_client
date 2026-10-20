@@ -24,7 +24,7 @@ import '../models/chat_message.dart';
 import '../services/ai_chat_service.dart';
 import '../features/restaurant/presentation/restaurant_detail/restaurant_detail_screen.dart';
 import '../features/home/data/models/restaurant.dart';
-import '../core/data/vendor_repository.dart';
+import '../core/data/shop_repository.dart';
 import '../core/models/service_category.dart';
 import '../features/vendors/presentation/vendor_detail/vendor_detail_screen.dart';
 import '../features/courier/presentation/courier/courier_screen.dart';
@@ -506,7 +506,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       _showSnack('Boutique introuvable');
       return;
     }
-    final vendor = await VendorRepository().getVendor(id);
+    final vendor = await ShopRepository().getVendor(id);
     if (!mounted) return;
     if (vendor == null) {
       _showSnack('Boutique introuvable');

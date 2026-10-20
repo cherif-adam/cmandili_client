@@ -15,7 +15,7 @@ import 'widgets/vendor_card.dart';
 ///
 /// One screen serves every category: the only thing that changes is the
 /// `category` string it is given. Returns a sliver. UI only: the shops come
-/// from [nearbyVendorsByCategoryProvider] (VendorRepository behind it).
+/// from [nearbyVendorsByCategoryProvider] (ShopRepository behind it).
 class VendorListScreen extends ConsumerWidget {
   /// `vendors.category` value to list.
   final String category;

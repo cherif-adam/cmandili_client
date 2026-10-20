@@ -4,7 +4,7 @@ import '../../../../core/models/vendor.dart';
 import '../../../../core/providers/vendor_provider.dart';
 
 /// The shop page's logic, per vendor id: its catalogue (from
-/// [vendorItemsProvider], VendorRepository behind it), the retry and the
+/// [vendorItemsProvider], ShopRepository behind it), the retry and the
 /// grouping into in-shop sections.
 final vendorDetailControllerProvider = NotifierProvider.autoDispose
     .family<VendorDetailController, AsyncValue<List<VendorItem>>, String>(

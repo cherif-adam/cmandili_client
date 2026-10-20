@@ -22,7 +22,7 @@ import 'widgets/view_cart_button.dart';
 ///
 /// UI only: the selected category, the category list and the filtering
 /// live in [RestaurantDetailController]; the dishes come from
-/// [foodItemsProvider] (RestaurantRepository behind it).
+/// [foodItemsProvider] (ShopRepository behind it).
 class RestaurantDetailScreen extends ConsumerStatefulWidget {
   final Restaurant restaurant;
 

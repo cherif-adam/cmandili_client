@@ -60,7 +60,7 @@ class ReorderRepository {
     return (items: items, skippedCount: skipped);
   }
 
-  // Same shape as RestaurantRepository._mapFoodItemFromDb — duplicated
+  // Same shape as ShopRepository._mapFoodItemFromDb — duplicated
   // rather than shared, matching this codebase's existing convention of each
   // repository owning its own DB-row-to-model mapping.
   Map<String, dynamic> _mapFoodItemFromDbForReorder(Map<String, dynamic> dbJson) {

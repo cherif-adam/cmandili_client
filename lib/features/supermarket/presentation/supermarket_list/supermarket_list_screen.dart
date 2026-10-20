@@ -17,7 +17,7 @@ import 'widgets/supermarket_hero_banner.dart';
 ///
 /// Returns slivers, so it goes in the home tab's [CustomScrollView].
 /// UI only: the list comes from [nearbySupermarketsProvider]
-/// (SupermarketRepository behind it).
+/// (ShopRepository behind it).
 class SupermarketListScreen extends ConsumerWidget {
   final double screenWidth;
   final double screenHeight;
