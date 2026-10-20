@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/payment/payment_service.dart';
 import '../../../../core/utils/delivery_fee.dart';
 import '../../../../core/utils/location_service.dart';
+import '../../../cart/data/models/cart_item.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../loyalty/data/loyalty_eligibility.dart';
 import '../../../orders/data/models/order.dart';
@@ -74,12 +75,6 @@ class CheckoutFailed extends CheckoutOutcome {
   const CheckoutFailed(this.error);
 
   final Object error;
-}
-
-/// The screen closed while the order was being placed: nothing to show.
-/// What was already done stays done, exactly as before.
-class CheckoutAbandoned extends CheckoutOutcome {
-  const CheckoutAbandoned();
 }
 
 @immutable
@@ -189,32 +184,42 @@ class CheckoutController
 
   /// Re-prices delivery from the coordinates, creates the order and pays it.
   ///
-  /// [context] is the screen's: it is handed to the payment service (a
-  /// gateway may show its own UI) and tells whether the screen is still open.
-  /// [readFields] is called when the phone is checked and again when the
-  /// order is built, so the values sent are the ones in the fields at those
-  /// moments, as before.
+  /// Once started, placing the order goes to the end or is undone, whether
+  /// the screen is still open or not: never a promo usage consumed for no
+  /// order, an order left unpaid, or a refused payment left uncancelled.
+  /// So everything it needs is read here, when Commander is tapped — the
+  /// address, the [fields], the cart, the promo, the repositories — and
+  /// nothing goes through `ref` once the first network call is under way
+  /// (this controller is disposed a frame after its screen).
   ///
-  /// The screen used to read every provider through its own `ref`, which
-  /// throws once the screen is closed: placing the order stopped at the first
-  /// such read after the screen went away. Each `if (!context.mounted)
-  /// return const CheckoutAbandoned()` below marks one of those places, so
-  /// closing the screen mid-way has exactly the same effect as before.
+  /// [context] is the screen's. It is only asked whether the screen is still
+  /// open: to reset the promo field, and to hand the payment service a
+  /// context for a gateway that shows its own UI. Once the screen is gone the
+  /// payment gets none: cash does not need one, and a gateway that does must
+  /// refuse, which cancels the order and releases the promo like any refusal.
   Future<CheckoutOutcome> placeOrder({
     required BuildContext context,
     required double subtotal,
-    required CheckoutFields Function() readFields,
+    required CheckoutFields fields,
   }) async {
     // ── Address validation ───────────────────────────────────────────────
-    if (state.selectedAddress == null) return const CheckoutMissingAddress();
+    final address = state.selectedAddress;
+    if (address == null) return const CheckoutMissingAddress();
 
-    final phone = readFields().phone.trim();
+    final phone = fields.phone.trim();
     if (phone.isEmpty) return const CheckoutMissingPhone();
 
-    // The old screen held these two directly (no ref): they keep working
-    // after the screen closes.
+    // Everything below works without the screen: read it all now.
     final checkoutRepo = ref.read(checkoutRepositoryProvider);
     final profileRepo = ref.read(profileRepositoryProvider);
+    final promoRepo = ref.read(promoRepositoryProvider);
+    final orderRepo = ref.read(orderRepositoryProvider);
+    final paymentService = ref.read(paymentServiceProvider);
+    final cartNotifier = ref.read(cartProvider.notifier);
+    final promoNotifier = ref.read(promoProvider.notifier);
+    // The cart being ordered: the same lines for the venue check, the promo
+    // commit, the delivery fee and the order itself.
+    final cartItems = ref.read(cartProvider);
 
     state = state.copyWith(isPlacingOrder: true);
 
@@ -235,10 +240,9 @@ class CheckoutController
       // or inserting the order (so we never consume a promo then abort, and
       // never silently clear the user's cart). The enforce_venue_open DB
       // trigger is the authoritative backstop if the venue closes in the race.
-      if (!await _venueStillOpen(checkoutRepo)) {
+      if (!await _venueStillOpen(checkoutRepo, cartItems)) {
         return const CheckoutVenueClosed(); // `finally` resets isPlacingOrder; cart is left untouched.
       }
-      if (!context.mounted) return const CheckoutAbandoned();
 
       // ── Promo commit ───────────────────────────────────────────────────
       // If the user previewed a promo code (dry-run was successful), we now
@@ -251,23 +255,19 @@ class CheckoutController
 
       if (promoState.isApplied) {
         // Les LIGNES du panier, jamais un montant : le serveur relit les prix
-        // lui-même (migration 20260929100000). Lues ici, juste avant l'appel,
-        // pour que ce soit le panier réellement commandé qui serve de base.
-        final promoItems = ref.read(cartProvider);
-        final applyResult = await ref
-            .read(promoRepositoryProvider)
-            .applyPromoCode(
-              promoCode: promoState.appliedCode,
-              items: promoItems,
-            );
-
-        if (!context.mounted) return const CheckoutAbandoned();
+        // lui-même (migration 20260929100000). Ce sont celles qui seront
+        // commandées : le panier réellement commandé sert de base.
+        final applyResult = await promoRepo.applyPromoCode(
+          promoCode: promoState.appliedCode,
+          items: cartItems,
+        );
 
         if (!applyResult.isSuccess) {
           // The code was consumed or expired between preview and placement.
-          // Reset the promo UI; the screen surfaces the server's error.
-          ref.read(promoProvider.notifier).reset();
-          state = state.copyWith(isPlacingOrder: false);
+          // Reset the promo UI (gone with its screen if it was closed); the
+          // screen surfaces the server's error.
+          if (context.mounted) promoNotifier.reset();
+          if (!_disposed) state = state.copyWith(isPlacingOrder: false);
           return CheckoutPromoRefused(applyResult); // Abort — let the user correct and re-submit.
         }
 
@@ -277,7 +277,6 @@ class CheckoutController
       }
 
       // ── Delivery fee computation ───────────────────────────────────────
-      final cartItems = ref.read(cartProvider);
       final firstItem = cartItems.isNotEmpty ? cartItems.first : null;
       final supermarketId = firstItem?.groceryItem?.supermarketId;
       // `orders.restaurant_id` is a plain FK to what is now the generic
@@ -317,8 +316,8 @@ class CheckoutController
       final distanceKm = await tryDistanceKm(
         originLat: pickupLat,
         originLng: pickupLng,
-        destLat: state.selectedAddress!.latitude,
-        destLng: state.selectedAddress!.longitude,
+        destLat: address.latitude,
+        destLng: address.longitude,
       );
       // `order_type` porte désormais la CATÉGORIE du commerce, pas une
       // déduction à partir du type de ligne. Une commande de fleurs, de
@@ -352,7 +351,7 @@ class CheckoutController
           !(pickupLat == 0 && pickupLng == 0)) {
         final durationSeconds = await LocationService.estimateRouteDurationSeconds(
           pickupLat, pickupLng,
-          state.selectedAddress!.latitude, state.selectedAddress!.longitude,
+          address.latitude, address.longitude,
         );
         if (durationSeconds != null) {
           estimatedDeliveryTime =
@@ -364,8 +363,7 @@ class CheckoutController
       // the screen's subtotal when no promo was applied).
       final finalTotal = effectiveSubtotal + finalDeliveryFee;
 
-      final fields = readFields();
-      final addressWithContact = state.selectedAddress!.copyWith(
+      final addressWithContact = address.copyWith(
         recipientName: fields.name.trim().isEmpty ? null : fields.name.trim(),
         phone: phone,
       );
@@ -378,8 +376,6 @@ class CheckoutController
           )
           .then((_) {}, onError: (_) {});
 
-      if (!context.mounted) return const CheckoutAbandoned();
-
       // ── Create order ───────────────────────────────────────────────────
       // finalDeliveryFee/finalTotal above are the STICKER price sent to the
       // server; apply_loyalty_at_checkout() (BEFORE INSERT trigger) may
@@ -387,7 +383,7 @@ class CheckoutController
       // persisted. The returned record reflects what was actually charged —
       // used below for payment instead of the sticker finalTotal, so a
       // loyalty order is never paid/recorded at the pre-discount amount.
-      final createdOrder = await ref.read(orderRepositoryProvider).createOrder(
+      final createdOrder = await orderRepo.createOrder(
             items: cartItems,
             deliveryAddress: addressWithContact,
             subtotal: effectiveSubtotal, // server-authorised value
@@ -403,43 +399,34 @@ class CheckoutController
           );
       final orderId = createdOrder.orderId;
 
-      if (!context.mounted) return const CheckoutAbandoned();
-
       // ── Payment ────────────────────────────────────────────────────────
-      final paymentResult =
-          await ref.read(paymentServiceProvider).processAndRecord(
+      final paymentResult = await paymentService.processAndRecord(
         orderId: orderId,
         amount: createdOrder.total,
         methodKey: selectedPaymentMethod,
-        context: context,
+        context: context.mounted ? context : null,
       );
 
-      if (!context.mounted) return const CheckoutAbandoned();
-
       if (!paymentResult.success) {
-        await ref.read(orderRepositoryProvider).cancelOrder(orderId);
+        await orderRepo.cancelOrder(orderId);
         if (promoCommitted) {
-          if (!context.mounted) return const CheckoutAbandoned();
-          await ref
-              .read(promoRepositoryProvider)
-              .releaseUsage(promoCode: promoState.appliedCode);
+          await promoRepo.releaseUsage(promoCode: promoState.appliedCode);
         }
         return CheckoutPaymentRefused(paymentResult.errorMessage);
       }
 
       // Order stays 'pending' — the partner must accept it before it moves
       // to 'confirmed'. Do NOT call confirmOrder() here.
-      ref.read(cartProvider.notifier).clearCart();
+      cartNotifier.clearCart();
 
       return CheckoutPlaced(orderId: orderId, orderType: orderType);
     } catch (e) {
       // Release before the screen shows anything — this is a plain network
-      // call with no context/widget dependency. It only ever ran while the
-      // screen was open (see placeOrder's doc), and still does.
-      if (promoCommitted && context.mounted) {
-        await ref
-            .read(promoRepositoryProvider)
-            .releaseUsage(promoCode: promoState.appliedCode);
+      // call with no context/widget dependency, made whether the screen is
+      // still open or not: skipping it would leave the promo usage
+      // permanently burned for no order.
+      if (promoCommitted) {
+        await promoRepo.releaseUsage(promoCode: promoState.appliedCode);
       }
       // The enforce_venue_open DB trigger raises 'VENUE_CLOSED' if the venue
       // closed in the race between our re-check and the insert. Map it to the
@@ -460,8 +447,8 @@ class CheckoutController
   /// reach this screen. Returns true when ordering may proceed; on a network
   /// error it returns true and lets the `enforce_venue_open` DB trigger be the
   /// authoritative backstop.
-  Future<bool> _venueStillOpen(CheckoutRepository checkoutRepo) async {
-    final cartItems = ref.read(cartProvider);
+  Future<bool> _venueStillOpen(
+      CheckoutRepository checkoutRepo, List<CartItem> cartItems) async {
     if (cartItems.isEmpty) return true;
     final first = cartItems.first;
     // Every shop — restaurant, supermarket, florist, pet shop — is a row in

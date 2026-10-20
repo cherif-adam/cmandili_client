@@ -17,16 +17,21 @@ class PaymentService {
   final _supabase = Supabase.instance.client;
 
   /// Build the gateway instance for [methodKey]. MVP supports cash only.
-  PaymentGateway gatewayFor(String methodKey, BuildContext context) {
+  /// [context] is null once the screen that started the payment has closed.
+  PaymentGateway gatewayFor(String methodKey, BuildContext? context) {
     return const CashGateway();
   }
 
   /// Process payment and, on success, persist a `payments` row.
+  ///
+  /// [context] is the screen that started the payment, or null once it has
+  /// closed: cash needs none, and a gateway that must show its own UI has to
+  /// refuse without one (the caller then cancels the order).
   Future<PaymentResult> processAndRecord({
     required String orderId,
     required double amount,
     required String methodKey,
-    required BuildContext context,
+    required BuildContext? context,
   }) async {
     final gateway = gatewayFor(methodKey, context);
     final result = await gateway.processPayment(

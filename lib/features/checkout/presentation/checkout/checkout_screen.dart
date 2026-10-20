@@ -185,7 +185,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final outcome = await ref.read(_provider.notifier).placeOrder(
           context: context,
           subtotal: widget.subtotal,
-          readFields: _readFields,
+          fields: _readFields(),
         );
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
@@ -206,8 +206,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _showSnack(message ?? l10n.paymentFailedOrderCancelled);
       case CheckoutFailed(:final error):
         _showSnack(l10n.genericErrorWith(error.toString()));
-      case CheckoutAbandoned():
-        break;
       case CheckoutPlaced(:final orderId, :final orderType):
         // Supermarket (and boutique, which shares order_type 'supermarket')
         // orders get the success hand-off screen; food orders keep the
@@ -239,8 +237,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  /// Read by the controller when it places the order (see
-  /// [CheckoutController.placeOrder]).
+  /// What the customer typed, as it is when Commander is tapped.
   CheckoutFields _readFields() => (
         name: _nameController.text,
         phone: _phoneController.text,

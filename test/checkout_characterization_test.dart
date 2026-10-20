@@ -217,7 +217,7 @@ class _RecordingPaymentService extends PaymentService {
     required String orderId,
     required double amount,
     required String methodKey,
-    required BuildContext context,
+    required BuildContext? context,
   }) async {
     calls.add((orderId: orderId, amount: amount, methodKey: methodKey));
     if (refuse) return const PaymentResult(success: false);
