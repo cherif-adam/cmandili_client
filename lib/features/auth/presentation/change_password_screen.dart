@@ -4,7 +4,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../providers/auth_provider.dart';
-import 'forgot_password_screen.dart';
+import 'forgot_password/forgot_password_screen.dart';
 
 /// Changer son mot de passe en étant connecté.
 ///

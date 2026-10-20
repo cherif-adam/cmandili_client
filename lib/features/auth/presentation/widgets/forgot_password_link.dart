@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../forgot_password_screen.dart';
+import '../forgot_password/forgot_password_screen.dart';
 
 /// "Forgot Password?" on the right, under the password (sign-in tab only).
 class ForgotPasswordLink extends StatelessWidget {
