@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/saved_recipient.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/saved_recipient.dart';
 import 'courier_colors.dart';
 import 'saved_recipient_chip.dart';
 

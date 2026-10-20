@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 import 'courier_colors.dart';
 
 /// The row with a bookmark icon and a switch: "Enregistrer ce destinataire

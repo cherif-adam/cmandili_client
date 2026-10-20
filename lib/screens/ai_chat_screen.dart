@@ -27,7 +27,7 @@ import '../features/home/data/models/restaurant.dart';
 import '../core/data/vendor_repository.dart';
 import '../core/models/service_category.dart';
 import '../features/vendors/presentation/vendor_detail/vendor_detail_screen.dart';
-import '../features/courier/presentation/courier_screen.dart';
+import '../features/courier/presentation/courier/courier_screen.dart';
 import '../features/facture/presentation/facture/facture_screen.dart';
 import 'ai_chat/chat_palette.dart';
 import 'ai_chat/widgets/chat_app_bar.dart';

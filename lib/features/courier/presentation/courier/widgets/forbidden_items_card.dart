@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/colis_repository.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/colis_repository.dart';
 
 /// The light-orange box "Interdit dans un colis": the list of forbidden
 /// items, then the checkbox the sender must tick.

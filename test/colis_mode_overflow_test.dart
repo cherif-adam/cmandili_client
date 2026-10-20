@@ -40,7 +40,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:cmandili_mobile/features/courier/presentation/courier_screen.dart';
+import 'package:cmandili_mobile/features/courier/presentation/courier/courier_screen.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 const _widths = [320.0, 360.0, 393.0, 430.0];

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../checkout/data/models/delivery_address.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../checkout/data/models/delivery_address.dart';
 
 /// A white tappable card for the pickup / delivery address: colored round
 /// icon (or a spinner while locating), label + address, chevron.

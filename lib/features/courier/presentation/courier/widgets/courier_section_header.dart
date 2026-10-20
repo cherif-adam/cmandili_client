@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_colors.dart';
 import 'courier_colors.dart';
 
 /// A section title of the "Colis" page: purple icon + bold title.

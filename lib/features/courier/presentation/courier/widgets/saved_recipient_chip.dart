@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../data/saved_recipient.dart';
+import '../../../data/saved_recipient.dart';
 import 'courier_colors.dart';
 
 /// A purple pill with a saved recipient's name. Tap fills the form; long

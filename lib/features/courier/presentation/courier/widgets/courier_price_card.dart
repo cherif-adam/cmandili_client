@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../loyalty/data/loyalty_eligibility.dart';
+import '../../../../loyalty/data/loyalty_eligibility.dart';
 import 'courier_colors.dart';
 
 /// The purple gradient card with the estimated price (struck through +

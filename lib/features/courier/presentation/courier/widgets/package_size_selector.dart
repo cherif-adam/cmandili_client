@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/package_size.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/package_size.dart';
 import 'courier_colors.dart';
 
 /// Three cards side by side — Petit 📄 / Moyen 📦 / Grand 🧳 — the selected

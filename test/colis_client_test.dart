@@ -36,9 +36,15 @@ String _read(String path) {
       .join('\n');
 }
 
-const _courierScreen = 'lib/features/courier/presentation/courier_screen.dart';
+// L'écran Colis est découpé en deux fichiers : l'UI (écran) et ce qu'elle
+// fait (contrôleur). Les règles du bon de prise en charge vivent dans le
+// contrôleur ; les textes affichés restent dans l'écran.
+const _courierScreen =
+    'lib/features/courier/presentation/courier/courier_screen.dart';
+const _courierController =
+    'lib/features/courier/presentation/courier/courier_controller.dart';
 const _modeSelector =
-    'lib/features/courier/presentation/widgets/delivery_mode_selector.dart';
+    'lib/features/courier/presentation/courier/widgets/delivery_mode_selector.dart';
 const _repoPath = 'lib/features/courier/data/colis_repository.dart';
 const _cardPath = 'lib/features/orders/presentation/widgets/colis_receipt_card.dart';
 
@@ -109,11 +115,13 @@ void main() {
 
   group('la commande passe par la RPC atomique', () {
     test('plus aucune insertion directe dans orders depuis l\'écran Colis', () {
-      final src = _read(_courierScreen);
-      expect(src.contains("from('orders').insert"), isFalse,
-          reason: 'un colis inséré directement existerait sans déclaration, '
-              'et il part en broadcast aux livreurs dès sa création');
-      expect(src.contains('createOrder('), isTrue);
+      for (final path in [_courierScreen, _courierController]) {
+        expect(_read(path).contains("from('orders').insert"), isFalse,
+            reason: 'un colis inséré directement existerait sans déclaration, '
+                'et il part en broadcast aux livreurs dès sa création '
+                '($path)');
+      }
+      expect(_read(_courierController).contains('createOrder('), isTrue);
     });
 
     test('le dépôt appelle bien create_colis_order', () {
@@ -134,9 +142,13 @@ void main() {
     });
 
     test('l\'écran valide contre le plafond chargé, pas une constante', () {
-      final src = _read(_courierScreen);
-      expect(src.contains('_maxDeclaredValue'), isTrue);
-      expect(src.contains('_validateDeclaredValue'), isTrue);
+      final src = _read(_courierController);
+      expect(src.contains('state.maxDeclaredValue'), isTrue);
+      expect(src.contains('validateDeclaredValue('), isTrue);
+      // Le validator vit dans le contrôleur : l'écran doit encore s'en servir.
+      expect(
+          _read(_courierScreen).contains('controller.validateDeclaredValue('),
+          isTrue);
     });
   });
 
@@ -150,13 +162,17 @@ void main() {
 
     test('les deux cases bloquent l\'envoi tant qu\'elles ne sont pas cochées',
         () {
-      final src = _read(_courierScreen);
+      final src = _read(_courierController);
       // Une case n'est pas un champ de formulaire : aucun validator ne la
       // couvre, il faut un contrôle explicite avant l'envoi.
-      expect(src.contains('_forbiddenConfirmed'), isTrue);
-      expect(src.contains('_noCodeAccepted'), isTrue);
-      expect(src.contains('if (!_forbiddenConfirmed)'), isTrue,
+      expect(src.contains('forbiddenConfirmed'), isTrue);
+      expect(src.contains('noCodeAccepted'), isTrue);
+      expect(src.contains('if (!state.forbiddenConfirmed)'), isTrue,
           reason: 'sans ce garde, la case serait décorative');
+      // Le garde vit dans le contrôleur : l'écran doit le consulter avant
+      // d'envoyer.
+      expect(_read(_courierScreen).contains('controller.blocker()'), isTrue,
+          reason: 'sans cet appel, le garde ne bloquerait rien');
     });
 
     test('les deux modes de remise existent et ont leur slug serveur', () {
@@ -175,9 +191,9 @@ void main() {
 
   group('les textes du mode de remise', () {
     test('le mode recommandé est aussi celui par défaut', () {
-      final src = _read(_courierScreen);
+      final src = _read(_courierController);
       expect(
-        src.contains('ColisDeliveryMode _deliveryMode = ColisDeliveryMode.code'),
+        src.contains('this.deliveryMode = ColisDeliveryMode.code'),
         isTrue,
         reason: 'le badge « Recommandé » doit porter sur le mode pré-coché',
       );
@@ -192,6 +208,7 @@ void main() {
     test('plus aucun libellé de mode en dur dans l\'écran', () {
       // Sinon l'anglais et l'arabe afficheraient du français.
       final screen = _read(_courierScreen);
+      final controller = _read(_courierController);
       final selector = _read(_modeSelector);
       for (final literal in [
         "'Avec code'",
@@ -200,6 +217,8 @@ void main() {
       ]) {
         expect(screen.contains(literal), isFalse,
             reason: '$literal est resté en dur dans l\'écran');
+        expect(controller.contains(literal), isFalse,
+            reason: '$literal est resté en dur dans le contrôleur');
         expect(selector.contains(literal), isFalse,
             reason: '$literal est resté en dur dans le sélecteur');
       }

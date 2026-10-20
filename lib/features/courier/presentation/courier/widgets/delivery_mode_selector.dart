@@ -1,8 +1,8 @@
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/colis_repository.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/colis_repository.dart';
 import 'courier_text_field.dart';
 
 /// "Remise au destinataire": two choices — "Avec code" or "Remise sans
