@@ -6,7 +6,7 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/utils/currency_formatter.dart';
 import '../../../data/models/order.dart';
 import '../../order_labels.dart';
-import '../../order_tracking_screen.dart';
+import '../../order_tracking/order_tracking_screen.dart';
 import 'reorder_button.dart';
 
 /// One past order in the orders tab. Opens its tracking screen.

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../order_tracking_screen.dart';
+import '../order_tracking/order_tracking_screen.dart';
 import 'order_success_controller.dart';
 import 'widgets/animated_checkmark.dart';
 

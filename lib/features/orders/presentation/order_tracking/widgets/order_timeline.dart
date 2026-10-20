@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/order.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/models/order.dart';
 
 /// The vertical list of steps on the tracking screen (✔ Confirmée →
 /// En préparation / Prête → En route → Livrée), done steps in green.

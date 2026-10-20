@@ -1,17 +1,16 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/services/route_service.dart';
-import '../../../core/widgets/app_map.dart';
-import '../data/models/order.dart';
-import '../../../core/providers/vendor_provider.dart';
-import '../providers/order_provider.dart';
-import '../../loyalty/presentation/loyalty_card_sheet.dart';
-import '../../loyalty/presentation/loyalty_cancel_dialog.dart';
-import '../../rating/presentation/rating_prompt_sheet.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/route_service.dart';
+import '../../../../core/widgets/app_map.dart';
+import '../../data/models/order.dart';
+import '../../../../core/providers/vendor_provider.dart';
+import '../../providers/order_provider.dart';
+import '../../../loyalty/presentation/loyalty_card_sheet.dart';
+import '../../../loyalty/presentation/loyalty_cancel_dialog.dart';
+import '../../../rating/presentation/rating_prompt_sheet.dart';
+import 'order_tracking_controller.dart';
 import 'widgets/cancel_order_dialog.dart';
 import 'widgets/receipt_confirmation_card.dart';
 import 'widgets/tracking_details_sheet.dart';
@@ -23,8 +22,9 @@ import 'widgets/tracking_details_sheet.dart';
 ///   TrackingDetailsSheet — status, cards, timeline, driver, details,
 ///   cancel
 ///
-/// This class keeps the live parts: the driver's position (two realtime
-/// sources), the route and camera, and the cancel / confirm actions.
+/// This screen keeps the map: the route, the camera and the markers. The
+/// driver's position (two realtime sources) and the cancel / confirm
+/// actions live in [OrderTrackingController].
 class OrderTrackingScreen extends ConsumerStatefulWidget {
   final String orderId;
 
@@ -44,16 +44,13 @@ class OrderTrackingScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
+  /// This screen's own controller (see [orderTrackingControllerProvider]).
+  late final _provider = orderTrackingControllerProvider(Object());
+
+  /// Kept so dispose() stops the live sources the moment the screen closes.
+  late final OrderTrackingController _tracking = ref.read(_provider.notifier);
+
   final AppMapController _mapController = AppMapController();
-  double? _driverLat;
-  double? _driverLng;
-  // Heading in degrees, derived from the last two valid GPS fixes — lets the
-  // driver marker visibly point the direction they're moving. Null until we
-  // have two fixes to compare (the very first position has no "from").
-  double? _driverBearing;
-  StreamSubscription? _deliverySubscription;
-  StreamSubscription? _driverSubscription;
-  String? _driverId;
   /// The street-following route currently drawn on the map, plus its ETA,
   /// distance and the list of road names it runs along.
   AppRoute? _route;
@@ -72,18 +69,11 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   ({double lat, double lng})? _fittedForLeg;
   bool _loyaltySheetScheduled = false;
   bool _ratingPromptScheduled = false;
-  final _supabase = Supabase.instance.client;
-
-  /// A delivery row is created with placeholder (0,0) coordinates the moment a
-  /// driver accepts, before the first GPS tick lands. Treat that (and any
-  /// null) as "no live location yet" so we never drop a marker in the ocean.
-  static bool _isValidCoord(double? lat, double? lng) =>
-      lat != null && lng != null && !(lat == 0 && lng == 0);
 
   @override
   void initState() {
     super.initState();
-    _subscribeToDelivery();
+    _tracking.followDriver(widget.orderId);
   }
 
   void _maybeScheduleLoyaltySheet(Order order) {
@@ -118,79 +108,6 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     });
   }
 
-  void _subscribeToDelivery() {
-    _deliverySubscription = _supabase
-        .from('deliveries')
-        .stream(primaryKey: ['id'])
-        .eq('order_id', widget.orderId)
-        .listen((rows) {
-          if (!mounted || rows.isEmpty) return;
-          final row = rows.first;
-
-          // Latch onto the assigned driver so we can also watch the `drivers`
-          // table directly — it's updated on every GPS tick too and acts as a
-          // fallback if the delivery row lags behind.
-          final driverId = row['driver_id'] as String?;
-          if (driverId != null && driverId != _driverId) {
-            _driverId = driverId;
-            _subscribeToDriver(driverId);
-          }
-
-          final newLat = (row['current_lat'] as num?)?.toDouble();
-          final newLng = (row['current_lng'] as num?)?.toDouble();
-          _updateDriverPosition(newLat, newLng);
-        });
-  }
-
-  /// Second live source: the `drivers` row for the assigned driver. The driver
-  /// app writes `current_lat/current_lng` here on every GPS update as well, so
-  /// subscribing to it keeps the marker moving even if the delivery row's
-  /// coordinates haven't been written yet.
-  void _subscribeToDriver(String driverId) {
-    _driverSubscription?.cancel();
-    _driverSubscription = _supabase
-        .from('drivers')
-        .stream(primaryKey: ['id'])
-        .eq('id', driverId)
-        .listen((rows) {
-          if (!mounted || rows.isEmpty) return;
-          final newLat = (rows.first['current_lat'] as num?)?.toDouble();
-          final newLng = (rows.first['current_lng'] as num?)?.toDouble();
-          _updateDriverPosition(newLat, newLng);
-        });
-  }
-
-  /// Apply a new driver location to the marker, ignoring the (0,0) placeholder
-  /// that a freshly-created delivery row carries. The camera is intentionally
-  /// left alone here — recentering on every GPS tick (roughly once a second)
-  /// used to yank the map out from under the user while they browsed the
-  /// bottom sheet. Instead we fit the camera to driver+destination once, in
-  /// [_buildTracking], the first time a valid location appears.
-  void _updateDriverPosition(double? lat, double? lng) {
-    if (!_isValidCoord(lat, lng)) return;
-    final newLat = lat!;
-    final newLng = lng!;
-    // Only recompute heading when the driver actually moved a meaningful
-    // amount — GPS jitter on a stationary/slow driver would otherwise spin
-    // the marker to a near-random bearing between two nearly-identical
-    // points. ~5m in degrees at typical latitudes; cheap to over-approximate
-    // since this only gates whether we bother updating the display heading.
-    const minMoveDeg = 0.00005;
-    final prevLat = _driverLat;
-    final prevLng = _driverLng;
-    double? newBearing = _driverBearing;
-    if (prevLat != null &&
-        prevLng != null &&
-        ((newLat - prevLat).abs() > minMoveDeg || (newLng - prevLng).abs() > minMoveDeg)) {
-      newBearing = bearingBetween((lat: prevLat, lng: prevLng), (lat: newLat, lng: newLng));
-    }
-    setState(() {
-      _driverLat = newLat;
-      _driverLng = newLng;
-      _driverBearing = newBearing;
-    });
-  }
-
   /// Fetch the street-following route from the driver to [destination] and
   /// draw it. Delegates to [RouteService], which stitches the per-step
   /// geometry (so the line follows the actual roadway rather than the
@@ -218,8 +135,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
   @override
   void dispose() {
-    _deliverySubscription?.cancel();
-    _driverSubscription?.cancel();
+    _tracking.stopFollowing();
     _mapController.dispose();
     super.dispose();
   }
@@ -230,9 +146,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
 
     if (confirmed == null || !mounted) return;
 
-    final success = await ref
-        .read(orderRepositoryProvider)
-        .cancelOrderByCustomer(widget.orderId, confirmed);
+    final success = await _tracking.cancelByCustomer(widget.orderId, confirmed);
 
     if (!mounted) return;
 
@@ -261,9 +175,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   }
 
   Future<void> _confirmReceipt() async {
-    await ref
-        .read(orderRepositoryProvider)
-        .updateOrderStatus(widget.orderId, OrderStatus.delivered);
+    await _tracking.confirmReceipt(widget.orderId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -277,6 +189,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final orderAsync = ref.watch(orderStreamProvider(widget.orderId));
+    final driver = ref.watch(_provider);
 
     return orderAsync.when(
       loading: () => const Scaffold(
@@ -288,12 +201,12 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
       data: (order) {
         _maybeScheduleLoyaltySheet(order);
         _maybeScheduleRatingPrompt(order);
-        return _buildTracking(order);
+        return _buildTracking(order, driver);
       },
     );
   }
 
-  Widget _buildTracking(Order order) {
+  Widget _buildTracking(Order order, OrderTrackingState driver) {
     final isCourier = order.type == OrderType.courier;
     final isFacture = order.type == OrderType.facture;
 
@@ -312,7 +225,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     // status where a driver could be en route. This no longer requires the
     // order status to be exactly onTheWay/pickedUp — the moment a driver is
     // assigned and sending GPS, the customer can watch them move.
-    final showMap = _isValidCoord(_driverLat, _driverLng) &&
+    final showMap = driver.hasValidPosition &&
         order.status != OrderStatus.pending &&
         order.status != OrderStatus.cancelled &&
         order.status != OrderStatus.delivered;
@@ -366,7 +279,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     final wentAnotherWay = showMap &&
         RouteFreshness.isOffRoute(
           _routePolyline,
-          (lat: _driverLat!, lng: _driverLng!),
+          (lat: driver.driverLat!, lng: driver.driverLng!),
         );
     // A destination change is wrong outright, so it bypasses the rate limit;
     // deviation re-routes are throttled so a noisy GPS track cannot spam the
@@ -378,7 +291,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         !_routeFetchInFlight &&
         (destinationChanged || (wentAnotherWay && rateLimitPassed))) {
       _fetchRoute(
-        origin: (lat: _driverLat!, lng: _driverLng!),
+        origin: (lat: driver.driverLat!, lng: driver.driverLng!),
         destination: destination,
       );
     }
@@ -393,8 +306,9 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     if (showMap && _fittedForLeg != destination) {
       _fittedForLeg = destination;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        final latest = _tracking.latest;
         _mapController.fitBounds([
-          (lat: _driverLat!, lng: _driverLng!),
+          (lat: latest.driverLat!, lng: latest.driverLng!),
           destination,
         ]);
       });
@@ -408,8 +322,8 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     // before that animation finishes.
     final initialCenter = showMap
         ? (
-            lat: (_driverLat! + destination.lat) / 2,
-            lng: (_driverLng! + destination.lng) / 2,
+            lat: (driver.driverLat! + destination.lat) / 2,
+            lng: (driver.driverLng! + destination.lng) / 2,
           )
         : destination;
 
@@ -418,45 +332,12 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         children: [
           // Live map once the driver sends a position, else a big icon.
           if (showMap)
-            AppMap(
+            _LiveMap(
               controller: _mapController,
-              initialLatitude: initialCenter.lat,
-              initialLongitude: initialCenter.lng,
-              initialZoom: 12,
+              initialCenter: initialCenter,
               polyline: _routePolyline,
-              // The details sheet covers the lower ~45% of the screen; telling
-              // the map about it keeps Google's own controls clear of the
-              // sheet and centres the fitted route in the part still visible.
-              contentPadding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).size.height * 0.45,
-              ),
-              markers: {
-                AppMapMarker(
-                  id: 'delivery',
-                  latitude: order.deliveryAddress.latitude,
-                  longitude: order.deliveryAddress.longitude,
-                  kind: AppMapMarkerKind.delivery,
-                  title: isFacture
-                      ? AppLocalizations.of(context)!.paymentOffice
-                      : AppLocalizations.of(context)!.deliveryLocation,
-                ),
-                if ((isCourier || isFacture) && order.pickupAddress != null)
-                  AppMapMarker(
-                    id: 'pickup',
-                    latitude: order.pickupAddress!.latitude,
-                    longitude: order.pickupAddress!.longitude,
-                    kind: AppMapMarkerKind.pickup,
-                    title: isFacture ? AppLocalizations.of(context)!.yourAddress : AppLocalizations.of(context)!.pickupLocation,
-                  ),
-                AppMapMarker(
-                  id: 'driver',
-                  latitude: _driverLat!,
-                  longitude: _driverLng!,
-                  kind: AppMapMarkerKind.driver,
-                  title: order.driverName ?? AppLocalizations.of(context)!.driverLabel,
-                  bearing: _driverBearing,
-                ),
-              },
+              order: order,
+              driver: driver,
             )
           else
             _MapPlaceholder(
@@ -476,10 +357,13 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
               right: 16,
               bottom: MediaQuery.of(context).size.height * 0.45 + 16,
               child: _RecenterButton(
-                onTap: () => _mapController.fitBounds([
-                  (lat: _driverLat!, lng: _driverLng!),
-                  destination,
-                ]),
+                onTap: () {
+                  final latest = _tracking.latest;
+                  _mapController.fitBounds([
+                    (lat: latest.driverLat!, lng: latest.driverLng!),
+                    destination,
+                  ]);
+                },
               ),
             ),
 
@@ -503,6 +387,71 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The live map: delivery point, pickup point (parcel and bill orders) and
+/// the driver, with the route drawn between them.
+class _LiveMap extends StatelessWidget {
+  const _LiveMap({
+    required this.controller,
+    required this.initialCenter,
+    required this.polyline,
+    required this.order,
+    required this.driver,
+  });
+
+  final AppMapController controller;
+  final ({double lat, double lng}) initialCenter;
+  final List<({double lat, double lng})>? polyline;
+  final Order order;
+  final OrderTrackingState driver;
+
+  @override
+  Widget build(BuildContext context) {
+    final isCourier = order.type == OrderType.courier;
+    final isFacture = order.type == OrderType.facture;
+
+    return AppMap(
+      controller: controller,
+      initialLatitude: initialCenter.lat,
+      initialLongitude: initialCenter.lng,
+      initialZoom: 12,
+      polyline: polyline,
+      // The details sheet covers the lower ~45% of the screen; telling
+      // the map about it keeps Google's own controls clear of the
+      // sheet and centres the fitted route in the part still visible.
+      contentPadding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).size.height * 0.45,
+      ),
+      markers: {
+        AppMapMarker(
+          id: 'delivery',
+          latitude: order.deliveryAddress.latitude,
+          longitude: order.deliveryAddress.longitude,
+          kind: AppMapMarkerKind.delivery,
+          title: isFacture
+              ? AppLocalizations.of(context)!.paymentOffice
+              : AppLocalizations.of(context)!.deliveryLocation,
+        ),
+        if ((isCourier || isFacture) && order.pickupAddress != null)
+          AppMapMarker(
+            id: 'pickup',
+            latitude: order.pickupAddress!.latitude,
+            longitude: order.pickupAddress!.longitude,
+            kind: AppMapMarkerKind.pickup,
+            title: isFacture ? AppLocalizations.of(context)!.yourAddress : AppLocalizations.of(context)!.pickupLocation,
+          ),
+        AppMapMarker(
+          id: 'driver',
+          latitude: driver.driverLat!,
+          longitude: driver.driverLng!,
+          kind: AppMapMarkerKind.driver,
+          title: order.driverName ?? AppLocalizations.of(context)!.driverLabel,
+          bearing: driver.driverBearing,
+        ),
+      },
     );
   }
 }

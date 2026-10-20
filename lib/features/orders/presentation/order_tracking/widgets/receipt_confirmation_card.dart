@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../rating/presentation/driver_rating_sheet.dart';
-import '../../data/models/order.dart';
-import '../../providers/order_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../rating/presentation/driver_rating_sheet.dart';
+import '../../../data/models/order.dart';
+import '../../../providers/order_provider.dart';
 
 /// "Did you receive your order?" -- shown on the tracking screen once the
 /// driver has marked the order delivered.

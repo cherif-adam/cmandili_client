@@ -463,6 +463,25 @@ class OrderRepository {
         });
   }
 
+  /// Live `deliveries` rows of [orderId]: the assigned driver and the GPS
+  /// position written on every tick. Rows are passed through untouched.
+  Stream<List<Map<String, dynamic>>> streamDeliveryRows(String orderId) {
+    return _supabase
+        .from('deliveries')
+        .stream(primaryKey: ['id'])
+        .eq('order_id', orderId);
+  }
+
+  /// Live `drivers` row of [driverId]: the driver app writes
+  /// `current_lat/current_lng` here on every GPS update as well. Rows are
+  /// passed through untouched.
+  Stream<List<Map<String, dynamic>>> streamDriverRows(String driverId) {
+    return _supabase
+        .from('drivers')
+        .stream(primaryKey: ['id'])
+        .eq('id', driverId);
+  }
+
   /// Uploads a local AAC voice clip to the public `voice-messages` bucket and
   /// returns its public URL. Returns null on failure (network, missing file,
   /// permission) so the order still succeeds without the voice note rather

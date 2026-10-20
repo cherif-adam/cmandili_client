@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:cmandili_mobile/features/courier/data/colis_repository.dart';
-import 'package:cmandili_mobile/features/orders/presentation/widgets/colis_receipt_card.dart';
+import 'package:cmandili_mobile/features/orders/presentation/order_tracking/widgets/colis_receipt_card.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 /// Source d'un fichier, COMMENTAIRES RETIRÉS. Sans ce dépouillage une
@@ -46,7 +46,8 @@ const _courierController =
 const _modeSelector =
     'lib/features/courier/presentation/courier/widgets/delivery_mode_selector.dart';
 const _repoPath = 'lib/features/courier/data/colis_repository.dart';
-const _cardPath = 'lib/features/orders/presentation/widgets/colis_receipt_card.dart';
+const _cardPath =
+    'lib/features/orders/presentation/order_tracking/widgets/colis_receipt_card.dart';
 
 /// Dépôt sans réseau : la carte ne doit dépendre que de ce qu'on lui donne.
 class _FakeRepo extends ColisRepository {

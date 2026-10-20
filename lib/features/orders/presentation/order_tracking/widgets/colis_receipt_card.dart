@@ -16,7 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../courier/data/colis_repository.dart';
+import '../../../../courier/data/colis_repository.dart';
 
 class ColisReceiptCard extends StatefulWidget {
   const ColisReceiptCard({

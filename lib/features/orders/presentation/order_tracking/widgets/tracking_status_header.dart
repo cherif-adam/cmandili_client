@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../data/models/order.dart';
-import '../order_labels.dart';
+import '../../../../../core/theme/app_colors.dart';
+import '../../../data/models/order.dart';
+import '../../order_labels.dart';
 
 /// Top of the tracking panel: the status in big letters ("En préparation")
 /// and the estimated delivery time under it.

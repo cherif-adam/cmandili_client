@@ -4,7 +4,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../orders/data/models/order.dart';
-import '../../../../orders/presentation/order_tracking_screen.dart';
+import '../../../../orders/presentation/order_tracking/order_tracking_screen.dart';
 import 'facture_status_badge.dart';
 
 /// One paid bill: type icon and label, reference, status, date, amount,

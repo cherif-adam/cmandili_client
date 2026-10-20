@@ -4,7 +4,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../orders/data/models/order.dart';
-import '../../../../orders/presentation/order_tracking_screen.dart';
+import '../../../../orders/presentation/order_tracking/order_tracking_screen.dart';
 import '../../../../orders/providers/order_provider.dart';
 
 /// The green pill above the menu bar that leads back into order tracking:
