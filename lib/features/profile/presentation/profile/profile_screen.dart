@@ -8,6 +8,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/providers/localization_provider.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../account_deletion/presentation/delete_account/delete_account_screen.dart';
 import '../../../auth/presentation/change_password/change_password_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../bills/presentation/mes_factures/mes_factures_screen.dart';
@@ -30,7 +31,7 @@ import 'widgets/profile_switch_item.dart';
 ///   _AccountSection   orders, bills, edit profile, addresses, payment
 ///   _SettingsSection  notifications, bill reminders, language, theme,
 ///                     password, help
-///   _LogoutSection
+///   _LogoutSection    logout, then "Supprimer mon compte" set apart
 ///
 /// UI only: the bill reminders switch, the avatar upload, the logout and
 /// the theme live in [ProfileController]; the image picker and the
@@ -84,7 +85,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isDarkMode: themeMode == ThemeMode.dark,
                   onToggleTheme: controller.toggleTheme,
                 ),
-                _LogoutSection(onLogout: _logout),
+                _LogoutSection(onLogout: _logout, onOpen: _open),
               ]),
             ),
           ),
@@ -286,14 +287,17 @@ class _SettingsSection extends StatelessWidget {
   }
 }
 
-/// "Déconnexion", then room for the floating menu bar.
+/// "Déconnexion", then — set apart, the only permanent action of the tab —
+/// "Supprimer mon compte", then room for the floating menu bar.
 class _LogoutSection extends StatelessWidget {
-  const _LogoutSection({required this.onLogout});
+  const _LogoutSection({required this.onLogout, required this.onOpen});
 
   final VoidCallback onLogout;
+  final ValueChanged<Widget> onOpen;
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final size = MediaQuery.of(context).size;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -301,10 +305,20 @@ class _LogoutSection extends StatelessWidget {
         _menuItem(
           context,
           icon: Icons.logout_rounded,
-          title: AppLocalizations.of(context)!.logout,
+          title: l.logout,
           color: AppColors.error,
           showArrow: false,
           onTap: onLogout,
+        ),
+        SizedBox(height: size.height * 0.03),
+        Divider(color: AppColors.error.withValues(alpha: 0.3)),
+        SizedBox(height: size.height * 0.02),
+        _menuItem(
+          context,
+          icon: Icons.delete_forever_rounded,
+          title: l.deleteAccount,
+          color: AppColors.error,
+          onTap: () => onOpen(const DeleteAccountScreen()),
         ),
         SizedBox(height: size.height * 0.12),
       ],

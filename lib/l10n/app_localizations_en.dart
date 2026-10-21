@@ -2068,4 +2068,163 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiSearchErrorUnknown => 'Unknown error';
+
+  @override
+  String get deleteAccount => 'Delete my account';
+
+  @override
+  String get deleteAccountIntro =>
+      'Deletion is permanent. You will no longer be able to sign in with this account.';
+
+  @override
+  String get deleteAccountDeletedTitle => 'What will be deleted';
+
+  @override
+  String get deleteAccountDeletedDevices =>
+      'Your notifications and signed-in devices';
+
+  @override
+  String get deleteAccountKeptTitle => 'What will be kept';
+
+  @override
+  String get deleteAccountKeptWhy =>
+      'This information is kept for accounting and in case of a dispute.';
+
+  @override
+  String get deleteAccountBlockedTitle => 'Your account cannot be deleted yet';
+
+  @override
+  String get deleteAccountContactTeam => 'Contact the Amana team';
+
+  @override
+  String get deleteAccountBlockerAdmin =>
+      'This is an administrator account: it cannot be deleted from the app.';
+
+  @override
+  String deleteAccountBlockerActiveOrders(int count) {
+    return 'You have $count order(s) in progress. Wait until they are delivered or cancelled.';
+  }
+
+  @override
+  String get deleteAccountBlockerOpenDisputes =>
+      'A parcel dispute is still open. Wait for the Amana team to close it.';
+
+  @override
+  String deleteAccountBlockerDriverOrders(int count) {
+    return 'You have $count delivery(ies) in progress. Finish them first.';
+  }
+
+  @override
+  String get deleteAccountBlockerDriverDisputes =>
+      'A parcel dispute involving you is still open. Wait for the Amana team to close it.';
+
+  @override
+  String get deleteAccountBlockerDriverPayouts =>
+      'Amana still owes you bonuses. Contact the Amana team to settle your account.';
+
+  @override
+  String deleteAccountBlockerShopOrders(int count) {
+    return 'Your shop has $count order(s) in progress. Complete or cancel them first.';
+  }
+
+  @override
+  String deleteAccountBlockerWallet(String amount) {
+    return '$amount TND remain on your balance. Contact the Amana team to settle your account.';
+  }
+
+  @override
+  String get deleteAccountBlockerSettlements =>
+      'A settlement is pending. Contact the Amana team to settle your account.';
+
+  @override
+  String get deleteAccountBlockerUnknown =>
+      'Your account cannot be deleted right now. Contact the Amana team.';
+
+  @override
+  String get deleteAccountConfirmWord => 'DELETE';
+
+  @override
+  String deleteAccountTypeWord(String word) {
+    return 'To confirm, type $word';
+  }
+
+  @override
+  String deleteAccountWordMismatch(String word) {
+    return 'Type exactly $word';
+  }
+
+  @override
+  String get deleteAccountPasswordHint =>
+      'For your security, enter your password';
+
+  @override
+  String get deleteAccountPasswordLabel => 'Password';
+
+  @override
+  String get deleteAccountGoogleHint =>
+      'For your security, you will sign in again with this account\'s Google account.';
+
+  @override
+  String get deleteAccountSubmit => 'Permanently delete my account';
+
+  @override
+  String get deleteAccountErrorWrongPassword => 'Incorrect password.';
+
+  @override
+  String get deleteAccountErrorOtherGoogle =>
+      'This Google account is not the one linked to this Amana account.';
+
+  @override
+  String get deleteAccountErrorReauth =>
+      'Your confirmation has expired. Please try again.';
+
+  @override
+  String get deleteAccountErrorNoMethod =>
+      'This account cannot be confirmed in the app. Contact the Amana team.';
+
+  @override
+  String get deleteAccountErrorFailed =>
+      'Deletion failed. Try again or contact the Amana team.';
+
+  @override
+  String get deleteAccountLoadError =>
+      'Could not check your account. Check your connection.';
+
+  @override
+  String get deleteAccountRetry => 'Retry';
+
+  @override
+  String get deleteAccountDoneTitle => 'Account deleted';
+
+  @override
+  String get deleteAccountDoneOk => 'OK';
+
+  @override
+  String get deleteAccountDeletedContact =>
+      'Your contact details: name, phone, email and photo';
+
+  @override
+  String get deleteAccountDeletedAddresses =>
+      'Your saved addresses and recipients';
+
+  @override
+  String get deleteAccountDeletedPayment => 'Your saved payment cards';
+
+  @override
+  String get deleteAccountDeletedChat =>
+      'Your history with the Amana assistant';
+
+  @override
+  String get deleteAccountKeptOrders => 'Your order and invoice history';
+
+  @override
+  String get deleteAccountKeptColis => 'The handover receipts of your parcels';
+
+  @override
+  String get deleteAccountAppleHint =>
+      'For your security, you will sign in again with Apple.';
+
+  @override
+  String get deleteAccountDoneBody =>
+      'Your account has been deleted. Thank you for using Amana.';
 }

@@ -2058,4 +2058,155 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aiSearchErrorUnknown => 'خطأ غير معروف';
+
+  @override
+  String get deleteAccount => 'حذف حسابي';
+
+  @override
+  String get deleteAccountIntro =>
+      'الحذف نهائي. لن تتمكن بعد ذلك من تسجيل الدخول بهذا الحساب.';
+
+  @override
+  String get deleteAccountDeletedTitle => 'ما سيتم حذفه';
+
+  @override
+  String get deleteAccountDeletedDevices => 'إشعاراتك والأجهزة المتصلة';
+
+  @override
+  String get deleteAccountKeptTitle => 'ما سيتم الاحتفاظ به';
+
+  @override
+  String get deleteAccountKeptWhy =>
+      'يتم الاحتفاظ بهذه المعلومات لأغراض المحاسبة وفي حال وجود نزاع.';
+
+  @override
+  String get deleteAccountBlockedTitle => 'لا يمكن حذف حسابك بعد';
+
+  @override
+  String get deleteAccountContactTeam => 'تواصل مع فريق أمانة';
+
+  @override
+  String get deleteAccountBlockerAdmin =>
+      'هذا حساب مسؤول: لا يمكن حذفه من التطبيق.';
+
+  @override
+  String deleteAccountBlockerActiveOrders(int count) {
+    return 'لديك $count طلب(ات) قيد التنفيذ. انتظر حتى يتم توصيلها أو إلغاؤها.';
+  }
+
+  @override
+  String get deleteAccountBlockerOpenDisputes =>
+      'يوجد نزاع طرد مفتوح. انتظر حتى يغلقه فريق أمانة.';
+
+  @override
+  String deleteAccountBlockerDriverOrders(int count) {
+    return 'لديك $count توصيل(ات) قيد التنفيذ. أكملها أولاً.';
+  }
+
+  @override
+  String get deleteAccountBlockerDriverDisputes =>
+      'يوجد نزاع طرد يخصك لا يزال مفتوحاً. انتظر حتى يغلقه فريق أمانة.';
+
+  @override
+  String get deleteAccountBlockerDriverPayouts =>
+      'لا تزال أمانة مدينة لك بمكافآت. تواصل مع فريق أمانة لتسوية حسابك.';
+
+  @override
+  String deleteAccountBlockerShopOrders(int count) {
+    return 'لدى متجرك $count طلب(ات) قيد التنفيذ. أكملها أو ألغها أولاً.';
+  }
+
+  @override
+  String deleteAccountBlockerWallet(String amount) {
+    return 'يتبقى $amount دينار في رصيدك. تواصل مع فريق أمانة لتسوية حسابك.';
+  }
+
+  @override
+  String get deleteAccountBlockerSettlements =>
+      'هناك تسوية معلقة. تواصل مع فريق أمانة لتسوية حسابك.';
+
+  @override
+  String get deleteAccountBlockerUnknown =>
+      'لا يمكن حذف حسابك حالياً. تواصل مع فريق أمانة.';
+
+  @override
+  String get deleteAccountConfirmWord => 'حذف';
+
+  @override
+  String deleteAccountTypeWord(String word) {
+    return 'للتأكيد، اكتب $word';
+  }
+
+  @override
+  String deleteAccountWordMismatch(String word) {
+    return 'اكتب $word بالضبط';
+  }
+
+  @override
+  String get deleteAccountPasswordHint => 'لأمانك، أدخل كلمة المرور';
+
+  @override
+  String get deleteAccountPasswordLabel => 'كلمة المرور';
+
+  @override
+  String get deleteAccountGoogleHint =>
+      'لأمانك، ستعيد تسجيل الدخول بحساب Google المرتبط بهذا الحساب.';
+
+  @override
+  String get deleteAccountSubmit => 'حذف حسابي نهائياً';
+
+  @override
+  String get deleteAccountErrorWrongPassword => 'كلمة المرور غير صحيحة.';
+
+  @override
+  String get deleteAccountErrorOtherGoogle =>
+      'حساب Google هذا ليس المرتبط بحساب أمانة هذا.';
+
+  @override
+  String get deleteAccountErrorReauth => 'انتهت صلاحية التأكيد. حاول مرة أخرى.';
+
+  @override
+  String get deleteAccountErrorNoMethod =>
+      'لا يمكن تأكيد هذا الحساب في التطبيق. تواصل مع فريق أمانة.';
+
+  @override
+  String get deleteAccountErrorFailed =>
+      'فشل الحذف. حاول مرة أخرى أو تواصل مع فريق أمانة.';
+
+  @override
+  String get deleteAccountLoadError => 'تعذر التحقق من حسابك. تحقق من اتصالك.';
+
+  @override
+  String get deleteAccountRetry => 'إعادة المحاولة';
+
+  @override
+  String get deleteAccountDoneTitle => 'تم حذف الحساب';
+
+  @override
+  String get deleteAccountDoneOk => 'حسناً';
+
+  @override
+  String get deleteAccountDeletedContact =>
+      'بياناتك الشخصية: الاسم والهاتف والبريد الإلكتروني والصورة';
+
+  @override
+  String get deleteAccountDeletedAddresses => 'عناوينك والمستلمون المحفوظون';
+
+  @override
+  String get deleteAccountDeletedPayment => 'بطاقات الدفع المحفوظة';
+
+  @override
+  String get deleteAccountDeletedChat => 'سجل محادثاتك مع مساعد أمانة';
+
+  @override
+  String get deleteAccountKeptOrders => 'سجل طلباتك وفواتيرك';
+
+  @override
+  String get deleteAccountKeptColis => 'إيصالات استلام طرودك';
+
+  @override
+  String get deleteAccountAppleHint => 'لأمانك، ستعيد تسجيل الدخول عبر Apple.';
+
+  @override
+  String get deleteAccountDoneBody => 'تم حذف حسابك. شكراً لاستخدامك أمانة.';
 }

@@ -332,4 +332,135 @@ class AuthRepository {
       return false;
     }
   }
+
+  // ── Re-authentification avant une action sensible ─────────────────────────
+  //
+  // Le serveur (Edge Function delete-account) exige une connexion de moins de
+  // 5 minutes : se reconnecter ici rafraichit la session en place, sans
+  // deconnecter l'appareil.
+
+  /// Comment cette personne prouve que c'est bien elle : 'password' si le
+  /// compte a un mot de passe, sinon 'google' ou 'apple' selon le fournisseur
+  /// avec lequel il a ete cree, null si aucun n'est propose dans l'app.
+  String? get reauthMethod {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return null;
+    final raw = user.appMetadata['providers'];
+    final providers = raw is List
+        ? raw.map((e) => '$e').toList()
+        : ['${user.appMetadata['provider']}'];
+    if (providers.contains('email')) return 'password';
+    if (providers.contains('google')) return 'google';
+    if (providers.contains('apple')) return 'apple';
+    return null;
+  }
+
+  /// Renvoie null si le mot de passe est le bon, sinon un code :
+  /// wrong_password, no_session, failed.
+  Future<String?> reauthenticateWithPassword(String password) async {
+    final email = _supabase.auth.currentUser?.email;
+    if (email == null || email.isEmpty) return 'no_session';
+    try {
+      await _supabase.auth.signInWithPassword(email: email, password: password);
+      return null;
+    } on supabase.AuthException catch (e) {
+      debugPrint('reauthenticateWithPassword: refus (${e.message})');
+      return 'wrong_password';
+    } catch (e) {
+      debugPrint('reauthenticateWithPassword: $e');
+      return 'failed';
+    }
+  }
+
+  /// Renvoie null si la personne s'est reconnectee avec le MEME compte
+  /// Google, sinon un code : cancelled, other_account, no_session, failed.
+  ///
+  /// Le compte Google choisi est compare AVANT de toucher la session
+  /// Supabase : un autre compte ouvrirait la session d'un autre utilisateur,
+  /// et c'est ce compte-la que la suite supprimerait.
+  Future<String?> reauthenticateWithGoogle() async {
+    final current = _supabase.auth.currentUser;
+    final email = current?.email;
+    if (current == null || email == null || email.isEmpty) return 'no_session';
+    try {
+      // Sans ce signOut, Google reprend en silence le dernier compte utilise :
+      // ce ne serait plus une preuve de presence.
+      await _googleSignIn.signOut();
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return 'cancelled';
+      if (googleUser.email.toLowerCase() != email.toLowerCase()) {
+        await _googleSignIn.signOut();
+        return 'other_account';
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      if (idToken == null) return 'failed';
+
+      final response = await _supabase.auth.signInWithIdToken(
+        provider: supabase.OAuthProvider.google,
+        idToken: idToken,
+        accessToken: googleAuth.accessToken,
+      );
+      return _sameUserOrSignOut(response.user, current.id);
+    } catch (e) {
+      debugPrint('reauthenticateWithGoogle: $e');
+      return 'failed';
+    }
+  }
+
+  /// Comme [reauthenticateWithGoogle], avec Apple. Apple ne donne pas
+  /// l'email avant la connexion (et peut le masquer) : la verification se
+  /// fait sur l'utilisateur Supabase obtenu.
+  Future<String?> reauthenticateWithApple() async {
+    final current = _supabase.auth.currentUser;
+    if (current == null) return 'no_session';
+    try {
+      final rawNonce = _generateNonce();
+      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: const [],
+        nonce: hashedNonce,
+      );
+      final idToken = credential.identityToken;
+      if (idToken == null) return 'failed';
+
+      final response = await _supabase.auth.signInWithIdToken(
+        provider: supabase.OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+      return _sameUserOrSignOut(response.user, current.id);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) return 'cancelled';
+      debugPrint('reauthenticateWithApple: $e');
+      return 'failed';
+    } catch (e) {
+      debugPrint('reauthenticateWithApple: $e');
+      return 'failed';
+    }
+  }
+
+  /// Autre utilisateur Supabase que celui qui a demande : on ne garde pas
+  /// cette session-la ouverte.
+  Future<String?> _sameUserOrSignOut(supabase.User? user, String expectedId) async {
+    if (user?.id == expectedId) return null;
+    await _supabase.auth.signOut(scope: supabase.SignOutScope.local);
+    return 'other_account';
+  }
+
+  /// Apres une suppression de compte : le serveur a deja supprime les
+  /// sessions, on ne nettoie que cet appareil. Un signOut global echouerait.
+  Future<void> signOutAfterDeletion() async {
+    try {
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('signOutAfterDeletion: deconnexion Google echouee ($e)');
+    }
+    try {
+      await _supabase.auth.signOut(scope: supabase.SignOutScope.local);
+    } catch (e) {
+      debugPrint('signOutAfterDeletion: $e');
+    }
+  }
 }
