@@ -21,7 +21,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cmandili_mobile/services/ai_chat_service.dart';
+import 'package:cmandili_mobile/features/ai_chat/data/ai_chat_service.dart';
 
 /// Source with comments removed.
 ///
@@ -43,8 +43,14 @@ void main() {
   // `readAsStringSync`, not `readAsString`: under `flutter test` the clock is
   // faked, so a real async disk read never completes and the Future hangs
   // with no error at all.
-  final rawSource =
-      File('lib/services/ai_chat_service.dart').readAsStringSync();
+  // Every file of the assistant's data layer: the queries live in
+  // catalogue_search.dart since the service was split.
+  final rawSource = Directory('lib/features/ai_chat/data')
+      .listSync()
+      .whereType<File>()
+      .where((f) => f.path.endsWith('.dart'))
+      .map((f) => f.readAsStringSync())
+      .join('\n');
   final code = _codeWithoutComments(rawSource);
 
   group('the comment stripper actually strips', () {

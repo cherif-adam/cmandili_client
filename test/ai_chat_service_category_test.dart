@@ -12,7 +12,7 @@
 // `tool/ai_chat_category_probe.sh` does that part, after a deploy.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cmandili_mobile/services/ai_chat_service.dart';
+import 'package:cmandili_mobile/features/ai_chat/data/ai_chat_service.dart';
 
 void main() {
   group('normaliseServiceCategory — server-sent slug', () {

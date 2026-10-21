@@ -11,7 +11,7 @@
 // and restaurant queries is the rest of step A and is not done yet.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cmandili_mobile/services/ai_chat_service.dart';
+import 'package:cmandili_mobile/features/ai_chat/data/ai_chat_service.dart';
 
 void main() {
   group('expandFoodConcept — umbrella concepts reach the real words', () {

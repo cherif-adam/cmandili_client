@@ -22,7 +22,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:cmandili_mobile/services/ai_chat_service.dart';
+import 'package:cmandili_mobile/features/ai_chat/data/ai_chat_service.dart';
 
 /// Every message the client can put on screen by itself, in one language.
 List<String> clientMessages(String lang) => [

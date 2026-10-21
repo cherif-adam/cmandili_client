@@ -19,7 +19,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cmandili_mobile/models/chat_message.dart';
-import 'package:cmandili_mobile/services/ai_chat_service.dart';
+import 'package:cmandili_mobile/features/ai_chat/data/ai_chat_service.dart';
 
 /// A `food_items` row with its embedded restaurant, shaped like PostgREST's.
 Map<String, dynamic> row(

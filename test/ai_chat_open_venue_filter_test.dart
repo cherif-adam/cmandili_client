@@ -34,7 +34,14 @@ String _codeWithoutComments(String source) {
 
 void main() {
   // Sync read: the test clock is faked, so an async disk read never completes.
-  final raw = File('lib/services/ai_chat_service.dart').readAsStringSync();
+  // Every file of the assistant's data layer: the queries live in
+  // catalogue_search.dart since the service was split.
+  final raw = Directory('lib/features/ai_chat/data')
+      .listSync()
+      .whereType<File>()
+      .where((f) => f.path.endsWith('.dart'))
+      .map((f) => f.readAsStringSync())
+      .join('\n');
   final code = _codeWithoutComments(raw);
 
   group('the stripper leaves the code it is asked about', () {
