@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/chat_message.dart';
+import '../../../../../models/chat_message.dart';
 import '../chat_palette.dart';
 import 'chat_decor_circle.dart';
 

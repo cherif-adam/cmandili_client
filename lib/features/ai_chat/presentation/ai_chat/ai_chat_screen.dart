@@ -1,4 +1,4 @@
-// lib/screens/ai_chat_screen.dart
+// lib/features/ai_chat/presentation/ai_chat/ai_chat_screen.dart
 //
 // Cmandili AI Chat — Full Feature Set
 // ✅ Orange Brand Theme
@@ -10,87 +10,62 @@
 // Layout, top to bottom: ChatAppBar, ChatCategoryBar, ChatListeningBanner
 // (while listening), ChatImagePreviewStrip (photo picked), the messages
 // (ChatMessageBubble / ChatTypingIndicator) or ChatEmptyState, ChatSendBar.
-// Every widget lives in lib/screens/ai_chat/widgets/.
+// Every widget lives in widgets/. UI only: the conversation, sending and the
+// starter prompts live in [AiChatController]; this screen keeps the text
+// field, the animations, the microphone channel, the photo picker, the
+// messages and the navigation.
 
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// Import your actual screens/models here:
-import '../models/chat_message.dart';
-import '../features/ai_chat/data/ai_chat_service.dart';
-import '../features/restaurant/presentation/restaurant_detail/restaurant_detail_screen.dart';
-import '../features/home/data/models/restaurant.dart';
-import '../core/data/shop_repository.dart';
-import '../core/models/service_category.dart';
-import '../features/vendors/presentation/vendor_detail/vendor_detail_screen.dart';
-import '../features/courier/presentation/courier/courier_screen.dart';
-import '../features/facture/presentation/facture/facture_screen.dart';
-import 'ai_chat/chat_palette.dart';
-import 'ai_chat/widgets/chat_app_bar.dart';
-import 'ai_chat/widgets/chat_category_bar.dart';
-import 'ai_chat/widgets/chat_delivery_card.dart';
-import 'ai_chat/widgets/chat_empty_state.dart';
-import 'ai_chat/widgets/chat_facture_card.dart';
-import 'ai_chat/widgets/chat_food_card.dart';
-import 'ai_chat/widgets/chat_image_preview_strip.dart';
-import 'ai_chat/widgets/chat_listening_banner.dart';
-import 'ai_chat/widgets/chat_message_bubble.dart';
-import 'ai_chat/widgets/chat_restaurant_card.dart';
-import 'ai_chat/widgets/chat_send_bar.dart';
-import 'ai_chat/widgets/chat_shop_card.dart';
-import 'ai_chat/widgets/chat_typing_indicator.dart';
+import '../../../../models/chat_message.dart';
+import '../../../restaurant/presentation/restaurant_detail/restaurant_detail_screen.dart';
+import '../../../../core/models/service_category.dart';
+import '../../../vendors/presentation/vendor_detail/vendor_detail_screen.dart';
+import '../../../courier/presentation/courier/courier_screen.dart';
+import '../../../facture/presentation/facture/facture_screen.dart';
+import 'ai_chat_controller.dart';
+import 'chat_palette.dart';
+import 'widgets/chat_app_bar.dart';
+import 'widgets/chat_category_bar.dart';
+import 'widgets/chat_delivery_card.dart';
+import 'widgets/chat_empty_state.dart';
+import 'widgets/chat_facture_card.dart';
+import 'widgets/chat_food_card.dart';
+import 'widgets/chat_image_preview_strip.dart';
+import 'widgets/chat_image_source_sheet.dart';
+import 'widgets/chat_listening_banner.dart';
+import 'widgets/chat_message_bubble.dart';
+import 'widgets/chat_restaurant_card.dart';
+import 'widgets/chat_send_bar.dart';
+import 'widgets/chat_shop_card.dart';
+import 'widgets/chat_typing_indicator.dart';
 
-class AiChatScreen extends StatefulWidget {
+class AiChatScreen extends ConsumerStatefulWidget {
   const AiChatScreen({super.key});
 
-  /// The message a category chip sends. Phrased the way a customer would ask,
-  /// so it goes through the ordinary intent classification rather than a
-  /// special path — a chip is just a shortcut for typing.
-  static String starterQueryFor(ServiceType type) {
-    switch (type) {
-      case ServiceType.foodDelivery:
-        return 'Montre-moi les restaurants disponibles';
-      case ServiceType.supermarket:
-        return 'Montre-moi ce qu\'il y a au supermarché';
-      case ServiceType.bakery:
-        return 'Montre-moi les pâtisseries disponibles';
-      case ServiceType.flowers:
-        return 'Montre-moi les fleurs disponibles';
-      case ServiceType.pets:
-        return 'Montre-moi les produits d\'animalerie';
-      case ServiceType.gifts:
-        return 'Montre-moi des idées cadeaux';
-      case ServiceType.electronics:
-        return 'Montre-moi les produits électroniques';
-      case ServiceType.courier:
-        return 'Je veux envoyer un colis';
-      case ServiceType.billPayments:
-        return 'Je veux payer une facture';
-    }
-  }
+  /// The message a category chip sends (see [AiChatController.starterQueryFor]).
+  static String starterQueryFor(ServiceType type) =>
+      AiChatController.starterQueryFor(type);
 
   @override
-  State<AiChatScreen> createState() => _AiChatScreenState();
+  ConsumerState<AiChatScreen> createState() => _AiChatScreenState();
 }
 
-class _AiChatScreenState extends State<AiChatScreen>
+class _AiChatScreenState extends ConsumerState<AiChatScreen>
     with TickerProviderStateMixin {
+  /// This screen's own controller (see [aiChatControllerProvider]).
+  late final _provider = aiChatControllerProvider(Object());
+
+  AiChatController get _controller => ref.read(_provider.notifier);
+
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController   = ScrollController();
-  final List<ChatMessage> _messages          = [];
-  final AiChatService _chatService           = AiChatService();
-  bool _isLoading = false;
-  final List<Map<String, dynamic>> _apiHistory = [];
-
-  // null = still checking; true/false = known. Empty-state chips render
-  // (see build()) whether this is null or resolved — null just means the
-  // "Suivre ma commande" chip isn't added yet, not that the whole section
-  // waits on it; it slots in the moment the check resolves.
-  bool? _hasActiveOrder;
 
   // ── Task 3: Voice — native Android speech via MethodChannel ───────────────
   // Uses Android's built-in SpeechRecognizer (no external package needed).
@@ -101,7 +76,6 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // ── Task 4: Image picker ───────────────────────────────────────────────────
   final ImagePicker _imagePicker   = ImagePicker();
-  File? _selectedImage;
 
   // Typing dots animation
   late AnimationController _typingController;
@@ -136,34 +110,8 @@ class _AiChatScreenState extends State<AiChatScreen>
       }
     });
 
-    _loadHistory();
-    _checkActiveOrder();
-  }
-
-  // ── Context-aware starter chips: is there an order to track right now? ────
-
-  Future<void> _checkActiveOrder() async {
-    final active = await _chatService.hasActiveOrder();
-    if (!mounted) return;
-    setState(() => _hasActiveOrder = active);
-  }
-
-  // ── Restore saved conversation on open ─────────────────────────────────────
-
-  Future<void> _loadHistory() async {
-    final loaded = await _chatService.loadHistory();
-    if (!mounted || loaded.isEmpty) return;
-    setState(() {
-      // loaded is already newest-first — matches _messages directly.
-      _messages.addAll(loaded);
-      // _apiHistory needs chronological (oldest-first) order for the LLM.
-      _apiHistory.addAll(loaded.reversed.map((m) => {
-            'role': m.isUser ? 'user' : 'model',
-            'parts': [
-              {'text': m.text}
-            ],
-          }));
-    });
+    _controller.loadHistory();
+    _controller.checkActiveOrder();
   }
 
   // ── Clear conversation (app bar button) ────────────────────────────────────
@@ -191,18 +139,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     );
     if (confirmed != true) return;
 
-    final ok = await _chatService.clearHistory();
+    final ok = await _controller.clearHistory();
     if (!mounted) return;
 
     if (ok) {
-      setState(() {
-        _messages.clear();
-        _apiHistory.clear();
-        _selectedImage = null;
-      });
-      // _hasActiveOrder is intentionally left as-is: clearing the CONVERSATION
-      // has no bearing on whether an order is in flight, so the "Suivre ma
-      // commande" chip (if it was showing) still shows on the now-empty state.
       _showSnack('Conversation effacée');
     } else {
       _showSnack("Impossible d'effacer la conversation, réessayez", isError: true);
@@ -265,126 +205,20 @@ class _AiChatScreenState extends State<AiChatScreen>
         maxHeight: 1024,
       );
       if (picked != null) {
-        setState(() => _selectedImage = File(picked.path));
+        _controller.selectImage(File(picked.path));
       }
     } catch (e) {
       _showSnack('Impossible d\'accéder à la galerie', isError: true);
     }
   }
 
-  void _showImageSourceSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: kChatOrange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.camera_alt_rounded, color: kChatOrange),
-              ),
-              title: const Text('Prendre une photo',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              onTap: () => _pickImage(ImageSource.camera),
-            ),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: kChatOrange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.photo_library_rounded, color: kChatOrange),
-              ),
-              title: const Text('Choisir depuis la galerie',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              onTap: () => _pickImage(ImageSource.gallery),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ── Send message ───────────────────────────────────────────────────────────
 
   Future<void> _handleSubmitted(String text) async {
-    final hasText  = text.trim().isNotEmpty;
-    final hasImage = _selectedImage != null;
-    if (!hasText && !hasImage) return;
-
-    final imageToSend = _selectedImage;
+    if (!_controller.canSend(text)) return;
     _textController.clear();
-    setState(() {
-      _messages.insert(
-        0,
-        ChatMessage(
-          text: hasText ? text : '📷 Image envoyée',
-          isUser: true,
-          imageFile: imageToSend,
-        ),
-      );
-      _selectedImage = null;
-      _isLoading = true;
-    });
-
-    final aiResponse = await _chatService.sendMessage(
-      text,
-      _apiHistory,
-      imageFile: imageToSend,
-    );
-
-    setState(() {
-      _isLoading = false;
-      _messages.insert(0, aiResponse);
-      _apiHistory
-        ..add({'role': 'user', 'parts': [{'text': hasText ? text : '[Image]'}]})
-        ..add({'role': 'model', 'parts': [{'text': aiResponse.text}]});
-    });
+    await _controller.send(text);
   }
-
-  // ── Starter suggestions (fresh/empty chat only) ────────────────────────────
-  // Deliberately no "Sport" chip — the sport/protein health goal still works
-  // perfectly fine when TYPED (Rule 4 in the system prompt is unchanged), this
-  // only affects which starter prompts are shown up front.
-  static const List<(String emoji, String label, String prompt)> _starterSuggestions = [
-    ('🥗', 'Manger léger', 'Je veux manger léger, propose-moi quelque chose de sain'),
-    ('🌙', 'Repas Iftar', "Je cherche un repas pour l'iftar"),
-    ('🌱', 'Végétarien', 'Je suis végétarien, propose-moi des plats'),
-    ('✨', 'Découvrir', 'Fais-moi découvrir des plats populaires'),
-  ];
-
-  // Prepended (not swapped in) when the user has an order in flight — food
-  // discovery is still something they might want, but tracking is very
-  // likely the actual reason they opened the chat right now, so it leads.
-  // Phrase matches the system prompt's own track_order few-shot example
-  // verbatim for reliable intent extraction.
-  static const (String, String, String) _trackOrderSuggestion =
-      ('📦', 'Suivre ma commande', 'Où est ma commande ?');
-
-  List<(String emoji, String label, String prompt)> get _effectiveSuggestions =>
-      _hasActiveOrder == true
-          ? [_trackOrderSuggestion, ..._starterSuggestions]
-          : _starterSuggestions;
 
   void _sendSuggestion(String prompt) => _handleSubmitted(prompt);
 
@@ -412,13 +246,14 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   @override
   Widget build(BuildContext context) {
+    final s = ref.watch(_provider);
     return Scaffold(
       // ── Task 1: Keyboard overflow fix ──────────────────────────────────────
       resizeToAvoidBottomInset: true,
       backgroundColor: kChatBg,
       appBar: ChatAppBar(
         statusBarHeight: MediaQuery.of(context).padding.top,
-        isTyping: _isLoading,
+        isTyping: s.isLoading,
         onClear: _confirmClearChat,
       ),
       body: Column(
@@ -437,34 +272,24 @@ class _AiChatScreenState extends State<AiChatScreen>
           if (_isListening) ChatListeningBanner(controller: _micPulseController),
 
           // ── Image preview strip ───────────────────────────────────────────
-          if (_selectedImage != null) ChatImagePreviewStrip(
-            file: _selectedImage!,
-            onRemove: () => setState(() => _selectedImage = null),
+          if (s.selectedImage != null) ChatImagePreviewStrip(
+            file: s.selectedImage!,
+            onRemove: () => _controller.removeImage(),
           ),
 
           // ── Messages list (or starter suggestions on a fresh chat) ────────
           Expanded(
-            child: _messages.isEmpty && !_isLoading
+            child: s.messages.isEmpty && !s.isLoading
                 ? ChatEmptyState(
-                    suggestions: _effectiveSuggestions,
+                    suggestions: _controller.effectiveSuggestions,
                     onSuggestion: _sendSuggestion,
                   )
-                : ListView.builder(
-                    controller: _scrollController,
-                    reverse: true,
-                    // ── Task 1: keyboard avoidance via Scaffold is automatic ──
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    itemCount: _messages.length + (_isLoading ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (_isLoading && index == 0) {
-                        return ChatTypingIndicator(controller: _typingController);
-                      }
-                      final msgIndex = _isLoading ? index - 1 : index;
-                      return ChatMessageBubble(
-                        message: _messages[msgIndex],
-                        cardBuilder: _buildCard,
-                      );
-                    },
+                : _MessagesList(
+                    scrollController: _scrollController,
+                    typingController: _typingController,
+                    messages: s.messages,
+                    isLoading: s.isLoading,
+                    cardBuilder: _buildCard,
                   ),
           ),
 
@@ -474,7 +299,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             isListening: _isListening,
             micPulseController: _micPulseController,
             bottomViewPadding: MediaQuery.of(context).viewPadding.bottom,
-            onImageTap: _showImageSourceSheet,
+            onImageTap: () => showChatImageSourceSheet(context, onPick: _pickImage),
             onMicTap: _toggleListening,
             onSubmitted: _handleSubmitted,
           ),
@@ -506,7 +331,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       _showSnack('Boutique introuvable');
       return;
     }
-    final vendor = await ShopRepository().getVendor(id);
+    final vendor = await _controller.vendorFor(id);
     if (!mounted) return;
     if (vendor == null) {
       _showSnack('Boutique introuvable');
@@ -547,34 +372,59 @@ class _AiChatScreenState extends State<AiChatScreen>
   // ── Task 2: Navigate to RestaurantDetailScreen ────────────────────────────
 
   void _navigateToRestaurant(ProductResult product) {
-    // Build a minimal Restaurant object from the ProductResult data.
-    // The RestaurantDetailScreen will load the full menu via foodItemsProvider.
     if (product.sourceId == null || product.sourceId!.isEmpty) {
       _showSnack('Restaurant introuvable');
       return;
     }
 
-    final restaurant = Restaurant(
-      id: product.sourceId!,
-      name: product.sourceName,
-      description: product.description ?? '',
-      imageUrl: product.imageUrl ?? '',
-      rating: product.rating ?? 0.0,
-      reviewCount: 0,
-      deliveryTime: product.deliveryTime ?? 30,
-      deliveryFee: product.deliveryFee ?? 0.0,
-      minimumOrder: 0.0,
-      categories: const [],
-      isOpen: true,
-      latitude: 0,
-      longitude: 0,
-    );
+    final restaurant = AiChatController.restaurantFor(product);
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => RestaurantDetailScreen(restaurant: restaurant),
       ),
+    );
+  }
+}
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+
+/// The conversation, newest at the bottom, with the typing dots while the
+/// assistant answers.
+class _MessagesList extends StatelessWidget {
+  const _MessagesList({
+    required this.scrollController,
+    required this.typingController,
+    required this.messages,
+    required this.isLoading,
+    required this.cardBuilder,
+  });
+
+  final ScrollController scrollController;
+  final AnimationController typingController;
+  final List<ChatMessage> messages;
+  final bool isLoading;
+  final Widget Function(ProductResult product) cardBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      controller: scrollController,
+      reverse: true,
+      // ── Task 1: keyboard avoidance via Scaffold is automatic ──
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      itemCount: messages.length + (isLoading ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (isLoading && index == 0) {
+          return ChatTypingIndicator(controller: typingController);
+        }
+        final msgIndex = isLoading ? index - 1 : index;
+        return ChatMessageBubble(
+          message: messages[msgIndex],
+          cardBuilder: cardBuilder,
+        );
+      },
     );
   }
 }

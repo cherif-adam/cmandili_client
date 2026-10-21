@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-import '../../../../../screens/ai_chat_screen.dart';
+import '../../../../ai_chat/presentation/ai_chat/ai_chat_screen.dart';
 
 /// The purple round button that opens the AI assistant (home tab only).
 class AiChatFab extends StatelessWidget {

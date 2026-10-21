@@ -7,17 +7,20 @@
 // rather than taking a special code path.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_mobile/core/models/service_category.dart';
-import 'package:cmandili_mobile/screens/ai_chat_screen.dart';
+import 'package:cmandili_mobile/features/ai_chat/presentation/ai_chat/ai_chat_screen.dart';
 
 Future<void> pumpChat(WidgetTester tester, {double width = 393}) async {
   tester.view.physicalSize = Size(width, 800);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(const MaterialApp(home: AiChatScreen()));
+  // The screen keeps its conversation in a Riverpod controller, so it needs
+  // the ProviderScope the app puts at its root.
+  await tester.pumpWidget(const ProviderScope(child: MaterialApp(home: AiChatScreen())));
   await tester.pump();
 }
 

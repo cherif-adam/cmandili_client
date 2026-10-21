@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/models/service_category.dart';
-import '../../../features/home/presentation/widgets/service_selector.dart'
+import '../../../../../core/models/service_category.dart';
+import '../../../../home/presentation/widgets/service_selector.dart'
     show ServiceSelector;
 import 'chat_category_chip.dart';
 
