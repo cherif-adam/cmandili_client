@@ -30,6 +30,9 @@
 --   T8  DELETE direct sur auth.users : refusé par les clés étrangères
 --   T9  droits : anon n'exécute rien, authenticated seulement la
 --       vérification, le journal est fermé aux deux
+--   T10 boutique supprimée : invisible pour un autre client, un visiteur et
+--       les vues ; toujours visible dans l'historique de son client ;
+--       commande refusée (VENUE_CLOSED)
 -- ============================================================================
 
 begin;
@@ -226,6 +229,71 @@ begin
     raise exception 'FAIL T3 : un autre profil a été touché';
   end if;
   res := res || 'T3 ok; ';
+
+  -- ── T10 boutique supprimée invisible, sauf dans l'historique ─────────────
+  -- Le client qui y a commandé la voit encore (son historique), un autre
+  -- client et un visiteur non connecté ne la voient plus.
+  perform set_config('request.jwt.claims', json_build_object('sub', u_c, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from public.vendors where id = v_p;
+  reset role;
+  if n <> 1 then
+    raise exception 'FAIL T10 : le client de la boutique ne la voit plus dans son historique';
+  end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', u_k, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from public.vendors where id = v_p;
+  reset role;
+  if n <> 0 then
+    raise exception 'FAIL T10 : boutique supprimée visible par un autre client';
+  end if;
+
+  perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+  set local role anon;
+  select count(*) into n from public.vendors where id = v_p;
+  reset role;
+  if n <> 0 then
+    raise exception 'FAIL T10 : boutique supprimée visible sans connexion';
+  end if;
+  -- Et sans connexion, les boutiques normales se lisent toujours (une
+  -- première version de la policy cassait toute lecture anon de vendors).
+  set local role anon;
+  select count(*) into n from public.vendors where id = v_b;
+  reset role;
+  if n <> 1 then
+    raise exception 'FAIL T10 : lecture anon des boutiques cassée';
+  end if;
+
+  -- La boutique B, non supprimée, reste visible de tous.
+  perform set_config('request.jwt.claims', json_build_object('sub', u_k, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from public.vendors where id = v_b;
+  reset role;
+  if n <> 1 then
+    raise exception 'FAIL T10 : une boutique normale a disparu';
+  end if;
+
+  if exists (select 1 from public.restaurants where id = v_p)
+     or exists (select 1 from public.food_items where restaurant_id = v_p)
+     or not exists (select 1 from public.restaurants where id = v_b) then
+    raise exception 'FAIL T10 : vues restaurants / food_items';
+  end if;
+
+  -- Commander dans la boutique supprimée : refusé par enforce_venue_open,
+  -- rallumé le temps de ce test (les autres triggers de orders restent coupés).
+  alter table public.orders enable trigger enforce_venue_open;
+  begin
+    insert into public.orders (user_id, restaurant_id, status, order_type, subtotal, delivery_fee, total)
+    values (u_c, v_p, 'pending', 'food', 10, 2, 12);
+    raise exception 'FAIL T10 : commande acceptée sur une boutique supprimée';
+  exception when raise_exception then
+    if sqlerrm <> 'VENUE_CLOSED' then
+      raise;
+    end if;
+  end;
+  alter table public.orders disable trigger enforce_venue_open;
+  res := res || 'T10 ok; ';
 
   -- ── T4 appel rejoué ──────────────────────────────────────────────────────
   r := public.account_deletion_execute(u_p, 'partner');

@@ -35,9 +35,9 @@
 alter table public.profiles add column if not exists deleted_at timestamptz;
 
 -- Boutique d'un partenaire supprimé : fermée et marquée. La ligne reste,
--- l'historique des commandes en a besoin. Le filtrage des listes côté client
--- viendra avec la phase « app client » : un filtre sur une colonne absente
--- casserait l'app tant que cette migration n'est pas appliquée.
+-- l'historique des commandes en a besoin. Elle disparaît des listes côté
+-- serveur (section 3 bis) : aucune app n'a besoin de filtrer elle-même, et
+-- aucune ne casse si elle tourne avant cette migration.
 alter table public.vendors add column if not exists deleted_at timestamptz;
 
 -- Un litige colis n'avait pas d'état : impossible de dire s'il est encore
@@ -145,6 +145,132 @@ alter table public.driver_ratings drop constraint if exists driver_ratings_drive
 alter table public.driver_ratings
   add constraint driver_ratings_driver_id_fkey
   foreign key (driver_id) references public.drivers(id) on delete restrict;
+
+
+-- ── 3 bis. Boutique supprimée : invisible, sauf dans l'historique ──────────
+-- Les apps lisent les boutiques par la table vendors (listes, proximité,
+-- panier) et par les vues restaurants / supermarkets / food_items /
+-- grocery_items (chat IA, Edge Function ai-search). Tout est filtré ici.
+
+-- Table : la policy de lecture était `using (true)`. Une boutique supprimée
+-- reste lisible par ceux qui y ont une commande (client) ou qui l'ont livrée
+-- (livreur) : leur historique affiche toujours son nom. L'admin passe par le
+-- service_role.
+--
+-- Le test d'historique est dans une fonction SECURITY DEFINER et non écrit
+-- dans la policy : anon n'a aucun droit sur orders, et Postgres vérifie ce
+-- droit dès la préparation de la requête, même quand `deleted_at is null`
+-- suffit. Écrit en ligne, il cassait TOUTE lecture de vendors sans
+-- connexion (« permission denied for table orders », vu au harnais).
+-- La fonction ne répond que pour l'appelant (auth.uid()), et seulement oui
+-- ou non.
+create or replace function public.vendor_in_my_history(p_vendor_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path to ''
+as $fn$
+  select auth.uid() is not null
+     and exists (
+       select 1
+         from public.orders o
+        where (o.restaurant_id = p_vendor_id or o.supermarket_id = p_vendor_id)
+          and (o.user_id = auth.uid()
+               or o.driver_id in (select d.id from public.drivers d where d.user_id = auth.uid()))
+     );
+$fn$;
+
+revoke execute on function public.vendor_in_my_history(uuid) from public;
+grant execute on function public.vendor_in_my_history(uuid) to anon, authenticated, service_role;
+
+drop policy if exists vendors_read on public.vendors;
+create policy vendors_read
+  on public.vendors for select
+  using (deleted_at is null or public.vendor_in_my_history(id));
+
+-- Vues : appartenant à postgres, elles ne passent pas par la RLS de vendors.
+-- Mêmes colonnes, dans le même ordre ; seul le filtre deleted_at s'ajoute.
+create or replace view public.restaurants as
+  select id, name, description, image_url, rating, review_count,
+         delivery_time_min, delivery_fee, min_order, categories, is_open,
+         latitude, longitude, opening_time, closing_time, auto_close_enabled,
+         is_ghost_restaurant, created_at
+    from public.vendors
+   where category = 'food'
+     and deleted_at is null;
+
+create or replace view public.supermarkets as
+  select id, name, description, image_url, rating, review_count,
+         delivery_time_min, delivery_fee, min_order, is_open,
+         latitude, longitude, opening_time, closing_time, auto_close_enabled,
+         is_ghost_restaurant, created_at
+    from public.vendors
+   where category = 'grocery'
+     and deleted_at is null;
+
+create or replace view public.food_items as
+  select vi.id, vi.vendor_id as restaurant_id, vi.name, vi.description,
+         vi.image_url, vi.price, vi.category, vi.is_available, vi.created_at,
+         vi.preparation_time, vi.is_vegetarian, vi.is_spicy, vi.discount_price,
+         vi.discount_end_time, vi.discount_quantity, vi.is_happy_hour,
+         vi.happy_hour_price, vi.happy_hour_start, vi.happy_hour_end
+    from public.vendor_items vi
+    join public.vendors v on v.id = vi.vendor_id
+   where v.category = 'food'
+     and v.deleted_at is null;
+
+create or replace view public.grocery_items as
+  select vi.id, vi.vendor_id as supermarket_id, vi.name, vi.description,
+         vi.image_url, vi.price, vi.category, vi.unit, vi.is_organic,
+         vi.is_available, vi.discount_price, vi.discount_end_time,
+         vi.created_at, vi.discount_quantity, vi.discount_percent,
+         vi.discount_start_time
+    from public.vendor_items vi
+    join public.vendors v on v.id = vi.vendor_id
+   where v.category = 'grocery'
+     and v.deleted_at is null;
+
+-- Commande sur une boutique supprimée : refusée. enforce_venue_open lit les
+-- vues ci-dessus, où la boutique n'apparaît plus : sans ce test, « boutique
+-- introuvable » laisserait passer la commande. Le reste de la fonction est
+-- inchangé.
+create or replace function public.enforce_venue_open()
+returns trigger
+language plpgsql
+security definer
+set search_path to ''
+as $fn$
+declare
+  v_is_open boolean;
+begin
+  if exists (
+       select 1 from public.vendors
+        where id in (new.restaurant_id, new.supermarket_id)
+          and deleted_at is not null
+     ) then
+    raise exception 'VENUE_CLOSED'
+      using hint = 'This shop no longer exists and cannot accept orders.';
+  end if;
+
+  if new.restaurant_id is not null then
+    select is_open into v_is_open from public.restaurants where id = new.restaurant_id;
+    if v_is_open = false then
+      raise exception 'VENUE_CLOSED'
+        using hint = 'The restaurant is closed and cannot accept orders right now.';
+    end if;
+  elsif new.supermarket_id is not null then
+    select is_open into v_is_open from public.supermarkets where id = new.supermarket_id;
+    if v_is_open = false then
+      raise exception 'VENUE_CLOSED'
+        using hint = 'The supermarket is closed and cannot accept orders right now.';
+    end if;
+  end if;
+  return new;
+end;
+$fn$;
+
+revoke execute on function public.enforce_venue_open() from public, anon, authenticated;
 
 
 -- ── 4. Blocages ────────────────────────────────────────────────────────────
