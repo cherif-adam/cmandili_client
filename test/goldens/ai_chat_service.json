@@ -1,0 +1,418 @@
+{
+  "signed out: function answers 500": [
+    "FUNCTION ai-chat {\"text\":\"pizza\",\"history\":[]}",
+    "REPLY user=false intent=null products=null",
+    "TEXT Notre assistant est momentanément indisponible — réessayez dans un instant 🔧"
+  ],
+  "signed out: network down": [
+    "FUNCTION ai-chat {\"text\":\"pizza\",\"history\":[]}",
+    "REPLY user=false intent=null products=null",
+    "TEXT Pas de connexion internet — vérifiez votre réseau et réessayez 📡"
+  ],
+  "signed out: payload is not an object": [
+    "FUNCTION ai-chat {\"text\":\"pizza\",\"history\":[]}",
+    "REPLY user=false intent=null products=null",
+    "TEXT Réponse inattendue de notre serveur — réessayez 🔁"
+  ],
+  "signed out: payload carries an error": [
+    "FUNCTION ai-chat {\"text\":\"pizza\",\"history\":[]}",
+    "REPLY user=false intent=null products=null",
+    "TEXT Notre assistant est momentanément indisponible — réessayez dans un instant 🔧"
+  ],
+  "signed out: greeting, signed out: nothing persisted": [
+    "FUNCTION ai-chat {\"text\":\"salut\",\"history\":[]}",
+    "REPLY user=false intent=greeting products=0",
+    "TEXT Bonjour ! 😊"
+  ],
+  "signed out: empty message falls back per language": [
+    "FUNCTION ai-chat {\"text\":\"hi\",\"history\":[]}",
+    "REPLY user=false intent=general products=0",
+    "TEXT How can I help you? 😊"
+  ],
+  "signed out: no intent reads as general": [
+    "FUNCTION ai-chat {\"text\":\"ok\",\"history\":[]}",
+    "REPLY user=false intent=general products=0",
+    "TEXT D'accord"
+  ],
+  "signed out: history is forwarded as given": [
+    "FUNCTION ai-chat {\"text\":\"et en dessert ?\",\"history\":[{\"role\":\"user\",\"parts\":[{\"text\":\"pizza\"}]},{\"role\":\"model\",\"parts\":[{\"text\":\"Voici des pizzas\"}]}]}",
+    "REPLY user=false intent=greeting products=0",
+    "TEXT Bien sûr"
+  ],
+  "signed out: dish search with every filter": [
+    "FUNCTION ai-chat {\"text\":\"burger épicé\",\"history\":[]}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&is_spicy=eq.true&is_vegetarian=eq.true&price=lte.20&price=gte.5&preparation_time=lte.20&or=(category.ilike.%burger%,name.ilike.%burger%,category.ilike.%sandwich%,name.ilike.%sandwich%,category.ilike.%chapati%,name.ilike.%chapati%,category.ilike.%makloub%,name.ilike.%makloub%,category.ilike.%malfouf%,name.ilike.%malfouf%,category.ilike.%mlewi%,name.ilike.%mlewi%,category.ilike.%mlawi%,name.ilike.%mlawi%,category.ilike.%tabouna%,name.ilike.%tabouna%,category.ilike.%cornet%,name.ilike.%cornet%,category.ilike.%baguette farcie%,name.ilike.%baguette farcie%,category.ilike.%tacos%,name.ilike.%tacos%)&or=(name.ilike.%poulet%,description.ilike.%poulet%,name.ilike.%frites%,description.ilike.%frites%,name.ilike.%viande%,description.ilike.%viande%,name.ilike.%thon%,description.ilike.%thon%,name.ilike.%œufs%,description.ilike.%œufs%,name.ilike.%légumineuses%,description.ilike.%légumineuses%,name.ilike.%protéine%,description.ilike.%protéine%)&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=search_food products=2",
+    "TEXT Voici ce que je propose 👇",
+    "CARD food | f1 | Burger poulet | Bon Burger poulet | 11.5 | TND | https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/food/burger.png | Burger Lab | r2 | 0.0 | 30 | 2.5",
+    "CARD food | f2 | Chapati | Bon Chapati | 7.0 | TND | https://cdn.example/chapati.png | Seven Pizza | r1 | 4.5 | 25 | 3.0"
+  ],
+  "signed out: dish search relaxes its keyword": [
+    "FUNCTION ai-chat {\"text\":\"margherita\",\"history\":[]}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%pizza%,name.ilike.%pizza%)&or=(name.ilike.%margherita%,description.ilike.%margherita%)&order=price.asc.nullslast&limit=20",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%pizza%,name.ilike.%pizza%)&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=search_food products=1",
+    "TEXT Voici ce que je propose 👇",
+    "",
+    "Je n'ai pas trouvé exactement ça — voici ce qui est disponible en ce moment dans les restaurants ouverts 👇",
+    "CARD food | f4 | Pizza 4 fromages | Bon Pizza 4 fromages | 12.0 | TND | null | Seven Pizza | r1 | 4.5 | 25 | 3.0"
+  ],
+  "signed out: dish search relaxes down to anything": [
+    "FUNCTION ai-chat {\"text\":\"couscous royal\",\"history\":[]}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%couscous%,name.ilike.%couscous%)&or=(name.ilike.%royal%,description.ilike.%royal%)&order=price.asc.nullslast&limit=20",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%couscous%,name.ilike.%couscous%)&order=price.asc.nullslast&limit=20",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=search_food products=1",
+    "TEXT Voici ce que je propose 👇",
+    "",
+    "Je n'ai pas trouvé exactement ça — voici ce qui est disponible en ce moment dans les restaurants ouverts 👇",
+    "CARD food | f5 | Makloub | Bon Makloub | 12.0 | TND | null | Burger Lab | r2 | 0.0 | 30 | 2.5"
+  ],
+  "signed out: dish search finds nothing within budget (en)": [
+    "FUNCTION ai-chat {\"text\":\"cheap pizza\",\"history\":[]}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&price=lte.8&or=(category.ilike.%pizza%,name.ilike.%pizza%)&order=price.asc.nullslast&limit=20",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&price=lte.8&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=search_food products=0",
+    "TEXT Nothing under 8 TND in the restaurants open right now. A slightly wider budget should find something 🍽️"
+  ],
+  "signed out: vegetarian health goal forces the flag": [
+    "FUNCTION ai-chat {\"text\":\"je suis végétarien\",\"history\":[]}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&is_vegetarian=eq.true&or=(name.ilike.%légumes%,description.ilike.%légumes%,name.ilike.%salade%,description.ilike.%salade%,name.ilike.%végétarien%,description.ilike.%végétarien%,name.ilike.%fromage%,description.ilike.%fromage%,name.ilike.%œufs%,description.ilike.%œufs%)&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=search_food products=1",
+    "TEXT Voici ce que je propose 👇",
+    "CARD food | f6 | Salade | Bon Salade | 12.0 | TND | null | Seven Pizza | r1 | 4.5 | 25 | 3.0"
+  ],
+  "signed out: diet goal without keyword": [
+    "FUNCTION ai-chat {\"text\":\"régime\",\"history\":[]}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(name.ilike.%grillé%,description.ilike.%grillé%,name.ilike.%salade%,description.ilike.%salade%,name.ilike.%poulet%,description.ilike.%poulet%,name.ilike.%poisson%,description.ilike.%poisson%,name.ilike.%légumes%,description.ilike.%légumes%,name.ilike.%light%,description.ilike.%light%,name.ilike.%mchwi%,description.ilike.%mchwi%)&order=price.asc.nullslast&limit=20",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=search_food products=1",
+    "TEXT Voici ce que je propose 👇",
+    "",
+    "Je n'ai pas trouvé exactement ça — voici ce qui est disponible en ce moment dans les restaurants ouverts 👇",
+    "CARD food | f7 | Soupe | Bon Soupe | 12.0 | TND | null | Seven Pizza | r1 | 4.5 | 25 | 3.0"
+  ],
+  "signed out: dish query fails (tn)": [
+    "FUNCTION ai-chat {\"text\":\"pizza\",\"history\":[]}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%pizza%,name.ilike.%pizza%)&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=null products=null",
+    "TEXT Ma najjemtech nothel lel catalogue — 3awed ba3d chwaya 🔧"
+  ],
+  "signed out: venues selling a concept": [
+    "FUNCTION ai-chat {\"text\":\"une pizzeria\",\"history\":[]}",
+    "GET food_items?select=name,category,price,discount_price,restaurant_id,restaurants!inner(id,name,description,image_url,rating,review_count,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%pizza%,name.ilike.%pizza%,category.ilike.%four à bois%,name.ilike.%four à bois%)&limit=400",
+    "REPLY user=false intent=restaurant_search products=2",
+    "TEXT Voici ce que je propose 👇",
+    "CARD restaurant | r2 | Burger Lab | Pizza, Sandwiches | 0.0 | TND | https://cdn.example/burger.png | Burger Lab | r2 | 0.0 | 30 | 2.5",
+    "CARD restaurant | r1 | Seven Pizza | Pizzas, Pizza Thon | 0.0 | TND | https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/restaurants/seven.png | Seven Pizza | r1 | 4.5 | 25 | 3.0"
+  ],
+  "signed out: venues: nothing to match, best-rated list": [
+    "FUNCTION ai-chat {\"text\":\"un bon resto\",\"history\":[]}",
+    "GET restaurants?select=id,name,description,image_url,rating,review_count,delivery_time_min,delivery_fee,is_open,categories&is_open=eq.true&order=rating.desc.nullslast,review_count.desc.nullslast&limit=15",
+    "REPLY user=false intent=restaurant_search products=2",
+    "TEXT Voici ce que je propose 👇",
+    "CARD restaurant | r1 | Seven Pizza | Pizzeria | 0.0 | TND | https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/restaurants/seven.png | Seven Pizza | r1 | 4.5 | 25 | 3.0",
+    "CARD restaurant | r2 | Burger Lab | null | 0.0 | TND | https://cdn.example/burger.png | Burger Lab | r2 | 0.0 | 30 | 2.5"
+  ],
+  "signed out: venues relax down to the list": [
+    "FUNCTION ai-chat {\"text\":\"resto japonais\",\"history\":[]}",
+    "GET food_items?select=name,category,price,discount_price,restaurant_id,restaurants!inner(id,name,description,image_url,rating,review_count,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&price=gte.10&or=(category.ilike.%sushi%,name.ilike.%sushi%,category.ilike.%maki%,name.ilike.%maki%)&limit=400",
+    "GET food_items?select=name,category,price,discount_price,restaurant_id,restaurants!inner(id,name,description,image_url,rating,review_count,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&price=gte.10&or=(category.ilike.%sushi%,name.ilike.%sushi%)&limit=400",
+    "GET restaurants?select=id,name,description,image_url,rating,review_count,delivery_time_min,delivery_fee,is_open,categories&is_open=eq.true&order=rating.desc.nullslast,review_count.desc.nullslast&limit=15",
+    "REPLY user=false intent=restaurant_search products=1",
+    "TEXT Voici ce que je propose 👇",
+    "",
+    "Je n'ai pas trouvé exactement ça — voici les restaurants ouverts en ce moment 👇",
+    "CARD restaurant | r2 | Burger Lab | null | 0.0 | TND | https://cdn.example/burger.png | Burger Lab | r2 | 0.0 | 30 | 2.5"
+  ],
+  "signed out: venues: none at all (ar)": [
+    "FUNCTION ai-chat {\"text\":\"مطعم\",\"history\":[]}",
+    "GET food_items?select=name,category,price,discount_price,restaurant_id,restaurants!inner(id,name,description,image_url,rating,review_count,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%burger%,name.ilike.%burger%)&limit=400",
+    "GET restaurants?select=id,name,description,image_url,rating,review_count,delivery_time_min,delivery_fee,is_open,categories&is_open=eq.true&order=rating.desc.nullslast,review_count.desc.nullslast&limit=15",
+    "REPLY user=false intent=restaurant_search products=0",
+    "TEXT لا أجد ما يطابق طلبك في المطاعم المفتوحة حاليًا. يُرجى تجربة طبق آخر أو العودة لاحقًا 🍽️"
+  ],
+  "signed out: venue query fails": [
+    "FUNCTION ai-chat {\"text\":\"resto\",\"history\":[]}",
+    "GET restaurants?select=id,name,description,image_url,rating,review_count,delivery_time_min,delivery_fee,is_open,categories&is_open=eq.true&order=rating.desc.nullslast,review_count.desc.nullslast&limit=15",
+    "REPLY user=false intent=null products=null",
+    "TEXT Je n'ai pas pu interroger le catalogue — réessayez dans un instant 🔧"
+  ],
+  "signed out: shop search in the catalogue the function names": [
+    "FUNCTION ai-chat {\"text\":\"des roses\",\"history\":[]}",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.flowers&vendors.is_open=eq.true&price=lte.50&price=gte.10&category=ilike.%Bouquets%&or=(name.ilike.%rose%,description.ilike.%rose%)&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=shop_search products=2",
+    "TEXT Voici ce que je propose 👇",
+    "CARD shop | s1 | Bouquet de roses | Joli Bouquet de roses | 18.0 | TND | https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/vendor_items/s1.jpg | Fleurs du Lac | v1 | 4.8 | null | null",
+    "CARD shop | s2 | Rose rouge | Joli Rose rouge | 5.0 | TND | https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/vendor_items/s2.jpg | Fleurs du Lac | v1 | 4.8 | null | null"
+  ],
+  "signed out: shop catalogue inferred from the words": [
+    "FUNCTION ai-chat {\"text\":\"des croquettes pour mon chien\",\"history\":[]}",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.pets&vendors.is_open=eq.true&or=(name.ilike.%croquettes%,description.ilike.%croquettes%)&order=price.asc.nullslast&limit=20",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.pets&vendors.is_open=eq.true&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=shop_search products=1",
+    "TEXT Voici ce que je propose 👇",
+    "",
+    "Je n'ai pas trouvé exactement ça, mais voici ce que l'animalerie a en rayon 👇",
+    "CARD shop | s3 | Croquettes 2kg | Joli Croquettes 2kg | 20.0 | TND | https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/vendor_items/s3.jpg | Fleurs du Lac | v1 | 4.8 | null | null"
+  ],
+  "signed out: shop catalogue defaults to grocery": [
+    "FUNCTION ai-chat {\"text\":\"bonjour\",\"history\":[]}",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.grocery&vendors.is_open=eq.true&category=ilike.%Laitier%&order=price.asc.nullslast&limit=20",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.grocery&vendors.is_open=eq.true&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=shop_search products=0",
+    "TEXT Rien de disponible côté supermarché pour le moment — soit la boutique est fermée, soit elle n'a pas cet article. Je peux regarder côté restaurant si vous voulez."
+  ],
+  "signed out: shop search relaxes (en)": [
+    "FUNCTION ai-chat {\"text\":\"a charger\",\"history\":[]}",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.electronics&vendors.is_open=eq.true&or=(name.ilike.%charger%,description.ilike.%charger%)&order=price.asc.nullslast&limit=20",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.electronics&vendors.is_open=eq.true&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=shop_search products=1",
+    "TEXT Looking",
+    "",
+    "I could not find exactly that, but here is what the electronics shop has in stock 👇",
+    "CARD shop | s4 | Câble USB-C | Joli Câble USB-C | 20.0 | TND | https://hoqlxxtphskgxktqjpfu.supabase.co/storage/v1/object/public/vendor_items/s4.jpg | Fleurs du Lac | v1 | 4.8 | null | null"
+  ],
+  "signed out: shop search finds nothing: points at a neighbour": [
+    "FUNCTION ai-chat {\"text\":\"gâteau\",\"history\":[]}",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.bakery&vendors.is_open=eq.true&category=ilike.%Gâteaux%&or=(name.ilike.%anniversaire%,description.ilike.%anniversaire%)&order=price.asc.nullslast&limit=20",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.bakery&vendors.is_open=eq.true&category=ilike.%Gâteaux%&order=price.asc.nullslast&limit=20",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.bakery&vendors.is_open=eq.true&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=shop_search products=0",
+    "TEXT Rien de disponible côté pâtisserie pour le moment — soit la boutique est fermée, soit elle n'a pas cet article. Je peux regarder côté restaurant si vous voulez."
+  ],
+  "signed out: shop query fails": [
+    "FUNCTION ai-chat {\"text\":\"lait\",\"history\":[]}",
+    "GET vendor_items?select=id,name,description,price,discount_price,image_url,category,vendors!inner(id,name,image_url,rating,is_open,category)&is_available=eq.true&vendors.category=eq.grocery&vendors.is_open=eq.true&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=null products=null",
+    "TEXT Je n'ai pas pu interroger le catalogue — réessayez dans un instant 🔧"
+  ],
+  "signed out: colis, signed out": [
+    "FUNCTION ai-chat {\"text\":\"envoyer un colis\",\"history\":[]}",
+    "REPLY user=false intent=delivery_request products=1",
+    "TEXT Pour envoyer un colis…",
+    "CARD delivery | p2p_delivery | Livraison P2P | Envoyez vos colis à vos proches via nos livreurs. Suivi en temps réel ! | 0.0 | TND | null | Amana Courier | null | null | null | null"
+  ],
+  "signed out: order tracking, signed out": [
+    "FUNCTION ai-chat {\"text\":\"où est ma commande\",\"history\":[]}",
+    "REPLY user=false intent=track_order products=0",
+    "TEXT Je vérifie ça !",
+    "",
+    "Vous n'avez pas de commande en cours actuellement 🙂"
+  ],
+  "signed out: facture question, signed out": [
+    "FUNCTION ai-chat {\"text\":\"payer ma facture STEG\",\"history\":[]}",
+    "REPLY user=false intent=general products=1",
+    "TEXT Pour payer une facture…",
+    "CARD facture | facture_payment | Payer une facture | STEG, SONEDE, Topnet… un livreur collecte le montant et paie pour vous. Frais de service : 5.000 TND. | 0.0 | TND | null | Amana Facture | null | null | null | null"
+  ],
+  "signed out: general, not a facture": [
+    "FUNCTION ai-chat {\"text\":\"raconte une blague\",\"history\":[]}",
+    "REPLY user=false intent=general products=0",
+    "TEXT Je suis là pour vos commandes 🙂"
+  ],
+  "signed out: history, signed out": [
+    ""
+  ],
+  "signed out: clear, signed out": [
+    "cleared=false"
+  ],
+  "signed out: active order, signed out": [
+    "active=false"
+  ],
+  "signed in: greeting, signed in: the turn is saved": [
+    "FUNCTION ai-chat {\"text\":\"salut\",\"history\":[]}",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"salut\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Bonjour ! 😊\",\"is_user\":false}]",
+    "REPLY user=false intent=greeting products=0",
+    "TEXT Bonjour ! 😊"
+  ],
+  "signed in: a picture is sent with its MIME type": [
+    "FUNCTION ai-chat {\"text\":\"\",\"history\":[],\"imageBase64\":\"AQIDBAU=\",\"mimeType\":\"image/png\"}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%burger%,name.ilike.%burger%)&order=price.asc.nullslast&limit=20",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"[Image] Identify this\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Voici ce que je propose 👇\",\"is_user\":false}]",
+    "REPLY user=false intent=search_food products=1",
+    "TEXT Voici ce que je propose 👇",
+    "CARD food | f14 | Burger | Bon Burger | 12.0 | TND | null | Burger Lab | r2 | 0.0 | 30 | 2.5"
+  ],
+  "signed in: a jpeg picture with a caption": [
+    "FUNCTION ai-chat {\"text\":\"c'est quoi ?\",\"history\":[],\"imageBase64\":\"AQIDBAU=\",\"mimeType\":\"image/jpeg\"}",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"[Image] c'est quoi ?\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Un burger !\",\"is_user\":false}]",
+    "REPLY user=false intent=greeting products=0",
+    "TEXT Un burger !"
+  ],
+  "signed in: webp, gif and unknown extensions": [
+    "FUNCTION ai-chat {\"text\":\"x\",\"history\":[],\"imageBase64\":\"AQIDBAU=\",\"mimeType\":\"image/webp\"}",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"[Image] x\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"ok\",\"is_user\":false}]",
+    "REPLY user=false intent=greeting products=0",
+    "TEXT ok"
+  ],
+  "signed in: gif picture": [
+    "FUNCTION ai-chat {\"text\":\"x\",\"history\":[],\"imageBase64\":\"AQIDBAU=\",\"mimeType\":\"image/gif\"}",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"[Image] x\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"ok\",\"is_user\":false}]",
+    "REPLY user=false intent=greeting products=0",
+    "TEXT ok"
+  ],
+  "signed in: unknown picture extension": [
+    "FUNCTION ai-chat {\"text\":\"x\",\"history\":[],\"imageBase64\":\"AQIDBAU=\",\"mimeType\":\"image/jpeg\"}",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"[Image] x\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"ok\",\"is_user\":false}]",
+    "REPLY user=false intent=greeting products=0",
+    "TEXT ok"
+  ],
+  "signed in: a failed query persists nothing": [
+    "FUNCTION ai-chat {\"text\":\"pizza\",\"history\":[]}",
+    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%pizza%,name.ilike.%pizza%)&order=price.asc.nullslast&limit=20",
+    "REPLY user=false intent=null products=null",
+    "TEXT Je n'ai pas pu interroger le catalogue — réessayez dans un instant 🔧"
+  ],
+  "signed in: colis with a saved recipient": [
+    "FUNCTION ai-chat {\"text\":\"envoyer un colis\",\"history\":[]}",
+    "GET saved_recipients?select=name&user_id=eq.u1&order=created_at.desc.nullslast&limit=1",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"envoyer un colis\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Pour envoyer un colis…\\n\\nD'ailleurs, tu as déjà Maman enregistré comme destinataire — tu peux lui renvoyer un colis en un clic depuis la section Colis 📦\",\"is_user\":false}]",
+    "REPLY user=false intent=delivery_request products=1",
+    "TEXT Pour envoyer un colis…",
+    "",
+    "D'ailleurs, tu as déjà Maman enregistré comme destinataire — tu peux lui renvoyer un colis en un clic depuis la section Colis 📦",
+    "CARD delivery | p2p_delivery | Livraison P2P | Envoyez vos colis à vos proches via nos livreurs. Suivi en temps réel ! | 0.0 | TND | null | Amana Courier | null | null | null | null"
+  ],
+  "signed in: colis without a saved recipient": [
+    "FUNCTION ai-chat {\"text\":\"envoyer un colis\",\"history\":[]}",
+    "GET saved_recipients?select=name&user_id=eq.u1&order=created_at.desc.nullslast&limit=1",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"envoyer un colis\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Pour envoyer un colis…\",\"is_user\":false}]",
+    "REPLY user=false intent=delivery_request products=1",
+    "TEXT Pour envoyer un colis…",
+    "CARD delivery | p2p_delivery | Livraison P2P | Envoyez vos colis à vos proches via nos livreurs. Suivi en temps réel ! | 0.0 | TND | null | Amana Courier | null | null | null | null"
+  ],
+  "signed in: colis, recipient lookup fails": [
+    "FUNCTION ai-chat {\"text\":\"envoyer un colis\",\"history\":[]}",
+    "GET saved_recipients?select=name&user_id=eq.u1&order=created_at.desc.nullslast&limit=1",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"envoyer un colis\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Pour envoyer un colis…\",\"is_user\":false}]",
+    "REPLY user=false intent=delivery_request products=1",
+    "TEXT Pour envoyer un colis…",
+    "CARD delivery | p2p_delivery | Livraison P2P | Envoyez vos colis à vos proches via nos livreurs. Suivi en temps réel ! | 0.0 | TND | null | Amana Courier | null | null | null | null"
+  ],
+  "signed in: tracking a restaurant order": [
+    "FUNCTION ai-chat {\"text\":\"où est ma commande\",\"history\":[]}",
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "GET restaurants?select=name&id=eq.r1",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"où est ma commande\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Je vérifie ça !\\n\\n📦 Commande #BBBB2222 — Seven Pizza\\nStatut : En préparation 👨‍🍳\",\"is_user\":false}]",
+    "REPLY user=false intent=track_order products=0",
+    "TEXT Je vérifie ça !",
+    "",
+    "📦 Commande #BBBB2222 — Seven Pizza",
+    "Statut : En préparation 👨‍🍳"
+  ],
+  "signed in: tracking a facture picked up": [
+    "FUNCTION ai-chat {\"text\":\"ma facture ?\",\"history\":[]}",
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"ma facture ?\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Je regarde\\n\\n🧾 Facture #CCCC3333\\nStatut : Espèces collectées par le livreur 💵\",\"is_user\":false}]",
+    "REPLY user=false intent=track_order products=0",
+    "TEXT Je regarde",
+    "",
+    "🧾 Facture #CCCC3333",
+    "Statut : Espèces collectées par le livreur 💵"
+  ],
+  "signed in: tracking a supermarket order on its way": [
+    "FUNCTION ai-chat {\"text\":\"commande ?\",\"history\":[]}",
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "GET supermarkets?select=name&id=eq.s9",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"commande ?\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Je regarde\\n\\n📦 Commande #DDDD4444 — Monoprix\\nStatut : En route vers vous 🛵\",\"is_user\":false}]",
+    "REPLY user=false intent=track_order products=0",
+    "TEXT Je regarde",
+    "",
+    "📦 Commande #DDDD4444 — Monoprix",
+    "Statut : En route vers vous 🛵"
+  ],
+  "signed in: tracking: every order is finished": [
+    "FUNCTION ai-chat {\"text\":\"commande ?\",\"history\":[]}",
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"commande ?\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Je regarde\\n\\nVous n'avez pas de commande en cours actuellement 🙂\",\"is_user\":false}]",
+    "REPLY user=false intent=track_order products=0",
+    "TEXT Je regarde",
+    "",
+    "Vous n'avez pas de commande en cours actuellement 🙂"
+  ],
+  "signed in: tracking: unknown status shown raw": [
+    "FUNCTION ai-chat {\"text\":\"commande ?\",\"history\":[]}",
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"commande ?\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Je regarde\\n\\n🧾 Facture #GGGG7777\\nStatut : En attente qu'un livreur se charge de votre facture 🧾\",\"is_user\":false}]",
+    "REPLY user=false intent=track_order products=0",
+    "TEXT Je regarde",
+    "",
+    "🧾 Facture #GGGG7777",
+    "Statut : En attente qu'un livreur se charge de votre facture 🧾"
+  ],
+  "signed in: tracking: venue lookup fails": [
+    "FUNCTION ai-chat {\"text\":\"commande ?\",\"history\":[]}",
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "GET restaurants?select=name&id=eq.r1",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"commande ?\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Je regarde\\n\\nImpossible de récupérer le statut de votre commande pour le moment 😕\",\"is_user\":false}]",
+    "REPLY user=false intent=track_order products=0",
+    "TEXT Je regarde",
+    "",
+    "Impossible de récupérer le statut de votre commande pour le moment 😕"
+  ],
+  "signed in: tracking: the orders cannot be read": [
+    "FUNCTION ai-chat {\"text\":\"commande ?\",\"history\":[]}",
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"commande ?\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Je regarde\\n\\nVous n'avez pas de commande en cours actuellement 🙂\",\"is_user\":false}]",
+    "REPLY user=false intent=track_order products=0",
+    "TEXT Je regarde",
+    "",
+    "Vous n'avez pas de commande en cours actuellement 🙂"
+  ],
+  "signed in: facture question with a usual bill": [
+    "FUNCTION ai-chat {\"text\":\"je veux payer ma fatoura\",\"history\":[]}",
+    "GET orders?select=bill_type&user_id=eq.u1&order_type=eq.facture&bill_type=not.is.null&order=created_at.desc.nullslast&limit=20",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"je veux payer ma fatoura\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Pour payer une facture…\\n\\nTu payes souvent ta facture STEG par ici — dis-moi si c'est celle-ci 👍\",\"is_user\":false}]",
+    "REPLY user=false intent=general products=1",
+    "TEXT Pour payer une facture…",
+    "",
+    "Tu payes souvent ta facture STEG par ici — dis-moi si c'est celle-ci 👍",
+    "CARD facture | facture_payment | Payer une facture | STEG, SONEDE, Topnet… un livreur collecte le montant et paie pour vous. Frais de service : 5.000 TND. | 0.0 | TND | null | Amana Facture | null | null | null | null"
+  ],
+  "signed in: facture question, never paid one": [
+    "FUNCTION ai-chat {\"text\":\"invoice\",\"history\":[]}",
+    "GET orders?select=bill_type&user_id=eq.u1&order_type=eq.facture&bill_type=not.is.null&order=created_at.desc.nullslast&limit=20",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"invoice\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"To pay a bill…\",\"is_user\":false}]",
+    "REPLY user=false intent=general products=1",
+    "TEXT To pay a bill…",
+    "CARD facture | facture_payment | Payer une facture | STEG, SONEDE, Topnet… un livreur collecte le montant et paie pour vous. Frais de service : 5.000 TND. | 0.0 | TND | null | Amana Facture | null | null | null | null"
+  ],
+  "signed in: facture question, the lookup fails": [
+    "FUNCTION ai-chat {\"text\":\"topnet bill\",\"history\":[]}",
+    "GET orders?select=bill_type&user_id=eq.u1&order_type=eq.facture&bill_type=not.is.null&order=created_at.desc.nullslast&limit=20",
+    "POST chat_messages?columns=\"user_id\",\"text\",\"is_user\" [{\"user_id\":\"u1\",\"text\":\"topnet bill\",\"is_user\":true},{\"user_id\":\"u1\",\"text\":\"Pour payer…\",\"is_user\":false}]",
+    "REPLY user=false intent=general products=1",
+    "TEXT Pour payer…",
+    "CARD facture | facture_payment | Payer une facture | STEG, SONEDE, Topnet… un livreur collecte le montant et paie pour vous. Frais de service : 5.000 TND. | 0.0 | TND | null | Amana Facture | null | null | null | null"
+  ],
+  "signed in: history, signed in": [
+    "GET chat_messages?select=text,is_user,created_at&user_id=eq.u1&order=created_at.desc.nullslast,is_user.asc.nullslast&limit=40",
+    "REPLY user=false intent=null products=null",
+    "TEXT Voici des pizzas",
+    "REPLY user=true intent=null products=null",
+    "TEXT pizza",
+    "REPLY user=false intent=null products=null",
+    "TEXT "
+  ],
+  "signed in: history cannot be read": [
+    "GET chat_messages?select=text,is_user,created_at&user_id=eq.u1&order=created_at.desc.nullslast,is_user.asc.nullslast&limit=40",
+    ""
+  ],
+  "signed in: clear, signed in": [
+    "DELETE chat_messages?user_id=eq.u1",
+    "cleared=true"
+  ],
+  "signed in: clear fails": [
+    "DELETE chat_messages?user_id=eq.u1",
+    "cleared=false"
+  ],
+  "signed in: active order, signed in": [
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "active=true"
+  ],
+  "signed in: no active order, signed in": [
+    "GET orders?select=id,status,order_type,restaurant_id,supermarket_id&user_id=eq.u1&order=created_at.desc.nullslast&limit=10",
+    "active=false"
+  ]
+}
