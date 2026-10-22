@@ -34,6 +34,7 @@ class DeletionInfoCard extends StatelessWidget {
             lines: [
               l.deleteAccountDeletedContact,
               l.deleteAccountDeletedAddresses,
+              l.deleteAccountDeletedOrderDetails,
               l.deleteAccountDeletedPayment,
               l.deleteAccountDeletedChat,
               l.deleteAccountDeletedDevices,

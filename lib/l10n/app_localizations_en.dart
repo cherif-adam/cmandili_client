@@ -2215,10 +2215,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your history with the Amana assistant';
 
   @override
-  String get deleteAccountKeptOrders => 'Your order and invoice history';
+  String get deleteAccountKeptOrders =>
+      'Your orders, for accounting: dates, status, items, amounts, fees and payments, with nothing that identifies you';
 
   @override
-  String get deleteAccountKeptColis => 'The handover receipts of your parcels';
+  String get deleteAccountKeptColis =>
+      'The handover proof of your parcels (photos, GPS, driver\'s plate and ID), for 30 days after your last order, then it is erased';
 
   @override
   String get deleteAccountAppleHint =>
@@ -2227,4 +2229,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountDoneBody =>
       'Your account has been deleted. Thank you for using Amana.';
+
+  @override
+  String get deleteAccountDeletedOrderDetails =>
+      'In your past orders: addresses, GPS positions, phone numbers, names, notes, voice messages and bill photos, including the name and phone of your parcel recipients';
 }

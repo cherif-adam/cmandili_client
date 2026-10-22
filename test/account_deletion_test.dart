@@ -6,6 +6,7 @@ import 'package:cmandili_mobile/features/account_deletion/presentation/delete_ac
 import 'package:cmandili_mobile/features/account_deletion/presentation/delete_account/widgets/blocker_text.dart';
 import 'package:cmandili_mobile/features/account_deletion/presentation/delete_account/widgets/deletion_blockers_card.dart';
 import 'package:cmandili_mobile/features/account_deletion/presentation/delete_account/widgets/deletion_confirm_form.dart';
+import 'package:cmandili_mobile/features/account_deletion/presentation/delete_account/widgets/deletion_info_card.dart';
 
 /// « Supprimer mon compte » : ce que l'app décide elle-même. La suppression
 /// et la vérification des blocages sont côté serveur (testées par
@@ -154,6 +155,14 @@ void main() {
       final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(button.onPressed, isNull);
       expect(find.textContaining('Contactez l\'équipe Amana'), findsOneWidget);
+    });
+
+    testWidgets('la carte dit ce qui part et ce qui reste, comme le serveur', (tester) async {
+      await tester.pumpWidget(host(const DeletionInfoCard()));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Dans vos anciennes commandes'), findsOneWidget);
+      expect(find.textContaining('30 jours après votre dernière commande'), findsOneWidget);
+      expect(find.textContaining('sans rien qui vous désigne'), findsOneWidget);
     });
   });
 }

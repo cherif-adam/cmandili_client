@@ -2199,14 +2199,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get deleteAccountDeletedChat => 'سجل محادثاتك مع مساعد أمانة';
 
   @override
-  String get deleteAccountKeptOrders => 'سجل طلباتك وفواتيرك';
+  String get deleteAccountKeptOrders =>
+      'طلباتك لأغراض المحاسبة: التواريخ والحالة والمنتجات والمبالغ والرسوم والمدفوعات، دون أي معلومة تدل عليك';
 
   @override
-  String get deleteAccountKeptColis => 'إيصالات استلام طرودك';
+  String get deleteAccountKeptColis =>
+      'إثبات تسليم طرودك (الصور وموقع GPS ولوحة السائق وهويته) لمدة 30 يوماً بعد آخر طلب لك، ثم يُحذف';
 
   @override
   String get deleteAccountAppleHint => 'لأمانك، ستعيد تسجيل الدخول عبر Apple.';
 
   @override
   String get deleteAccountDoneBody => 'تم حذف حسابك. شكراً لاستخدامك أمانة.';
+
+  @override
+  String get deleteAccountDeletedOrderDetails =>
+      'في طلباتك السابقة: العناوين ومواقع GPS وأرقام الهواتف والأسماء والملاحظات والرسائل الصوتية وصور الفواتير، بما في ذلك اسم وهاتف مستلمي طرودك';
 }

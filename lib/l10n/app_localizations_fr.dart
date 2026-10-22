@@ -2254,11 +2254,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deleteAccountKeptOrders =>
-      'L\'historique de vos commandes et de vos factures';
+      'Vos commandes, pour la comptabilité : dates, statut, articles, montants, frais et paiements, sans rien qui vous désigne';
 
   @override
   String get deleteAccountKeptColis =>
-      'Les bons de prise en charge de vos colis';
+      'La preuve de remise de vos colis (photos, GPS, plaque et pièce d\'identité du livreur), 30 jours après votre dernière commande, puis elle est effacée';
 
   @override
   String get deleteAccountAppleHint =>
@@ -2267,4 +2267,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get deleteAccountDoneBody =>
       'Votre compte a été supprimé. Merci d\'avoir utilisé Amana.';
+
+  @override
+  String get deleteAccountDeletedOrderDetails =>
+      'Dans vos anciennes commandes : adresses, positions GPS, téléphones, noms, notes, messages vocaux et photos de facture, y compris le nom et le téléphone des destinataires de vos colis';
 }

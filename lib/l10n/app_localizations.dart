@@ -4088,13 +4088,13 @@ abstract class AppLocalizations {
   /// No description provided for @deleteAccountKeptOrders.
   ///
   /// In en, this message translates to:
-  /// **'Your order and invoice history'**
+  /// **'Your orders, for accounting: dates, status, items, amounts, fees and payments, with nothing that identifies you'**
   String get deleteAccountKeptOrders;
 
   /// No description provided for @deleteAccountKeptColis.
   ///
   /// In en, this message translates to:
-  /// **'The handover receipts of your parcels'**
+  /// **'The handover proof of your parcels (photos, GPS, driver\'s plate and ID), for 30 days after your last order, then it is erased'**
   String get deleteAccountKeptColis;
 
   /// No description provided for @deleteAccountAppleHint.
@@ -4108,6 +4108,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your account has been deleted. Thank you for using Amana.'**
   String get deleteAccountDoneBody;
+
+  /// No description provided for @deleteAccountDeletedOrderDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'In your past orders: addresses, GPS positions, phone numbers, names, notes, voice messages and bill photos, including the name and phone of your parcel recipients'**
+  String get deleteAccountDeletedOrderDetails;
 }
 
 class _AppLocalizationsDelegate

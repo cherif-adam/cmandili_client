@@ -726,8 +726,9 @@
     "deleteAccountDeletedAddresses": "عناوينك والمستلمون المحفوظون",
     "deleteAccountDeletedPayment": "بطاقات الدفع المحفوظة",
     "deleteAccountDeletedChat": "سجل محادثاتك مع مساعد أمانة",
-    "deleteAccountKeptOrders": "سجل طلباتك وفواتيرك",
-    "deleteAccountKeptColis": "إيصالات استلام طرودك",
+    "deleteAccountKeptOrders": "طلباتك لأغراض المحاسبة: التواريخ والحالة والمنتجات والمبالغ والرسوم والمدفوعات، دون أي معلومة تدل عليك",
+    "deleteAccountKeptColis": "إثبات تسليم طرودك (الصور وموقع GPS ولوحة السائق وهويته) لمدة 30 يوماً بعد آخر طلب لك، ثم يُحذف",
     "deleteAccountAppleHint": "لأمانك، ستعيد تسجيل الدخول عبر Apple.",
-    "deleteAccountDoneBody": "تم حذف حسابك. شكراً لاستخدامك أمانة."
+    "deleteAccountDoneBody": "تم حذف حسابك. شكراً لاستخدامك أمانة.",
+    "deleteAccountDeletedOrderDetails": "في طلباتك السابقة: العناوين ومواقع GPS وأرقام الهواتف والأسماء والملاحظات والرسائل الصوتية وصور الفواتير، بما في ذلك اسم وهاتف مستلمي طرودك"
 }
