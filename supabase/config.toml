@@ -42,11 +42,11 @@ verify_jwt = true
 [functions.delete-account]
 verify_jwt = true
 
-# purge-colis-proofs: appelée la nuit par pg_cron (supabase/scripts/
-# 20261022_schedule_colis_proof_purge.sql), jamais par une app. verify_jwt
+# purge-deleted-accounts: appelée la nuit par pg_cron (supabase/scripts/
+# 20261022_schedule_account_purge.sql), jamais par une app. verify_jwt
 # accepte la clé anon, publique : la fonction exige EN PLUS l'en-tête
 # x-cron-secret, égal au secret PURGE_CRON_SECRET.
-[functions.purge-colis-proofs]
+[functions.purge-deleted-accounts]
 verify_jwt = true
 
 # ── Auth email templates ─────────────────────────────────────────────────────

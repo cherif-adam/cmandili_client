@@ -21,7 +21,7 @@
 //   6. retrait du Stockage (non transactionnel) des fichiers que la fonction
 //      SQL a listés : photo de profil, photos de facture, messages vocaux.
 //      Les preuves de remise colis restent 30 jours : c'est la purge
-//      planifiée (purge-colis-proofs) qui les retire.
+//      planifiée (purge-deleted-accounts) qui les retire.
 //
 // Si l'étape 5 échoue, la personne est déjà bannie et anonymisée par
 // l'étape 4 : elle ne peut plus se connecter. Le journal reste en

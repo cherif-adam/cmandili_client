@@ -44,6 +44,9 @@
 --       client, nom / plaque / CIN pour le livreur), bon gardé ; idempotente
 --   T13 immuabilité du bon : hors effacement, rien ne se vide ; en
 --       effacement, rien ne se réécrit ; jamais de suppression
+--   T14 dossier d'identité livreur : gardé, purge datée à dernière livraison
+--       + 5 ans ; rien avant ; à l'échéance, scan du contrat listé puis
+--       dossier effacé ; idempotente ; un client n'a pas de purge d'identité
 --   T8  DELETE direct sur auth.users / drivers : refusé par les FK ; aucun
 --       lien vers auth.users n'efface commande, paiement ou prime en cascade
 --   T9  droits : anon n'exécute rien, authenticated seulement la
@@ -90,8 +93,8 @@ declare
   res  text := '';
 begin
   -- ── Préconditions ────────────────────────────────────────────────────────
-  if to_regprocedure('public.account_deletion_purge_proofs(uuid[])') is null then
-    raise exception 'PRECONDITION : account_deletion_purge_proofs absente. Lancez 20261017090000_account_deletion.sql.';
+  if to_regprocedure('public.account_deletion_purge_identities(uuid[])') is null then
+    raise exception 'PRECONDITION : account_deletion_purge_identities absente. Lancez 20261017090000_account_deletion.sql.';
   end if;
 
   -- ── Jeu d'essai ──────────────────────────────────────────────────────────
@@ -142,7 +145,8 @@ begin
                               vehicle_make, vehicle_model, vehicle_color, vehicle_plate)
   values (u_d, true, 36.8, 10.18, now(), false, 'Peugeot', 'Partner', 'Blanc', '123 TU 4567')
   returning id into d_d;
-  insert into public.driver_identity (driver_id, cin) values (d_d, '00000000');
+  insert into public.driver_identity (driver_id, cin, contract_signed_at, contract_legalized_at, contract_scan_path)
+  values (d_d, '00000000', current_date - 400, current_date - 399, 'd/contrat.pdf');
 
   insert into public.wallets (user_id, balance, status, blocked_reason)
   values (u_p, 0,    'blocked', 'balance'),
@@ -693,6 +697,52 @@ begin
   end if;
   res := res || 'T13 ok; ';
 
+  -- ── T14 dossier d'identité livreur : 5 ans ───────────────────────────────
+  -- Dernière livraison de D : o_k, livrée en T5 (delivered_at = now()).
+  if not exists (select 1 from public.account_deletions
+                  where id = d_log and identity_purged_at is null
+                    and identity_purge_after between now() + interval '5 years' - interval '1 day'
+                                                 and now() + interval '5 years' + interval '1 day') then
+    raise exception 'FAIL T14 : échéance à 5 ans';
+  end if;
+  -- Un client n'a jamais de purge d'identité.
+  if (select identity_purge_after from public.account_deletions where id = k_log) is not null then
+    raise exception 'FAIL T14 : purge d''identité posée pour un client';
+  end if;
+  -- Avant l'échéance : rien n'est dû, rien n'est effacé.
+  if exists (select 1 from jsonb_array_elements(public.account_deletion_due_identities()) e
+              where (e->>'deletion_id')::uuid = d_log)
+     or public.account_deletion_purge_identities(array[d_log]) <> 0
+     or not exists (select 1 from public.driver_identity where driver_id = d_d) then
+    raise exception 'FAIL T14 : dossier effacé avant 5 ans';
+  end if;
+
+  -- Échéance passée.
+  update public.account_deletions set identity_purge_after = now() - interval '1 second' where id = d_log;
+  select e->'files' into r from jsonb_array_elements(public.account_deletion_due_identities()) e
+   where (e->>'deletion_id')::uuid = d_log;
+  if r is distinct from jsonb_build_array(jsonb_build_object('kind', 'driver_contract', 'ref', 'd/contrat.pdf')) then
+    raise exception 'FAIL T14 fichiers : %', r;
+  end if;
+  if public.account_deletion_purge_identities(array[d_log]) <> 1 then
+    raise exception 'FAIL T14 : purge non faite';
+  end if;
+  if exists (select 1 from public.driver_identity where driver_id = d_d)
+     or (select identity_purged_at from public.account_deletions where id = d_log) is null then
+    raise exception 'FAIL T14 : dossier encore présent';
+  end if;
+  -- Le reste ne bouge pas : fiche livreur, courses, paiements.
+  if not exists (select 1 from public.drivers where id = d_d and user_id = u_d)
+     or not exists (select 1 from public.orders where id = o_k2 and driver_id = d_d and status = 'delivered') then
+    raise exception 'FAIL T14 : fiche ou courses touchées';
+  end if;
+  if public.account_deletion_purge_identities(array[d_log]) <> 0
+     or exists (select 1 from jsonb_array_elements(public.account_deletion_due_identities()) e
+                 where (e->>'deletion_id')::uuid = d_log) then
+    raise exception 'FAIL T14 : purge non idempotente';
+  end if;
+  res := res || 'T14 ok; ';
+
   -- ── T8 suppression directe refusée ───────────────────────────────────────
   begin
     delete from auth.users where id = u_p;
@@ -727,6 +777,11 @@ begin
      or has_function_privilege('anon', 'public.account_deletion_blockers(uuid)', 'execute')
      or has_function_privilege('anon', 'public.account_deletion_due_proofs()', 'execute')
      or has_function_privilege('anon', 'public.account_deletion_purge_proofs(uuid[])', 'execute')
+     or has_function_privilege('anon', 'public.account_deletion_due_identities()', 'execute')
+     or has_function_privilege('anon', 'public.account_deletion_purge_identities(uuid[])', 'execute')
+     or has_function_privilege('authenticated', 'public.account_deletion_due_identities()', 'execute')
+     or has_function_privilege('authenticated', 'public.account_deletion_purge_identities(uuid[])', 'execute')
+     or not has_function_privilege('service_role', 'public.account_deletion_purge_identities(uuid[])', 'execute')
      or has_function_privilege('authenticated', 'public.account_deletion_execute(uuid,text)', 'execute')
      or has_function_privilege('authenticated', 'public.account_deletion_blockers(uuid)', 'execute')
      or has_function_privilege('authenticated', 'public.account_deletion_due_proofs()', 'execute')

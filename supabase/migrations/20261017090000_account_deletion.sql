@@ -14,8 +14,10 @@
 --   4. trois fonctions : la liste des blocages, la vérification appelée par
 --      l'app, et l'exécution réservée au service_role (Edge Function
 --      delete-account) ;
---   5. la purge des preuves colis, 30 jours après la dernière commande
---      terminée (Edge Function purge-colis-proofs, planifiée à part).
+--   5. les purges différées, faites par l'Edge Function
+--      purge-deleted-accounts (planifiée à part) : preuves colis 30 jours
+--      après la dernière commande terminée, dossier d'identité d'un livreur
+--      (CIN, contrat) 5 ans après sa dernière livraison.
 --
 -- PRINCIPE. La ligne auth.users n'est JAMAIS supprimée. L'Edge Function
 -- appelle ensuite la suppression « soft » de GoTrue, qui rend l'email
@@ -94,11 +96,19 @@ alter table public.account_deletions
 alter table public.account_deletions add column if not exists proof_purge_after timestamptz;
 alter table public.account_deletions add column if not exists proof_purged_at   timestamptz;
 
+-- Dossier d'identité d'un livreur (CIN, contrat) : effacé 5 ans après sa
+-- dernière livraison. Nul pour un compte qui n'a jamais été livreur.
+alter table public.account_deletions add column if not exists identity_purge_after timestamptz;
+alter table public.account_deletions add column if not exists identity_purged_at   timestamptz;
+
 create index if not exists idx_account_deletions_user    on public.account_deletions(user_id);
 create index if not exists idx_account_deletions_created on public.account_deletions(created_at desc);
 create index if not exists idx_account_deletions_purge
   on public.account_deletions(proof_purge_after)
   where proof_purged_at is null;
+create index if not exists idx_account_deletions_identity_purge
+  on public.account_deletions(identity_purge_after)
+  where identity_purged_at is null;
 
 -- Admin seulement, et l'admin passe par le service_role. RLS active sans
 -- politique : ni anon ni authenticated ne lisent ni n'écrivent.
@@ -569,6 +579,7 @@ declare
   v_driver_ids uuid[];
   v_order_ids  uuid[];
   v_last_order timestamptz;
+  v_last_drive timestamptz;
   -- Garde la forme attendue par les apps (DeliveryAddress.fromJson lit
   -- fullAddress, et prend 0 pour un GPS absent) : un ancien historique
   -- s'affiche, sans rien localiser.
@@ -624,6 +635,11 @@ begin
   select max(coalesce(o.delivered_at, o.cancelled_at, o.created_at)) into v_last_order
     from public.orders o
    where o.user_id = p_uid or o.driver_id = any (v_driver_ids);
+
+  -- Point de départ des 5 ans du dossier d'identité : sa dernière livraison.
+  select max(o.delivered_at) into v_last_drive
+    from public.orders o
+   where o.driver_id = any (v_driver_ids) and o.status = 'delivered';
 
   -- Fichiers à retirer du Stockage, relevés avant que les colonnes soient
   -- vidées. La photo de profil est gardée si elle sert de logo de boutique.
@@ -735,7 +751,9 @@ begin
    where id = p_uid;
 
   -- Livreur : hors ligne, écarté du dispatch, position et véhicule effacés.
-  -- Le bon colis garde sa propre copie du nom et de la plaque, 30 jours.
+  -- Le bon colis garde sa propre copie du nom et de la plaque, 30 jours. Le
+  -- dossier d'identité (driver_identity : CIN, contrat) reste, réservé à
+  -- l'admin, 5 ans après sa dernière livraison (section 8).
   update public.drivers
      set is_online            = false,
          is_blocked           = true,
@@ -786,9 +804,11 @@ begin
    where id = p_uid;
   delete from auth.sessions where user_id = p_uid;
 
-  insert into public.account_deletions (user_id, app, roles, status, proof_purge_after)
+  insert into public.account_deletions (user_id, app, roles, status, proof_purge_after, identity_purge_after)
   values (p_uid, p_app, v_roles, 'auth_pending',
-          coalesce(v_last_order, now()) + interval '30 days')
+          coalesce(v_last_order, now()) + interval '30 days',
+          case when cardinality(v_driver_ids) > 0
+               then coalesce(v_last_drive, now()) + interval '5 years' end)
   returning id into v_log;
 
   return jsonb_build_object(
@@ -818,9 +838,9 @@ grant execute on function public.account_deletion_execute(uuid, text) to service
 --     restent.
 --
 -- En deux temps, parce que le Stockage n'est pas transactionnel. L'Edge
--- Function purge-colis-proofs (planifiée chaque nuit, voir
--- supabase/scripts/20261022_schedule_colis_proof_purge.sql) lit les
--- fichiers dus, les retire du Stockage, puis seulement efface les colonnes.
+-- Function purge-deleted-accounts (planifiée chaque nuit, voir
+-- supabase/scripts/20261022_schedule_account_purge.sql) lit les fichiers
+-- dus, les retire du Stockage, puis seulement efface les colonnes.
 -- Une suppression dont un fichier n'a pas pu être retiré reste due : la
 -- nuit suivante réessaie.
 
@@ -938,3 +958,77 @@ $fn$;
 
 revoke execute on function public.account_deletion_purge_proofs(uuid[]) from public, anon, authenticated;
 grant execute on function public.account_deletion_purge_proofs(uuid[]) to service_role;
+
+
+-- ── 8. Purge du dossier d'identité livreur (service_role uniquement) ───────
+-- Choix du 22/10/2026 : le dossier d'identité d'un livreur supprimé
+-- (driver_identity : CIN, dates et scan du contrat, vérification) est gardé,
+-- réservé à l'admin, 5 ans après sa dernière livraison, puis effacé.
+-- La ligne entière part (la CIN est NOT NULL), et le scan du contrat est
+-- retiré du bucket privé driver-contracts.
+--
+-- Même mécanique en deux temps que la section 7, par la même Edge Function
+-- purge-deleted-accounts : fichiers dus, retrait du Stockage, puis
+-- effacement en base, seulement pour les dossiers dont le fichier est
+-- bien parti.
+
+create or replace function public.account_deletion_due_identities()
+returns jsonb
+language sql
+stable
+security definer
+set search_path to ''
+as $fn$
+  select coalesce(
+           jsonb_agg(jsonb_build_object('deletion_id', d.id, 'files', f.files)
+                     order by d.identity_purge_after),
+           '[]'::jsonb)
+    from public.account_deletions d
+    cross join lateral (
+      select coalesce(jsonb_agg(jsonb_build_object('kind', 'driver_contract', 'ref', i.contract_scan_path)), '[]'::jsonb) as files
+        from public.drivers dr
+        join public.driver_identity i on i.driver_id = dr.id
+       where dr.user_id = d.user_id
+         and nullif(btrim(i.contract_scan_path), '') is not null
+    ) f
+   where d.status in ('auth_pending', 'completed')
+     and d.identity_purged_at is null
+     and d.identity_purge_after <= now();
+$fn$;
+
+revoke execute on function public.account_deletion_due_identities() from public, anon, authenticated;
+grant execute on function public.account_deletion_due_identities() to service_role;
+
+create or replace function public.account_deletion_purge_identities(p_deletion_ids uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path to ''
+as $fn$
+declare
+  v_del record;
+  v_n   integer := 0;
+begin
+  for v_del in
+    select id, user_id
+      from public.account_deletions
+     where id = any (p_deletion_ids)
+       and status in ('auth_pending', 'completed')
+       and identity_purged_at is null
+       and identity_purge_after <= now()
+     for update
+  loop
+    delete from public.driver_identity i
+     using public.drivers dr
+     where dr.id = i.driver_id
+       and dr.user_id = v_del.user_id;
+
+    update public.account_deletions set identity_purged_at = now() where id = v_del.id;
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end;
+$fn$;
+
+revoke execute on function public.account_deletion_purge_identities(uuid[]) from public, anon, authenticated;
+grant execute on function public.account_deletion_purge_identities(uuid[]) to service_role;
