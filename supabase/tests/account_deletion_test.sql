@@ -44,7 +44,8 @@
 --       client, nom / plaque / CIN pour le livreur), bon gardé ; idempotente
 --   T13 immuabilité du bon : hors effacement, rien ne se vide ; en
 --       effacement, rien ne se réécrit ; jamais de suppression
---   T8  DELETE direct sur auth.users / drivers : refusé par les FK
+--   T8  DELETE direct sur auth.users / drivers : refusé par les FK ; aucun
+--       lien vers auth.users n'efface commande, paiement ou prime en cascade
 --   T9  droits : anon n'exécute rien, authenticated seulement la
 --       vérification, le journal est fermé aux deux
 -- ============================================================================
@@ -708,6 +709,15 @@ begin
   if not exists (select 1 from public.orders where id = o_p)
      or (select count(*) from public.settlements where user_id = u_p) <> 2 then
     raise exception 'FAIL T8 : historique perdu';
+  end if;
+  -- Aucun lien vers auth.users ne doit effacer une commande, un paiement ou
+  -- une prime en cascade (état du live, enregistré par 20261022130000) : une
+  -- migration future qui remettrait CASCADE fait échouer ce harnais.
+  if exists (select 1 from pg_constraint
+              where conname in ('orders_user_id_fkey', 'payments_user_id_fkey',
+                                'loyalty_driver_payouts_customer_id_fkey')
+                and confdeltype = 'c') then
+    raise exception 'FAIL T8 : une commande, un paiement ou une prime partirait en cascade';
   end if;
   res := res || 'T8 ok; ';
 
