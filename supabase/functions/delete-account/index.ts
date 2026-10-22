@@ -18,7 +18,10 @@
 //   5. suppression « soft » GoTrue : email illisible, identités et sessions
 //      supprimées. La ligne auth.users reste, donc aucune clé étrangère ne se
 //      déclenche : commandes, règlements et bons colis restent intacts ;
-//   6. retrait de la photo de profil du Stockage (non transactionnel).
+//   6. retrait du Stockage (non transactionnel) des fichiers que la fonction
+//      SQL a listés : photo de profil, photos de facture, messages vocaux.
+//      Les preuves de remise colis restent 30 jours : c'est la purge
+//      planifiée (purge-colis-proofs) qui les retire.
 //
 // Si l'étape 5 échoue, la personne est déjà bannie et anonymisée par
 // l'étape 4 : elle ne peut plus se connecter. Le journal reste en
@@ -44,9 +47,16 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const CONFIRM_WORD = "SUPPRIMER";
 const REAUTH_MAX_AGE_S = 5 * 60;
 const APPS = new Set(["client", "driver", "partner"]);
-// Seuls ces buckets contiennent des photos de profil. Le logo d'une boutique
-// n'est jamais renvoyé par la fonction SQL.
-const AVATAR_BUCKETS = new Set(["profiles", "avatars"]);
+// Bucket par défaut de chaque sorte de fichier listée par
+// account_deletion_execute, quand la base garde un chemin et non une URL.
+// Une URL n'est suivie que vers ces mêmes buckets : rien d'autre ne peut
+// être retiré d'ici (le logo d'une boutique n'est jamais listé).
+const FILE_BUCKETS: Record<string, string> = {
+  avatar: "profiles",
+  bill_photo: "package-photos",
+  voice_note: "voice-messages",
+};
+const ALLOWED_BUCKETS = new Set(["profiles", "avatars", "package-photos", "voice-messages"]);
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -87,17 +97,26 @@ function lastAuthAt(payload: Record<string, unknown>): number | null {
   return last;
 }
 
-/** bucket + chemin d'une URL publique de NOTRE Stockage, sinon null. */
-function storageObject(url: string): { bucket: string; path: string } | null {
-  const prefix = `${SUPABASE_URL}/storage/v1/object/public/`;
-  if (!url.startsWith(prefix)) return null;
-  const rest = decodeURIComponent(url.slice(prefix.length).split("?")[0]);
-  const slash = rest.indexOf("/");
-  if (slash <= 0) return null;
-  const bucket = rest.slice(0, slash);
-  const path = rest.slice(slash + 1);
-  if (!AVATAR_BUCKETS.has(bucket) || !path) return null;
-  return { bucket, path };
+/**
+ * bucket + chemin d'un fichier listé par la base : URL de NOTRE Stockage
+ * (publique ou signée), ou chemin nu dans le bucket par défaut de sa sorte.
+ * null pour tout le reste (autre domaine, bucket non autorisé).
+ */
+function storageObject(ref: string, kind: string): { bucket: string; path: string } | null {
+  const base = `${SUPABASE_URL}/storage/v1/object/`;
+  if (/^https?:\/\//i.test(ref)) {
+    if (!ref.startsWith(base)) return null;
+    const rest = decodeURIComponent(ref.slice(base.length).split("?")[0])
+      .replace(/^(public|sign|authenticated)\//, "");
+    const slash = rest.indexOf("/");
+    if (slash <= 0) return null;
+    const bucket = rest.slice(0, slash);
+    const path = rest.slice(slash + 1);
+    return ALLOWED_BUCKETS.has(bucket) && path ? { bucket, path } : null;
+  }
+  const bucket = FILE_BUCKETS[kind];
+  const path = ref.replace(/^\/+/, "");
+  return bucket && path ? { bucket, path } : null;
 }
 
 Deno.serve(async (req) => {
@@ -175,12 +194,25 @@ Deno.serve(async (req) => {
     console.error("delete-account: suppression GoTrue", deleteError.message);
   }
 
-  // 6. Photo de profil.
-  if (typeof result.avatar_url === "string") {
-    const obj = storageObject(result.avatar_url);
-    if (obj) {
-      const { error: storageError } = await admin.storage.from(obj.bucket).remove([obj.path]);
-      if (storageError) console.error("delete-account: stockage", storageError.message);
+  // 6. Fichiers personnels : regroupés par bucket, un appel par bucket.
+  const byBucket = new Map<string, string[]>();
+  for (const f of Array.isArray(result.files) ? result.files : []) {
+    if (typeof f?.ref !== "string" || typeof f?.kind !== "string") continue;
+    const obj = storageObject(f.ref, f.kind);
+    if (!obj) continue;
+    byBucket.set(obj.bucket, [...(byBucket.get(obj.bucket) ?? []), obj.path]);
+  }
+  for (const [bucket, paths] of byBucket) {
+    const { error: storageError } = await admin.storage.from(bucket).remove(paths);
+    // Pas un échec pour la personne : les colonnes qui pointaient vers ces
+    // fichiers sont déjà vidées. Le journal garde la trace pour l'admin.
+    if (storageError) {
+      console.error("delete-account: stockage", bucket, storageError.message);
+      if (logId) {
+        await admin.from("account_deletions")
+          .update({ error: `storage ${bucket}: ${storageError.message}`.slice(0, 500) })
+          .eq("id", logId);
+      }
     }
   }
 

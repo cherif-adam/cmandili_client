@@ -13,14 +13,25 @@
 --      preuve ou d'historique financier ne doit partir en cascade ;
 --   4. trois fonctions : la liste des blocages, la vérification appelée par
 --      l'app, et l'exécution réservée au service_role (Edge Function
---      delete-account).
+--      delete-account) ;
+--   5. la purge des preuves colis, 30 jours après la dernière commande
+--      terminée (Edge Function purge-colis-proofs, planifiée à part).
 --
 -- PRINCIPE. La ligne auth.users n'est JAMAIS supprimée. L'Edge Function
 -- appelle ensuite la suppression « soft » de GoTrue, qui rend l'email
 -- illisible et supprime identités et sessions, mais garde la ligne. Aucune
--- clé étrangère ne se déclenche, et les commandes, règlements et bons colis
--- restent intacts. Cette fonction pose en plus un bannissement : même si
--- l'appel GoTrue échoue, la personne ne peut plus se connecter.
+-- clé étrangère ne se déclenche. Cette fonction pose en plus un
+-- bannissement : même si l'appel GoTrue échoue, la personne ne peut plus se
+-- connecter.
+--
+-- COMMANDES TERMINÉES (la suppression est refusée tant qu'une commande est
+-- en cours). On garde ce que la comptabilité demande : identifiant, dates,
+-- statut, articles, montants, frais, paiements, règlements, mouvements de
+-- solde. On efface l'adresse (texte et GPS), les téléphones, les noms, les
+-- textes libres et la voix de la personne, ainsi que le nom et le téléphone
+-- du destinataire qu'elle avait saisis. Les preuves de remise colis (photos,
+-- GPS, plaque, CIN) restent 30 jours après sa dernière commande terminée,
+-- puis la purge les efface.
 --
 -- Idempotente : peut être relancée sans effet de bord.
 -- ============================================================================
@@ -45,6 +56,10 @@ alter table public.vendors add column if not exists deleted_at timestamptz;
 alter table public.colis_disputes add column if not exists resolved_at timestamptz;
 alter table public.colis_disputes add column if not exists resolved_by uuid;
 alter table public.colis_disputes add column if not exists resolution  text;
+
+-- Date à laquelle la purge a effacé les preuves d'un bon colis (photos, GPS,
+-- plaque, nom du livreur, CIN). Le bon lui-même reste.
+alter table public.colis_receipts add column if not exists proof_erased_at timestamptz;
 
 
 -- ── 2. Journal ─────────────────────────────────────────────────────────────
@@ -74,8 +89,16 @@ alter table public.account_deletions
   add constraint account_deletions_status_check
   check (status in ('blocked', 'auth_pending', 'completed', 'failed'));
 
+-- Purge des preuves colis : due à partir de proof_purge_after (dernière
+-- commande terminée + 30 jours), faite à proof_purged_at.
+alter table public.account_deletions add column if not exists proof_purge_after timestamptz;
+alter table public.account_deletions add column if not exists proof_purged_at   timestamptz;
+
 create index if not exists idx_account_deletions_user    on public.account_deletions(user_id);
 create index if not exists idx_account_deletions_created on public.account_deletions(created_at desc);
+create index if not exists idx_account_deletions_purge
+  on public.account_deletions(proof_purge_after)
+  where proof_purged_at is null;
 
 -- Admin seulement, et l'admin passe par le service_role. RLS active sans
 -- politique : ni anon ni authenticated ne lisent ni n'écrivent.
@@ -273,6 +296,111 @@ $fn$;
 revoke execute on function public.enforce_venue_open() from public, anon, authenticated;
 
 
+-- ── 3 ter. Bon colis : la seule exception à l'immuabilité ──────────────────
+-- colis_receipt_immutable (20261012090000) fige le bon dès la prise en
+-- charge. L'effacement des données personnelles doit pourtant pouvoir vider
+-- des colonnes figées (nom du destinataire, photos, GPS, plaque).
+--
+-- Mode effacement : posé par les seules fonctions account_deletion_* via
+-- set_config('amana.erasing_personal_data', 'on', true), donc pour leur
+-- transaction uniquement. Dans ce mode, une colonne personnelle ne peut que
+-- passer à NULL, proof_erased_at ne peut que passer de NULL à une date, et
+-- TOUT le reste du bon doit rester identique. Hors de ce mode, le
+-- comportement d'origine est inchangé, et proof_erased_at n'est pas
+-- modifiable. La suppression d'un bon reste interdite dans tous les cas.
+create or replace function public.colis_receipt_immutable()
+returns trigger
+language plpgsql
+as $fn$
+declare
+  v_erasable constant text[] := array[
+    'sender_name', 'sender_phone', 'receiver_label', 'driver_name', 'driver_plate',
+    'pickup_photo_path', 'delivery_photo_path',
+    'pickup_lat', 'pickup_lng', 'delivery_lat', 'delivery_lng'
+  ];
+  v_col text;
+begin
+  if tg_op = 'DELETE' then
+    raise exception 'Un bon de prise en charge ne se supprime pas (commande %)', old.order_id;
+  end if;
+
+  if current_setting('amana.erasing_personal_data', true) = 'on' then
+    foreach v_col in array v_erasable loop
+      if (to_jsonb(new) -> v_col) is distinct from (to_jsonb(old) -> v_col)
+         and jsonb_typeof(to_jsonb(new) -> v_col) <> 'null' then
+        raise exception 'Effacement : % ne peut être que vidé (commande %)', v_col, old.order_id;
+      end if;
+    end loop;
+    if old.proof_erased_at is not null
+       and new.proof_erased_at is distinct from old.proof_erased_at then
+      raise exception 'Effacement : les preuves de la commande % sont déjà effacées', old.order_id;
+    end if;
+    if (to_jsonb(new) - v_erasable - 'proof_erased_at')
+       is distinct from (to_jsonb(old) - v_erasable - 'proof_erased_at') then
+      raise exception 'Effacement : seules les données personnelles du bon % peuvent changer', old.order_id;
+    end if;
+    return new;
+  end if;
+
+  if new.proof_erased_at is distinct from old.proof_erased_at then
+    raise exception 'proof_erased_at n''est modifiable que par l''effacement (commande %)', old.order_id;
+  end if;
+
+  -- Bloc prise en charge figé dès qu'il porte un horodatage.
+  if old.pickup_at is not null and (
+       new.pickup_at          is distinct from old.pickup_at
+    or new.pickup_photo_path  is distinct from old.pickup_photo_path
+    or new.pickup_lat         is distinct from old.pickup_lat
+    or new.pickup_lng         is distinct from old.pickup_lng
+    or new.driver_id          is distinct from old.driver_id
+    or new.driver_name        is distinct from old.driver_name
+    or new.driver_plate       is distinct from old.driver_plate
+  ) then
+    raise exception 'La prise en charge de la commande % est déjà enregistrée', old.order_id;
+  end if;
+
+  -- Bloc remise, idem.
+  if old.delivery_at is not null and (
+       new.delivery_at         is distinct from old.delivery_at
+    or new.delivery_photo_path is distinct from old.delivery_photo_path
+    or new.delivery_lat        is distinct from old.delivery_lat
+    or new.delivery_lng        is distinct from old.delivery_lng
+    or new.code_verified       is distinct from old.code_verified
+  ) then
+    raise exception 'La remise de la commande % est déjà enregistrée', old.order_id;
+  end if;
+
+  -- Ce que l'expéditeur a déclaré reste modifiable TANT QUE le colis n'a pas
+  -- été pris en charge — il peut corriger une valeur ou passer en remise sans
+  -- code juste après avoir commandé. Dès que le livreur l'a en main, c'est
+  -- figé : sinon on pourrait relever la valeur déclarée après coup, une fois
+  -- le colis perdu.
+  if old.pickup_at is not null and (
+       new.declared_value is distinct from old.declared_value
+    or new.delivery_mode  is distinct from old.delivery_mode
+    or new.receiver_label is distinct from old.receiver_label
+    or new.description    is distinct from old.description
+  ) then
+    raise exception 'Le colis de la commande % est déjà pris en charge, la déclaration est figée', old.order_id;
+  end if;
+
+  if new.created_at is distinct from old.created_at then
+    raise exception 'created_at n''est pas modifiable (commande %)', old.order_id;
+  end if;
+
+  -- Une clôture admin ne se rejoue pas.
+  if old.admin_override_at is not null
+     and new.admin_override_at is distinct from old.admin_override_at then
+    raise exception 'La commande % a déjà été clôturée par un admin', old.order_id;
+  end if;
+
+  return new;
+end;
+$fn$;
+
+revoke execute on function public.colis_receipt_immutable() from public, anon, authenticated;
+
+
 -- ── 4. Blocages ────────────────────────────────────────────────────────────
 -- Renvoie un tableau jsonb, vide si rien ne bloque. Chaque élément porte un
 -- code que l'app traduit, plus un nombre ou un montant :
@@ -414,15 +542,17 @@ grant execute on function public.account_deletion_check() to authenticated, serv
 -- Appelée par l'Edge Function delete-account, qui a déjà vérifié le JWT, la
 -- ré-authentification récente et le mot « SUPPRIMER ». Tout se passe dans une
 -- seule transaction : re-vérification des blocages, puis suppression des
--- données personnelles, anonymisation et journal.
+-- données personnelles, anonymisation des commandes terminées et journal.
 --
 -- Renvoie :
 --   {status: 'blocked', blockers, log_id}  rien n'a été modifié
 --   {status: 'already_deleted'}             appel rejoué
---   {status: 'ok', log_id, roles, avatar_url}
---      avatar_url : la photo de profil à retirer du Stockage par l'Edge
---      Function (le Stockage n'est pas transactionnel). Nulle si la photo
---      sert aussi de logo de boutique, qui est gardé.
+--   {status: 'ok', log_id, roles, files}
+--      files : [{kind, ref}], les fichiers à retirer du Stockage par l'Edge
+--      Function (le Stockage n'est pas transactionnel) : photo de profil
+--      (kind 'avatar', sauf si c'est aussi le logo de la boutique), photos
+--      de facture ('bill_photo'), messages vocaux ('voice_note'). ref est
+--      l'URL ou le chemin tel qu'enregistré.
 
 create or replace function public.account_deletion_execute(p_uid uuid, p_app text)
 returns jsonb
@@ -431,10 +561,18 @@ security definer
 set search_path to ''
 as $fn$
 declare
-  v_blockers jsonb;
-  v_roles    text[] := '{}';
-  v_log      uuid;
-  v_avatar   text;
+  v_blockers   jsonb;
+  v_roles      text[] := '{}';
+  v_log        uuid;
+  v_avatar     text;
+  v_files      jsonb := '[]'::jsonb;
+  v_driver_ids uuid[];
+  v_order_ids  uuid[];
+  v_last_order timestamptz;
+  -- Garde la forme attendue par les apps (DeliveryAddress.fromJson lit
+  -- fullAddress, et prend 0 pour un GPS absent) : un ancien historique
+  -- s'affiche, sans rien localiser.
+  v_no_address constant jsonb := jsonb_build_object('fullAddress', 'Adresse supprimée');
 begin
   if p_uid is null then
     raise exception 'p_uid est requis';
@@ -467,6 +605,9 @@ begin
   -- Le solde ne doit pas bouger entre la vérification et la fin.
   perform 1 from public.wallets where user_id = p_uid for update;
 
+  -- Règle 1 : aucune commande en cours, ni comme client, ni comme livreur,
+  -- ni dans sa boutique. Au-delà de ce point, toutes ses commandes sont
+  -- terminées (livrées ou annulées).
   v_blockers := public.account_deletion_blockers(p_uid);
   if jsonb_array_length(v_blockers) > 0 then
     insert into public.account_deletions (user_id, app, roles, status, blockers)
@@ -475,17 +616,35 @@ begin
     return jsonb_build_object('status', 'blocked', 'blockers', v_blockers, 'log_id', v_log);
   end if;
 
-  -- Photo de profil, relevée avant d'être effacée. Gardée si elle sert de logo.
+  select coalesce(array_agg(id), '{}') into v_driver_ids from public.drivers where user_id = p_uid;
+  select coalesce(array_agg(id), '{}') into v_order_ids  from public.orders  where user_id = p_uid;
+
+  -- Point de départ des 30 jours de preuve colis : sa dernière commande
+  -- terminée, comme client ou comme livreur.
+  select max(coalesce(o.delivered_at, o.cancelled_at, o.created_at)) into v_last_order
+    from public.orders o
+   where o.user_id = p_uid or o.driver_id = any (v_driver_ids);
+
+  -- Fichiers à retirer du Stockage, relevés avant que les colonnes soient
+  -- vidées. La photo de profil est gardée si elle sert de logo de boutique.
   select nullif(btrim(avatar_url), '') into v_avatar from public.profiles where id = p_uid;
-  if v_avatar is not null and exists (
+  if v_avatar is not null and not exists (
        select 1 from public.partners p
         where p.user_id = p_uid and p.avatar_url = v_avatar
        union all
        select 1 from public.vendors v
         where v.image_url = v_avatar
      ) then
-    v_avatar := null;
+    v_files := v_files || jsonb_build_array(jsonb_build_object('kind', 'avatar', 'ref', v_avatar));
   end if;
+  select v_files || coalesce(jsonb_agg(jsonb_build_object('kind', 'bill_photo', 'ref', o.bill_photo_url)), '[]'::jsonb)
+    into v_files
+    from public.orders o
+   where o.id = any (v_order_ids) and nullif(btrim(o.bill_photo_url), '') is not null;
+  select v_files || coalesce(jsonb_agg(jsonb_build_object('kind', 'voice_note', 'ref', oi.voice_note_url)), '[]'::jsonb)
+    into v_files
+    from public.order_items oi
+   where oi.order_id = any (v_order_ids) and nullif(btrim(oi.voice_note_url), '') is not null;
 
   -- Données purement personnelles : supprimées.
   delete from public.device_tokens       where user_id = p_uid;
@@ -501,6 +660,69 @@ begin
   delete from public.driver_payout_info  where user_id = p_uid;
   delete from public.partner_payout_info where user_id = p_uid;
 
+  -- Règle 2 : ses commandes terminées restent pour la comptabilité
+  -- (identifiant, dates, statut, articles, montants, frais, paiements,
+  -- règlements, mouvements de solde ne sont pas touchés), sans rien qui la
+  -- désigne ou la localise : adresses (texte et GPS), téléphones, noms, note
+  -- libre, photo de sa facture. Règle 4 : le nom et le téléphone du
+  -- destinataire qu'elle a saisis partent aussi. Le reçu de paiement de la
+  -- facture (bill_receipt_url) et sa référence restent : c'est la preuve du
+  -- paiement fait par Amana. Les triggers de orders ne réagissent qu'au
+  -- statut, qui ne change pas ici.
+  update public.orders
+     set delivery_address = case when delivery_address is null then null else v_no_address end,
+         pickup_address   = case when pickup_address   is null then null else v_no_address end,
+         recipient_name   = null,
+         recipient_phone  = null,
+         sender_phone     = null,
+         notes            = null,
+         bill_photo_url   = null
+   where id = any (v_order_ids);
+
+  -- Articles : produit, quantité et prix restent ; ses consignes écrites et
+  -- sa voix partent.
+  update public.order_items
+     set special_instructions = null,
+         voice_note_url       = null
+   where order_id = any (v_order_ids)
+     and (special_instructions is not null or voice_note_url is not null);
+
+  -- GPS des livraisons : celles de ses commandes (elles finissent chez elle)
+  -- et, livreur, ses propres positions.
+  update public.deliveries
+     set current_lat = null,
+         current_lng = null
+   where order_id = any (v_order_ids) or driver_id = any (v_driver_ids);
+
+  -- Bons colis de ses envois : son nom, son téléphone et le nom du
+  -- destinataire partent maintenant. Photos, GPS, plaque et CIN restent comme
+  -- preuve de remise jusqu'à la purge (section 7).
+  perform set_config('amana.erasing_personal_data', 'on', true);
+  update public.colis_receipts
+     set sender_name    = null,
+         sender_phone   = null,
+         receiver_label = null
+   where order_id = any (v_order_ids)
+     and (sender_name is not null or sender_phone is not null or receiver_label is not null);
+  perform set_config('amana.erasing_personal_data', 'off', true);
+
+  -- Litiges : le texte libre part ; le type, les dates et la clôture restent.
+  update public.colis_disputes set message = null where user_id = p_uid and message is not null;
+
+  -- Relevés (pièces comptables, gardés) : le téléphone part, et le nom pour
+  -- un livreur ; une boutique garde son nom commercial.
+  update public.generated_statements
+     set entity_name  = 'Compte supprimé',
+         entity_phone = null
+   where entity_type = 'driver'
+     and entity_id in (select d::text from unnest(v_driver_ids) d);
+  update public.generated_statements gs
+     set entity_phone = null
+    from public.partners p
+   where p.user_id = p_uid
+     and gs.entity_type <> 'driver'
+     and gs.entity_id = p.entity_id::text;
+
   -- Profil : la ligne reste (jointures des commandes), la personne non.
   update public.profiles
      set full_name  = 'Compte supprimé',
@@ -512,14 +734,18 @@ begin
          updated_at = now()
    where id = p_uid;
 
-  -- Livreur : hors ligne, écarté du dispatch, position effacée. Véhicule et
-  -- plaque restent : ils figurent sur les bons colis.
+  -- Livreur : hors ligne, écarté du dispatch, position et véhicule effacés.
+  -- Le bon colis garde sa propre copie du nom et de la plaque, 30 jours.
   update public.drivers
      set is_online            = false,
          is_blocked           = true,
          current_lat          = null,
          current_lng          = null,
-         last_location_update = null
+         last_location_update = null,
+         vehicle_make         = null,
+         vehicle_model        = null,
+         vehicle_color        = null,
+         vehicle_plate        = null
    where user_id = p_uid;
 
   -- Partenaire : coordonnées effacées. Le nom commercial reste, c'est celui de
@@ -560,18 +786,155 @@ begin
    where id = p_uid;
   delete from auth.sessions where user_id = p_uid;
 
-  insert into public.account_deletions (user_id, app, roles, status)
-  values (p_uid, p_app, v_roles, 'auth_pending')
+  insert into public.account_deletions (user_id, app, roles, status, proof_purge_after)
+  values (p_uid, p_app, v_roles, 'auth_pending',
+          coalesce(v_last_order, now()) + interval '30 days')
   returning id into v_log;
 
   return jsonb_build_object(
-    'status',     'ok',
-    'log_id',     v_log,
-    'roles',      to_jsonb(v_roles),
-    'avatar_url', v_avatar
+    'status', 'ok',
+    'log_id', v_log,
+    'roles',  to_jsonb(v_roles),
+    'files',  v_files
   );
 end;
 $fn$;
 
 revoke execute on function public.account_deletion_execute(uuid, text) from public, anon, authenticated;
 grant execute on function public.account_deletion_execute(uuid, text) to service_role;
+
+
+-- ── 7. Purge des preuves colis (service_role uniquement) ───────────────────
+-- Règle 3 : la preuve de remise d'un colis (photos, GPS, plaque, nom du
+-- livreur, CIN) reste 30 jours après la dernière commande terminée de la
+-- personne supprimée, puis elle est effacée. Le bon lui-même reste
+-- (commande, dates, valeur déclarée, mode de remise, statut de preuve).
+--
+--   comme client : toute la preuve de SES envois, plus la photo du colis
+--     qu'elle avait jointe à la commande ;
+--   comme livreur : ce qui le désigne sur les bons des colis qu'il a
+--     portés (son nom, sa plaque, sa CIN). Les photos et le GPS de ces
+--     colis-là appartiennent aux envois de clients toujours inscrits : ils
+--     restent.
+--
+-- En deux temps, parce que le Stockage n'est pas transactionnel. L'Edge
+-- Function purge-colis-proofs (planifiée chaque nuit, voir
+-- supabase/scripts/20261022_schedule_colis_proof_purge.sql) lit les
+-- fichiers dus, les retire du Stockage, puis seulement efface les colonnes.
+-- Une suppression dont un fichier n'a pas pu être retiré reste due : la
+-- nuit suivante réessaie.
+
+create or replace function public.account_deletion_due_proofs()
+returns jsonb
+language sql
+stable
+security definer
+set search_path to ''
+as $fn$
+  select coalesce(
+           jsonb_agg(jsonb_build_object('deletion_id', d.id, 'files', f.files)
+                     order by d.proof_purge_after),
+           '[]'::jsonb)
+    from public.account_deletions d
+    cross join lateral (
+      select coalesce(jsonb_agg(x.file), '[]'::jsonb) as files
+        from (
+          select jsonb_build_object('kind', 'colis_proof', 'ref', p.path) as file
+            from public.orders o
+            join public.colis_receipts cr on cr.order_id = o.id
+            cross join lateral (values (cr.pickup_photo_path), (cr.delivery_photo_path)) as p(path)
+           where o.user_id = d.user_id
+             and nullif(btrim(p.path), '') is not null
+          union all
+          select jsonb_build_object('kind', 'package_photo', 'ref', o.package_photo_url)
+            from public.orders o
+           where o.user_id = d.user_id
+             and nullif(btrim(o.package_photo_url), '') is not null
+        ) x
+    ) f
+   where d.status in ('auth_pending', 'completed')
+     and d.proof_purged_at is null
+     and d.proof_purge_after <= now();
+$fn$;
+
+revoke execute on function public.account_deletion_due_proofs() from public, anon, authenticated;
+grant execute on function public.account_deletion_due_proofs() to service_role;
+
+create or replace function public.account_deletion_purge_proofs(p_deletion_ids uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path to ''
+as $fn$
+declare
+  v_del        record;
+  v_driver_ids uuid[];
+  v_n          integer := 0;
+begin
+  perform set_config('amana.erasing_personal_data', 'on', true);
+
+  for v_del in
+    select id, user_id
+      from public.account_deletions
+     where id = any (p_deletion_ids)
+       and status in ('auth_pending', 'completed')
+       and proof_purged_at is null
+       and proof_purge_after <= now()
+     for update
+  loop
+    select coalesce(array_agg(id), '{}') into v_driver_ids
+      from public.drivers where user_id = v_del.user_id;
+
+    -- Ses envois : toute la preuve.
+    update public.colis_receipts cr
+       set pickup_photo_path   = null,
+           delivery_photo_path = null,
+           pickup_lat          = null,
+           pickup_lng          = null,
+           delivery_lat        = null,
+           delivery_lng        = null,
+           driver_name         = null,
+           driver_plate        = null,
+           proof_erased_at     = now()
+      from public.orders o
+     where o.id = cr.order_id
+       and o.user_id = v_del.user_id
+       and cr.proof_erased_at is null;
+
+    update public.colis_receipt_identity ci
+       set driver_cin = null
+      from public.orders o
+     where o.id = ci.order_id
+       and o.user_id = v_del.user_id
+       and ci.driver_cin is not null;
+
+    update public.orders
+       set package_photo_url = null
+     where user_id = v_del.user_id
+       and package_photo_url is not null;
+
+    -- Ses courses de livreur : ce qui le désigne, rien d'autre.
+    update public.colis_receipts
+       set driver_name  = null,
+           driver_plate = null
+     where driver_id = any (v_driver_ids)
+       and (driver_name is not null or driver_plate is not null);
+
+    update public.colis_receipt_identity ci
+       set driver_cin = null
+      from public.colis_receipts cr
+     where cr.order_id = ci.order_id
+       and cr.driver_id = any (v_driver_ids)
+       and ci.driver_cin is not null;
+
+    update public.account_deletions set proof_purged_at = now() where id = v_del.id;
+    v_n := v_n + 1;
+  end loop;
+
+  perform set_config('amana.erasing_personal_data', 'off', true);
+  return v_n;
+end;
+$fn$;
+
+revoke execute on function public.account_deletion_purge_proofs(uuid[]) from public, anon, authenticated;
+grant execute on function public.account_deletion_purge_proofs(uuid[]) to service_role;
