@@ -17,6 +17,13 @@
 -- valeur de production n'est jamais modifiee.
 --
 -- À lancer d'un bloc dans le SQL Editor, APRÈS 20261015090000.
+--
+-- MIS À JOUR POUR LE CRITÈRE À TROIS PIÈCES.
+-- 20261015190000_driver_contract_scan_required.sql a ajouté le scan du contrat
+-- aux pièces obligatoires. Le livreur vérifié du jeu d'essai a donc désormais
+-- un contract_scan_path : sans ça, les tests 2a et 4a échoueraient alors que
+-- rien n'est cassé — ils affirmaient qu'un CIN et une date suffisaient.
+-- Le scan a son propre harnais, plus détaillé : driver_contract_scan_test.sql.
 -- ============================================================================
 
 begin;
@@ -81,10 +88,15 @@ $$;
 -- rejoue la verification et echoue en 23503 sur une ligne creee dans la meme
 -- transaction. C'est exactement ce qui s'est produit.
 --
--- On emprunte donc 4 comptes existants QUI NE SONT PAS DEJA LIVREURS : les
+-- On emprunte donc 5 comptes existants QUI NE SONT PAS DEJA LIVREURS : les
 -- lignes drivers creees pour eux n'existent que le temps de la transaction et
 -- disparaissent au ROLLBACK. Choisir des comptes sans ligne drivers evite de
 -- toucher au dossier d'un vrai livreur.
+--
+-- Le filtre sur le wallet n'est pas cosmetique : nearby_online_drivers exige
+-- coalesce(w.status, 'active') = 'active'. Emprunter un compte au wallet
+-- suspendu ferait echouer le test 4a pour une raison qui n'a rien a voir avec
+-- la verification.
 create temp table _t_fixture (slot int primary key, user_id uuid) on commit drop;
 
 do $$
@@ -94,43 +106,53 @@ begin
   select row_number() over (order by u.id), u.id
     from auth.users u
    where not exists (select 1 from public.drivers d where d.user_id = u.id)
-   limit 4;
+     and coalesce((select w.status from public.wallets w where w.user_id = u.id), 'active') = 'active'
+   limit 5;
 
   select count(*) into n from _t_fixture;
-  if n < 4 then
+  if n < 5 then
     raise exception
-      'PRECONDITION : il faut 4 comptes auth sans ligne drivers pour le jeu d essai, % trouve(s). '
+      'PRECONDITION : il faut 5 comptes auth sans ligne drivers et au wallet actif pour le jeu d essai, % trouve(s). '
       'Creez quelques comptes client de test, ou lancez ce harnais sur une base qui en a.', n;
   end if;
 
-  raise notice 'Jeu d essai : 4 comptes auth empruntes';
+  raise notice 'Jeu d essai : 5 comptes auth empruntes';
 end
 $$;
 
--- Trois livreurs de test, aux identifiants reconnaissables.
+-- Quatre livreurs de test, aux identifiants reconnaissables.
 -- drivers.id n'a pas de FK, on garde donc des identifiants parlants ; seul
 -- user_id doit etre reel.
---   dead-beef...01  verifie    : CIN + contrat legalise
+--   dead-beef...01  verifie    : CIN + contrat legalise + scan
 --   dead-beef...02  sans CIN
 --   dead-beef...03  CIN mais contrat manquant
+--   dead-beef...04  CIN + contrat legalise mais SCAN manquant
 do $$
 declare
   v_d1 uuid := '00000000-dead-beef-0000-0000000000d1';
   v_d2 uuid := '00000000-dead-beef-0000-0000000000d2';
   v_d3 uuid := '00000000-dead-beef-0000-0000000000d3';
+  v_d4 uuid := '00000000-dead-beef-0000-0000000000d4';
 begin
   insert into public.drivers (id, user_id, is_online, is_blocked, current_lat, current_lng)
   values (v_d1, (select user_id from _t_fixture where slot = 1), true, false, 35.6781, 10.0963),
          (v_d2, (select user_id from _t_fixture where slot = 2), true, false, 35.6781, 10.0963),
-         (v_d3, (select user_id from _t_fixture where slot = 3), true, false, 35.6781, 10.0963);
+         (v_d3, (select user_id from _t_fixture where slot = 3), true, false, 35.6781, 10.0963),
+         (v_d4, (select user_id from _t_fixture where slot = 4), true, false, 35.6781, 10.0963);
 
-  insert into public.driver_identity (driver_id, cin, contract_legalized_at)
-  values (v_d1, 'TEST-CIN-1', current_date);
+  -- Le scan est la TROISIEME piece depuis 20261015190000. Un chemin suffit :
+  -- driver_is_verified() ne va pas voir dans le Stockage, et le harnais n'y
+  -- ecrit rien (le Stockage n'est pas transactionnel).
+  insert into public.driver_identity (driver_id, cin, contract_legalized_at, contract_scan_path)
+  values (v_d1, 'TEST-CIN-1', current_date, 'test/d1-1760000000000.pdf');
 
   insert into public.driver_identity (driver_id, cin)
   values (v_d3, 'TEST-CIN-3');
 
-  raise notice 'Jeu d''essai : 3 livreurs de test crees';
+  insert into public.driver_identity (driver_id, cin, contract_legalized_at)
+  values (v_d4, 'TEST-CIN-4', current_date);
+
+  raise notice 'Jeu d''essai : 4 livreurs de test crees';
 end
 $$;
 
@@ -171,8 +193,14 @@ begin
   if public.driver_is_verified(null) then
     raise exception 'ECHEC 2d : un driver_id null ne doit pas etre verifie';
   end if;
+  -- Troisieme piece, depuis 20261015190000. Detaille dans
+  -- driver_contract_scan_test.sql ; garde ici pour que ce harnais ne
+  -- reaffirme pas un critere perime.
+  if public.driver_is_verified('00000000-dead-beef-0000-0000000000d4') then
+    raise exception 'ECHEC 2e : un livreur sans scan du contrat ne doit pas etre verifie';
+  end if;
 
-  raise notice 'OK 2 — CIN ET contrat sont tous deux exiges';
+  raise notice 'OK 2 — CIN, contrat legalise ET scan sont tous trois exiges';
 end
 $$;
 
@@ -429,7 +457,7 @@ begin
   -- Compte reel : la FK drivers_user_id_fkey est active ici, les triggers
   -- ayant ete retablis plus haut.
   insert into public.drivers (id, user_id, is_online)
-  values (v_new, (select user_id from _t_fixture where slot = 4), false);
+  values (v_new, (select user_id from _t_fixture where slot = 5), false);
   get diagnostics n = row_count;
   if n <> 1 then
     raise exception 'ECHEC 7bis-d : l inscription d un nouveau livreur a ete refusee';

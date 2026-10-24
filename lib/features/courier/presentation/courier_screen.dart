@@ -521,6 +521,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
   Widget build(BuildContext context) {
     final w = widget.screenWidth;
     final h = widget.screenHeight;
+    final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(w * 0.05, h * 0.02, w * 0.05, h * 0.14),
@@ -689,8 +690,11 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
             SizedBox(height: h * 0.025),
 
             // ── Mode de remise ───────────────────────────────────────────────
+            // Le titre pose la question au lieu de nommer un réglage :
+            // « Remise au destinataire » ne dit pas à l'expéditeur ce qu'on
+            // attend de lui.
             CourierSectionHeader(
-                'Remise au destinataire', Icons.verified_user_outlined,
+                l10n.colisHandoverSectionTitle, Icons.verified_user_outlined,
                 screenWidth: w),
             SizedBox(height: h * 0.015),
             DeliveryModeSelector(

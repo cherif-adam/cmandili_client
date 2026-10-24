@@ -1,3 +1,4 @@
+import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -33,26 +34,26 @@ class DeliveryModeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = screenWidth;
     final h = screenHeight;
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
+        // L'ordre n'est pas neutre : le mode recommandé est aussi celui par
+        // défaut (_deliveryMode) et passe donc en premier.
         _ModeOption(
           selected: mode == ColisDeliveryMode.code,
           onTap: () => onModeChanged(ColisDeliveryMode.code),
-          title: 'Avec code',
-          subtitle:
-              'Un code à 4 chiffres vous sera donné. Le destinataire le '
-              'communique au livreur à la remise.',
-          icon: Icons.pin_outlined,
+          title: l10n.colisModeCodeTitle,
+          subtitle: l10n.colisModeCodeSubtitle,
+          icon: Icons.lock_outline,
+          badge: l10n.colisModeRecommended,
           screenWidth: w,
           screenHeight: h,
         ),
         _ModeOption(
           selected: mode == ColisDeliveryMode.noCode,
           onTap: () => onModeChanged(ColisDeliveryMode.noCode),
-          title: 'Remise sans code',
-          subtitle:
-              "Quand le destinataire n'a pas de téléphone — un enfant à "
-              "l'école, un gardien. La preuve sera la photo et la position.",
+          title: l10n.colisModeNoCodeTitle,
+          subtitle: l10n.colisModeNoCodeSubtitle,
           icon: Icons.handshake_outlined,
           screenWidth: w,
           screenHeight: h,
@@ -93,6 +94,7 @@ class _ModeOption extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final String? badge;
   final double screenWidth;
   final double screenHeight;
 
@@ -102,6 +104,7 @@ class _ModeOption extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.badge,
     required this.screenWidth,
     required this.screenHeight,
   });
@@ -134,10 +137,37 @@ class _ModeOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: TextStyle(
-                          fontSize: w * 0.038,
-                          fontWeight: FontWeight.w700)),
+                  Row(
+                    children: [
+                      // Flexible : à l'étroit, c'est le titre qui se coupe,
+                      // jamais le badge — un « Recommandé » tronqué en
+                      // « Recomm… » n'aide personne.
+                      Flexible(
+                        child: Text(title,
+                            style: TextStyle(
+                                fontSize: w * 0.038,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                      if (badge != null) ...[
+                        SizedBox(width: w * 0.02),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: w * 0.02, vertical: h * 0.003),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            badge!,
+                            style: TextStyle(
+                                fontSize: w * 0.028,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                   SizedBox(height: h * 0.004),
                   Text(subtitle,
                       style: TextStyle(

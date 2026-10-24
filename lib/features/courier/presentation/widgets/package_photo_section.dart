@@ -84,7 +84,13 @@ class PackagePhotoSection extends StatelessWidget {
       onTap: onPick,
       child: Container(
         width: double.infinity,
-        height: h * 0.14,
+        // minHeight et non height : la boîte était dimensionnée par la HAUTEUR
+        // de l'écran (h * 0.14) alors que son contenu — icône et deux lignes —
+        // est dimensionné par la LARGEUR. Sur un téléphone large le contenu
+        // débordait par le bas de 0,1 à 9,8 px. Avec un minimum, la boîte
+        // garde la même taille quand ça rentre et grandit quand il faut.
+        constraints: BoxConstraints(minHeight: h * 0.14),
+        padding: EdgeInsets.symmetric(vertical: h * 0.012),
         decoration: BoxDecoration(
           color: Colors.grey.shade50,
           borderRadius: BorderRadius.circular(w * 0.04),
@@ -94,6 +100,7 @@ class PackagePhotoSection extends StatelessWidget {
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
