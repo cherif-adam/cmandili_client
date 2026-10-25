@@ -33,6 +33,7 @@
 //   error -> { error: string, details?: string }   (always HTTP 200 or 4xx/5xx)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { taxonomyFilter } from "./search_filters.ts";
 
 // The client type, derived from an actual CALL rather than from
 // `ReturnType<typeof createClient>`.
@@ -298,6 +299,10 @@ List at most 20 ids, best first. Do not add text outside the JSON.`;
 //      they are the most likely reason a reasonable query returns nothing
 //   3. drop category / keyword, keep the budget — respect what they can spend
 //
+// "category / keyword" is ONE filter, not two: the dish the user named when
+// there is one, else the category the model guessed (see taxonomyFilter in
+// search_filters.ts — requiring both lost most of the matching dishes).
+//
 // THE BUDGET IS NOT A TIER. There used to be a fourth tier with no filters at
 // all, justified as "guarantees we never hand back zero results" — but what it
 // actually guaranteed was handing back results the user cannot afford, with no
@@ -328,17 +333,16 @@ function buildCandidateQuery(
 ) {
   let q = supabase.from("food_items").select(FOOD_SELECT).eq("is_available", true);
 
-  if (tier.taxonomy && intent.category) {
-    q = q.ilike("category", `%${intent.category}%`);
+  if (tier.taxonomy) {
+    const taxonomy = taxonomyFilter(intent);
+    if (taxonomy?.kind === "keyword") q = q.or(taxonomy.or);
+    else if (taxonomy?.kind === "category") q = q.ilike("category", taxonomy.pattern);
   }
   if (tier.attributes && intent.spicy === true) q = q.eq("is_spicy", true);
   if (tier.attributes && intent.vegetarian === true) q = q.eq("is_vegetarian", true);
   // Unconditional, at every tier: see RELAX_TIERS above.
   if (intent.max_price != null) q = q.lte("price", intent.max_price);
   if (intent.min_price != null) q = q.gte("price", intent.min_price);
-  if (tier.taxonomy && intent.keyword) {
-    q = q.or(`name.ilike.%${intent.keyword}%,description.ilike.%${intent.keyword}%`);
-  }
 
   // The widest tier has no user signal to sort by, so lead with the cheapest
   // dishes. We deliberately do NOT filter on restaurants.is_open here — that
