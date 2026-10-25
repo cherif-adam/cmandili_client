@@ -16,7 +16,6 @@ import '../../../notifications/presentation/notification/notification_screen.dar
 import '../../../orders/presentation/order_history/order_history_screen.dart';
 import '../edit_profile/edit_profile_screen.dart';
 import '../help_support/help_support_screen.dart';
-import '../payment_methods/payment_methods_screen.dart';
 import '../saved_addresses/saved_addresses_screen.dart';
 import 'profile_controller.dart';
 import 'widgets/language_picker_sheet.dart';
@@ -28,7 +27,7 @@ import 'widgets/profile_switch_item.dart';
 /// The "Profil" tab, top to bottom:
 ///
 ///   ProfileHeader     green, avatar (tap to change), name, email
-///   _AccountSection   orders, bills, edit profile, addresses, payment
+///   _AccountSection   orders, bills, edit profile, addresses
 ///   _SettingsSection  notifications, bill reminders, language, theme,
 ///                     password, help
 ///   _LogoutSection    logout, then "Supprimer mon compte" set apart
@@ -164,7 +163,7 @@ ProfileMenuItem _menuItem(
   );
 }
 
-/// "Compte": orders, bills, edit profile, addresses, payment.
+/// "Compte": orders, bills, edit profile, addresses.
 class _AccountSection extends StatelessWidget {
   const _AccountSection({required this.onOpen});
 
@@ -201,12 +200,6 @@ class _AccountSection extends StatelessWidget {
           icon: Icons.location_on_outlined,
           title: l.savedAddresses,
           onTap: () => onOpen(const SavedAddressesScreen()),
-        ),
-        _menuItem(
-          context,
-          icon: Icons.payment_outlined,
-          title: l.paymentMethods,
-          onTap: () => onOpen(const PaymentMethodsScreen()),
         ),
         SizedBox(height: size.height * 0.03),
       ],

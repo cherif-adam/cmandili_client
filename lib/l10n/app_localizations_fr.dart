@@ -349,12 +349,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get setDefault => 'Définir par défaut';
 
   @override
-  String get noPaymentMethods => 'Aucun moyen de paiement enregistré';
-
-  @override
-  String get addNewCard => 'Ajouter une nouvelle carte';
-
-  @override
   String get noRestaurantsFound => 'Aucun restaurant trouvé';
 
   @override
@@ -507,9 +501,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get editProfile => 'Modifier le profil';
-
-  @override
-  String get paymentMethods => 'Moyens de paiement';
 
   @override
   String get user => 'Utilisateur';
@@ -909,15 +900,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get factureSuccessTitle => 'Ta facture est prise en charge !';
-
-  @override
-  String get cardholderName => 'Nom du titulaire';
-
-  @override
-  String get cardNumber => 'Numéro de carte';
-
-  @override
-  String get expiryDate => 'Date d\'expiration (MM/AA)';
 
   @override
   String get phoneNumberLabel => 'Numéro de téléphone';
@@ -1420,7 +1402,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String aiSearchModalHint(String city) {
-    return 'Envoie une photo d\'un plat pour le trouver à $city';
+    return 'Envoie une photo d\'un plat pour le trouver en $city';
   }
 
   @override
@@ -1447,7 +1429,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get city => 'Kairouan';
+  String get city => 'Tunisie';
 
   @override
   String get colisHandoverSectionTitle =>

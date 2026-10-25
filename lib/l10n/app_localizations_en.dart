@@ -341,12 +341,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get setDefault => 'Set Default';
 
   @override
-  String get noPaymentMethods => 'No payment methods saved';
-
-  @override
-  String get addNewCard => 'Add New Card';
-
-  @override
   String get noRestaurantsFound => 'No restaurants found';
 
   @override
@@ -495,9 +489,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editProfile => 'Edit Profile';
-
-  @override
-  String get paymentMethods => 'Payment Methods';
 
   @override
   String get user => 'User';
@@ -888,15 +879,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get factureSuccessTitle => 'Your bill is being handled!';
-
-  @override
-  String get cardholderName => 'Cardholder Name';
-
-  @override
-  String get cardNumber => 'Card Number';
-
-  @override
-  String get expiryDate => 'Expiry Date (MM/YY)';
 
   @override
   String get phoneNumberLabel => 'Phone Number';
@@ -1419,7 +1401,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get city => 'Kairouan';
+  String get city => 'Tunisia';
 
   @override
   String get colisHandoverSectionTitle =>

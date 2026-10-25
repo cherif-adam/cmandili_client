@@ -40,7 +40,7 @@ class ChatEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Votre conseiller nutrition et découverte culinaire à Kairouan.\nDites-moi ce que vous cherchez !',
+            'Votre conseiller nutrition et découverte culinaire en Tunisie.\nDites-moi ce que vous cherchez !',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: kChatTextMid, height: 1.4),
           ),
