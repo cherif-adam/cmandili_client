@@ -21,9 +21,9 @@ import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:cmandili_mobile/main.dart';
 import 'package:cmandili_mobile/core/config/supabase_config.dart';
 import 'package:cmandili_mobile/features/auth/data/auth_repository.dart';
-import 'package:cmandili_mobile/features/auth/presentation/auth_screen.dart';
-import 'package:cmandili_mobile/features/home/presentation/home_screen.dart';
-import 'package:cmandili_mobile/features/profile/presentation/phone_gate_screen.dart';
+import 'package:cmandili_mobile/features/auth/presentation/auth/auth_screen.dart';
+import 'package:cmandili_mobile/features/home/presentation/home/home_screen.dart';
+import 'package:cmandili_mobile/features/profile/presentation/phone_gate/phone_gate_screen.dart';
 
 const _email = String.fromEnvironment('REPRO_EMAIL');
 const _password = String.fromEnvironment('REPRO_PASSWORD');
