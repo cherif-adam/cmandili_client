@@ -91,3 +91,7 @@ android/.kotlin/
 # Supabase CLI local state (link target, cached versions) — regenerated
 # by `supabase link`, never shared.
 supabase/.temp/
+
+# Full dumps of the live database (personal data, password hashes) — never
+# commit.
+backups/2026-10-25/
