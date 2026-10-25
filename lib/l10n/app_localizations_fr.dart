@@ -2253,4 +2253,8 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get deleteAccountDeletedOrderDetails =>
       'Dans vos anciennes commandes : adresses, positions GPS, téléphones, noms, notes, messages vocaux et photos de facture, y compris le nom et le téléphone des destinataires de vos colis';
+
+  @override
+  String get cannotOpenContactApp =>
+      'Impossible d\'ouvrir l\'application. Contactez-nous au +216 24 697 855.';
 }

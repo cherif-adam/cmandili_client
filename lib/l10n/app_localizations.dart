@@ -4078,6 +4078,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'In your past orders: addresses, GPS positions, phone numbers, names, notes, voice messages and bill photos, including the name and phone of your parcel recipients'**
   String get deleteAccountDeletedOrderDetails;
+
+  /// No description provided for @cannotOpenContactApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the app. Contact us at +216 24 697 855.'**
+  String get cannotOpenContactApp;
 }
 
 class _AppLocalizationsDelegate

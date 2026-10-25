@@ -724,5 +724,6 @@
     "deleteAccountKeptColis": "La preuve de remise de vos colis (photos, GPS, plaque et pièce d'identité du livreur), 30 jours après votre dernière commande, puis elle est effacée",
     "deleteAccountAppleHint": "Pour votre sécurité, vous allez vous reconnecter avec Apple.",
     "deleteAccountDoneBody": "Votre compte a été supprimé. Merci d'avoir utilisé Amana.",
-    "deleteAccountDeletedOrderDetails": "Dans vos anciennes commandes : adresses, positions GPS, téléphones, noms, notes, messages vocaux et photos de facture, y compris le nom et le téléphone des destinataires de vos colis"
+    "deleteAccountDeletedOrderDetails": "Dans vos anciennes commandes : adresses, positions GPS, téléphones, noms, notes, messages vocaux et photos de facture, y compris le nom et le téléphone des destinataires de vos colis",
+    "cannotOpenContactApp": "Impossible d'ouvrir l'application. Contactez-nous au +216 24 697 855."
 }

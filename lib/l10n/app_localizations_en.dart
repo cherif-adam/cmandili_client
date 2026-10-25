@@ -2215,4 +2215,8 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountDeletedOrderDetails =>
       'In your past orders: addresses, GPS positions, phone numbers, names, notes, voice messages and bill photos, including the name and phone of your parcel recipients';
+
+  @override
+  String get cannotOpenContactApp =>
+      'Couldn\'t open the app. Contact us at +216 24 697 855.';
 }

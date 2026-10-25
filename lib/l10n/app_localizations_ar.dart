@@ -2197,4 +2197,8 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get deleteAccountDeletedOrderDetails =>
       'في طلباتك السابقة: العناوين ومواقع GPS وأرقام الهواتف والأسماء والملاحظات والرسائل الصوتية وصور الفواتير، بما في ذلك اسم وهاتف مستلمي طرودك';
+
+  @override
+  String get cannotOpenContactApp =>
+      'تعذّر فتح التطبيق. اتصل بنا على الرقم +216 24 697 855.';
 }

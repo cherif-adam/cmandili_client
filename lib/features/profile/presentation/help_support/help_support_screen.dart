@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'help_support_controller.dart';
 import 'widgets/contact_option_tile.dart';
 
 /// "Aide & support": a form that opens a support ticket (subject +
-/// message), then the e-mail and phone to reach the team directly
-/// (ContactOptionTile).
+/// message, read by the admin on the website's Support page), then call,
+/// WhatsApp and e-mail to reach the team directly (ContactOptionTile).
 ///
 ///   _Intro, _TicketForm, _ContactOptions
 ///
@@ -186,24 +187,53 @@ class _TicketForm extends StatelessWidget {
   }
 }
 
-/// The e-mail and phone to reach the team directly.
+/// Reach the team directly: call, WhatsApp or e-mail. Each row opens the
+/// phone's own app.
 class _ContactOptions extends StatelessWidget {
   const _ContactOptions();
 
+  static const _phone = '+21624697855';
+  static const _phoneShown = '+216 24 697 855';
+  static const _email = 'firasmzoughi2001@gmail.com';
+
+  Future<void> _open(BuildContext context, Uri uri) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final cannotOpen = AppLocalizations.of(context)!.cannotOpenContactApp;
+    bool opened = false;
+    try {
+      opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!opened) {
+      messenger.showSnackBar(SnackBar(content: Text(cannotOpen)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ContactOptionTile(
-          icon: Icons.email_outlined,
-          title: AppLocalizations.of(context)!.helpEmailUs,
-          subtitle: 'support@amana.tn',
+          icon: Icons.phone_outlined,
+          title: l.callUs,
+          subtitle: _phoneShown,
+          onTap: () => _open(context, Uri(scheme: 'tel', path: _phone)),
         ),
         ContactOptionTile(
-          icon: Icons.phone_outlined,
-          title: AppLocalizations.of(context)!.callUs,
-          subtitle: '+216 71 123 456',
+          icon: Icons.chat_outlined,
+          title: 'WhatsApp',
+          subtitle: _phoneShown,
+          onTap: () => _open(context, Uri.parse('https://wa.me/${_phone.substring(1)}')),
+        ),
+        ContactOptionTile(
+          icon: Icons.email_outlined,
+          title: l.helpEmailUs,
+          subtitle: _email,
+          onTap: () => _open(
+            context,
+            Uri(scheme: 'mailto', path: _email, query: 'subject=Amana%20-%20Support'),
+          ),
         ),
       ],
     );
