@@ -14,7 +14,9 @@
 --     la LISTE des fichiers que les Edge Functions retireraient.
 --
 -- À lancer d'un bloc dans le SQL Editor, APRÈS
--- 20261017090000_account_deletion.sql. Le résultat est la dernière ligne.
+-- 20261017090000_account_deletion.sql et
+-- 20261025120000_delete_my_account_via_account_deletion.sql. Le résultat est
+-- la dernière ligne.
 --
 -- Ce qui est vérifié :
 --   T1  partenaire bloqué (commande en cours + solde) : rien ne change, refus
@@ -50,7 +52,14 @@
 --   T8  DELETE direct sur auth.users / drivers : refusé par les FK ; aucun
 --       lien vers auth.users n'efface commande, paiement ou prime en cascade
 --   T9  droits : anon n'exécute rien, authenticated seulement la
---       vérification, le journal est fermé aux deux
+--       vérification et delete_my_account(), le journal est fermé aux deux
+--   T15 delete_my_account() des anciens builds : refusée sans connexion,
+--       sans ré-authentification ou avec une ré-authentification de plus de
+--       5 minutes ; refusée pendant une commande ou une livraison et avec
+--       un solde négatif, avec les mots que ces builds reconnaissent, sans
+--       rien changer ; sinon la même suppression que l'Edge Function (profil
+--       anonymisé, ligne auth.users gardée, bannie, commande gardée, purge à
+--       30 jours, journal à finir par l'admin) ; appel rejoué sans effet
 -- ============================================================================
 
 begin;
@@ -63,6 +72,8 @@ declare
   u_k  uuid := gen_random_uuid();  -- client colis
   u_d  uuid := gen_random_uuid();  -- livreur
   u_a  uuid := gen_random_uuid();  -- admin
+  u_w  uuid := gen_random_uuid();  -- client supprimé par delete_my_account()
+  u_v  uuid := gen_random_uuid();  -- livreur qui appelle delete_my_account()
   v_p  uuid;
   v_b  uuid;
   d_d  uuid;
@@ -72,6 +83,10 @@ declare
   o_k2 uuid;   -- colis de C (toujours inscrit), porté par D
   o_f  uuid;   -- repas de K, livré
   o_bill uuid; -- facture de K, payée
+  o_w  uuid;   -- repas de W, livré
+  o_v  uuid;   -- course de V, en route
+  d_v  uuid;
+  msg  text;
   k_log uuid;
   d_log uuid;
   addr jsonb := jsonb_build_object(
@@ -95,6 +110,10 @@ begin
   -- ── Préconditions ────────────────────────────────────────────────────────
   if to_regprocedure('public.account_deletion_purge_identities(uuid[])') is null then
     raise exception 'PRECONDITION : account_deletion_purge_identities absente. Lancez 20261017090000_account_deletion.sql.';
+  end if;
+  if coalesce(position('account_deletion_execute' in (select prosrc from pg_proc
+                where oid = to_regprocedure('public.delete_my_account()'))), 0) = 0 then
+    raise exception 'PRECONDITION : delete_my_account() ne passe pas par account_deletion_execute(). Lancez 20261025120000_delete_my_account_via_account_deletion.sql.';
   end if;
 
   -- ── Jeu d'essai ──────────────────────────────────────────────────────────
@@ -789,12 +808,178 @@ begin
      or not has_function_privilege('authenticated', 'public.account_deletion_check()', 'execute')
      or not has_function_privilege('service_role', 'public.account_deletion_execute(uuid,text)', 'execute')
      or not has_function_privilege('service_role', 'public.account_deletion_purge_proofs(uuid[])', 'execute')
+     or has_function_privilege('anon', 'public.delete_my_account()', 'execute')
+     or not has_function_privilege('authenticated', 'public.delete_my_account()', 'execute')
      or has_table_privilege('anon', 'public.account_deletions', 'select')
      or has_table_privilege('authenticated', 'public.account_deletions', 'select')
      or has_table_privilege('authenticated', 'public.account_deletions', 'insert') then
     raise exception 'FAIL T9 : droits';
   end if;
-  res := res || 'T9 ok';
+  res := res || 'T9 ok; ';
+
+  -- ── T15 delete_my_account() des anciens builds ──────────────────────────
+  -- W : client en règle, une commande livrée il y a 3 jours. V : livreur avec
+  -- une course en route (pour le client C).
+  insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, raw_app_meta_data, created_at, updated_at)
+  select u, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+         'acctdel-' || u::text || '@test.invalid',
+         jsonb_build_object('full_name', 'Test ' || u::text, 'phone', '+21600000000'),
+         '{"provider":"email","providers":["email"]}'::jsonb, now(), now()
+    from unnest(array[u_w, u_v]) as u;
+  update public.profiles
+     set full_name  = 'Test ' || id::text,
+         phone      = '+21600000000',
+         is_admin   = false,
+         is_blocked = false
+   where id = any (array[u_w, u_v]);
+  insert into public.orders (user_id, restaurant_id, status, order_type, subtotal, delivery_fee, total,
+                             delivered_at, delivery_address)
+  values (u_w, v_b, 'delivered', 'food', 10, 2, 12, now() - interval '3 days', addr)
+  returning id into o_w;
+  insert into public.drivers (user_id, is_online, current_lat, current_lng, last_location_update, is_blocked,
+                              vehicle_make, vehicle_model, vehicle_color, vehicle_plate)
+  values (u_v, true, 36.8, 10.18, now(), false, 'Renault', 'Kangoo', 'Gris', '456 TU 7890')
+  returning id into d_v;
+  insert into public.orders (user_id, restaurant_id, driver_id, status, order_type, subtotal, delivery_fee, total)
+  values (u_c, v_b, d_v, 'onTheWay', 'food', 10, 2, 12)
+  returning id into o_v;
+  select count(*) into n from public.account_deletions where user_id = any (array[u_c, u_v, u_w]);
+
+  -- Sans connexion.
+  perform set_config('request.jwt.claims', jsonb_build_object('role', 'authenticated')::text, true);
+  begin
+    set local role authenticated;
+    perform public.delete_my_account();
+    msg := 'acceptée';
+  exception when others then
+    get stacked diagnostics msg = message_text;
+  end;
+  reset role;
+  if msg <> 'not_authenticated' then
+    raise exception 'FAIL T15 sans connexion : %', msg;
+  end if;
+
+  -- Connecté, sans ré-authentification (pas de claim amr).
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', u_w, 'role', 'authenticated')::text, true);
+  begin
+    set local role authenticated;
+    perform public.delete_my_account();
+    msg := 'acceptée';
+  exception when others then
+    get stacked diagnostics msg = message_text;
+  end;
+  reset role;
+  if msg <> 'reauth_required' then
+    raise exception 'FAIL T15 sans ré-authentification : %', msg;
+  end if;
+
+  -- Ré-authentification d'il y a 10 minutes : trop ancienne.
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', u_w, 'role', 'authenticated',
+    'amr', jsonb_build_array(jsonb_build_object('method', 'password',
+      'timestamp', floor(extract(epoch from now()))::bigint - 600)))::text, true);
+  begin
+    set local role authenticated;
+    perform public.delete_my_account();
+    msg := 'acceptée';
+  exception when others then
+    get stacked diagnostics msg = message_text;
+  end;
+  reset role;
+  if msg <> 'reauth_required' then
+    raise exception 'FAIL T15 ré-authentification ancienne : %', msg;
+  end if;
+
+  -- Client C, commandes en cours : le build client y lit 'active_order'.
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', u_c, 'role', 'authenticated',
+    'amr', jsonb_build_array(jsonb_build_object('method', 'password',
+      'timestamp', floor(extract(epoch from now()))::bigint - 10)))::text, true);
+  begin
+    set local role authenticated;
+    perform public.delete_my_account();
+    msg := 'acceptée';
+  exception when others then
+    get stacked diagnostics msg = message_text;
+  end;
+  reset role;
+  if msg <> 'account_deletion_blocked: active_orders' then
+    raise exception 'FAIL T15 client bloqué : %', msg;
+  end if;
+
+  -- Livreur V, course en route : le build livreur y lit 'active_order'.
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', u_v, 'role', 'authenticated',
+    'amr', jsonb_build_array(jsonb_build_object('method', 'password',
+      'timestamp', floor(extract(epoch from now()))::bigint - 10)))::text, true);
+  begin
+    set local role authenticated;
+    perform public.delete_my_account();
+    msg := 'acceptée';
+  exception when others then
+    get stacked diagnostics msg = message_text;
+  end;
+  reset role;
+  if msg <> 'account_deletion_blocked: driver_active_orders' or position('active_order' in msg) = 0 then
+    raise exception 'FAIL T15 livreur bloqué (course) : %', msg;
+  end if;
+
+  -- Course livrée, mais solde négatif : 'negative_balance' pour le build livreur.
+  update public.orders set status = 'delivered', delivered_at = now() where id = o_v;
+  insert into public.wallets (user_id, balance, status, blocked_reason) values (u_v, -3, 'active', null);
+  begin
+    set local role authenticated;
+    perform public.delete_my_account();
+    msg := 'acceptée';
+  exception when others then
+    get stacked diagnostics msg = message_text;
+  end;
+  reset role;
+  if msg <> 'account_deletion_blocked: wallet_balance, negative_balance' then
+    raise exception 'FAIL T15 livreur bloqué (solde) : %', msg;
+  end if;
+
+  -- Aucun refus n'a rien changé.
+  if (select count(*) from public.profiles
+       where id = any (array[u_c, u_v, u_w]) and full_name = 'Test ' || id::text and deleted_at is null) <> 3
+     or exists (select 1 from auth.users where id = any (array[u_c, u_v, u_w]) and banned_until is not null)
+     or (select count(*) from public.account_deletions where user_id = any (array[u_c, u_v, u_w])) <> n
+     or not exists (select 1 from public.orders where id = o_w and delivery_address = addr) then
+    raise exception 'FAIL T15 : un refus a modifié un compte';
+  end if;
+
+  -- W, ré-authentifié il y a 10 secondes : supprimé comme par l'Edge Function.
+  perform set_config('request.jwt.claims', jsonb_build_object('sub', u_w, 'role', 'authenticated',
+    'amr', jsonb_build_array(jsonb_build_object('method', 'password',
+      'timestamp', floor(extract(epoch from now()))::bigint - 10)))::text, true);
+  set local role authenticated;
+  perform public.delete_my_account();
+  reset role;
+  if not exists (select 1 from public.profiles
+                  where id = u_w and full_name = 'Compte supprimé' and phone is null and deleted_at is not null) then
+    raise exception 'FAIL T15 : profil non anonymisé';
+  end if;
+  if not exists (select 1 from auth.users where id = u_w and banned_until > now() + interval '99 years') then
+    raise exception 'FAIL T15 : ligne auth.users supprimée ou non bannie';
+  end if;
+  if not exists (select 1 from public.orders
+                  where id = o_w and user_id = u_w and total = 12 and status = 'delivered'
+                    and delivery_address is distinct from addr) then
+    raise exception 'FAIL T15 : commande perdue ou adresse gardée';
+  end if;
+  if not exists (select 1 from public.account_deletions a
+                  where a.user_id = u_w and a.app = 'client' and a.status = 'auth_pending'
+                    and a.error like 'delete_my_account (ancien build) :%'
+                    and a.proof_purge_after = (select delivered_at from public.orders where id = o_w) + interval '30 days'
+                    and a.identity_purge_after is null) then
+    raise exception 'FAIL T15 : journal';
+  end if;
+
+  -- Rejoué : rien ne bouge.
+  set local role authenticated;
+  perform public.delete_my_account();
+  reset role;
+  if (select count(*) from public.account_deletions where user_id = u_w) <> 1 then
+    raise exception 'FAIL T15 : appel rejoué journalisé deux fois';
+  end if;
+  res := res || 'T15 ok';
 
   perform set_config('acct_del.results', res, true);
 end
