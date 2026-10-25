@@ -174,8 +174,10 @@ class AiSearchResultCard extends StatelessWidget {
                         ],
                       ),
 
-                      // Restaurant rating
-                      if (item.restaurantRating != null)
+                      // Restaurant rating. 0 means "no review yet" (the
+                      // column defaults to 0 until the first order rating),
+                      // so it is hidden, as on the shop cards.
+                      if ((item.restaurantRating ?? 0) > 0)
                         Row(
                           children: [
                             const Icon(Icons.star_rounded,
