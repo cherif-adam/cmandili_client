@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -213,6 +214,19 @@ class AuthRepository {
   // Sign out. The Supabase session is what the app routes on, so it must end
   // even if the Google sign-out fails (e.g. the user never used Google).
   Future<void> signOut() async {
+    // This phone's push token goes first, as in the driver app: left in
+    // device_tokens, it kept receiving this account's notifications after
+    // someone else signed in on the phone (PushService registers the token
+    // again at the next sign-in). Before auth.signOut(): the RLS policy
+    // needs auth.uid().
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await _supabase.from('device_tokens').delete().eq('token', token);
+      }
+    } catch (e) {
+      debugPrint('signOut: device token not removed ($e)');
+    }
     try {
       await _googleSignIn.signOut();
     } catch (e) {
