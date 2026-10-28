@@ -4084,6 +4084,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t open the app. Contact us at +216 24 697 855.'**
   String get cannotOpenContactApp;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get privacyPolicy;
+
+  /// No description provided for @privacyPolicyOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The page could not be opened. Check your connection.'**
+  String get privacyPolicyOpenFailed;
 }
 
 class _AppLocalizationsDelegate

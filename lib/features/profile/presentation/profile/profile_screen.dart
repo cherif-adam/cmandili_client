@@ -8,6 +8,7 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/providers/localization_provider.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/privacy_policy.dart';
 import '../../../account_deletion/presentation/delete_account/delete_account_screen.dart';
 import '../../../auth/presentation/change_password/change_password_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -29,7 +30,7 @@ import 'widgets/profile_switch_item.dart';
 ///   ProfileHeader     green, avatar (tap to change), name, email
 ///   _AccountSection   orders, bills, edit profile, addresses
 ///   _SettingsSection  notifications, bill reminders, language, theme,
-///                     password, help
+///                     password, help, privacy policy
 ///   _LogoutSection    logout, then "Supprimer mon compte" set apart
 ///
 /// UI only: the bill reminders switch, the avatar upload, the logout and
@@ -208,7 +209,7 @@ class _AccountSection extends StatelessWidget {
 }
 
 /// "Paramètres": notifications, bill reminders, language, theme, password,
-/// help.
+/// help, privacy policy.
 class _SettingsSection extends StatelessWidget {
   const _SettingsSection({
     required this.onOpen,
@@ -273,6 +274,12 @@ class _SettingsSection extends StatelessWidget {
           icon: Icons.help_outline_rounded,
           title: l.helpSupport,
           onTap: () => onOpen(const HelpSupportScreen()),
+        ),
+        _menuItem(
+          context,
+          icon: Icons.privacy_tip_outlined,
+          title: l.privacyPolicy,
+          onTap: () => openPrivacyPolicy(context),
         ),
         SizedBox(height: size.height * 0.03),
       ],

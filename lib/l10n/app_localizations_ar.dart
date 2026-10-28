@@ -2201,4 +2201,10 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get cannotOpenContactApp =>
       'تعذّر فتح التطبيق. اتصل بنا على الرقم +216 24 697 855.';
+
+  @override
+  String get privacyPolicy => 'سياسة الخصوصية';
+
+  @override
+  String get privacyPolicyOpenFailed => 'تعذّر فتح الصفحة. تحقّق من اتصالك.';
 }

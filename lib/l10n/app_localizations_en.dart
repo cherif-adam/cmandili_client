@@ -2219,4 +2219,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cannotOpenContactApp =>
       'Couldn\'t open the app. Contact us at +216 24 697 855.';
+
+  @override
+  String get privacyPolicy => 'Privacy policy';
+
+  @override
+  String get privacyPolicyOpenFailed =>
+      'The page could not be opened. Check your connection.';
 }

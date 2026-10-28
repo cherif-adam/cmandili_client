@@ -2257,4 +2257,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get cannotOpenContactApp =>
       'Impossible d\'ouvrir l\'application. Contactez-nous au +216 24 697 855.';
+
+  @override
+  String get privacyPolicy => 'Politique de confidentialité';
+
+  @override
+  String get privacyPolicyOpenFailed =>
+      'La page n\'a pas pu s\'ouvrir. Vérifiez votre connexion.';
 }

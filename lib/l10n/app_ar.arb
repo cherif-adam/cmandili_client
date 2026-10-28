@@ -725,5 +725,7 @@
     "deleteAccountAppleHint": "لأمانك، ستعيد تسجيل الدخول عبر Apple.",
     "deleteAccountDoneBody": "تم حذف حسابك. شكراً لاستخدامك أمانة.",
     "deleteAccountDeletedOrderDetails": "في طلباتك السابقة: العناوين ومواقع GPS وأرقام الهواتف والأسماء والملاحظات والرسائل الصوتية وصور الفواتير، بما في ذلك اسم وهاتف مستلمي طرودك",
-    "cannotOpenContactApp": "تعذّر فتح التطبيق. اتصل بنا على الرقم +216 24 697 855."
+    "cannotOpenContactApp": "تعذّر فتح التطبيق. اتصل بنا على الرقم +216 24 697 855.",
+    "privacyPolicy": "سياسة الخصوصية",
+    "privacyPolicyOpenFailed": "تعذّر فتح الصفحة. تحقّق من اتصالك."
 }

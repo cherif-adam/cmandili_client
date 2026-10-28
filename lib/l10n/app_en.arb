@@ -774,5 +774,7 @@
     "deleteAccountAppleHint": "For your security, you will sign in again with Apple.",
     "deleteAccountDoneBody": "Your account has been deleted. Thank you for using Amana.",
     "deleteAccountDeletedOrderDetails": "In your past orders: addresses, GPS positions, phone numbers, names, notes, voice messages and bill photos, including the name and phone of your parcel recipients",
-    "cannotOpenContactApp": "Couldn't open the app. Contact us at +216 24 697 855."
+    "cannotOpenContactApp": "Couldn't open the app. Contact us at +216 24 697 855.",
+    "privacyPolicy": "Privacy policy",
+    "privacyPolicyOpenFailed": "The page could not be opened. Check your connection."
 }
