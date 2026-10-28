@@ -4,8 +4,11 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    
+    <!-- No READ_MEDIA_IMAGES: image_picker opens the system picker
+         (ACTION_GET_CONTENT), which needs no media permission, and Google
+         Play only allows it for apps whose core feature is the gallery.
+         test/android_permissions_test.dart keeps it out. -->
+
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
