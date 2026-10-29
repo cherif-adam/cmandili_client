@@ -53,7 +53,8 @@ begin
   for t in select tgname from pg_trigger
             where tgrelid = 'public.orders'::regclass
               and tgname in ('aa_guard_delivered_terminal', 'aa_guard_cancelled_terminal',
-                             'aa_guard_orders_column_scope', 'on_order_delivered_settlements')
+                             'aa_guard_orders_column_scope', 'aa_guard_status_by_role',
+                             'on_order_delivered_settlements')
   loop
     execute format('alter table public.orders enable trigger %I', t);
   end loop;
