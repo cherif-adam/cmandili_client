@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import '../config/build_config.dart';
 
 // Re-exported so callers importing route_service.dart also get RouteFreshness.
 // The freshness math lives in its own plugin-free file so it can be unit
-// tested without dotenv/http being initialised.
+// tested without a Maps key or a network.
 export 'route_freshness.dart';
 
 /// One driving route along real streets, as returned by the Google Directions
@@ -77,7 +77,7 @@ class RouteService {
     required ({double lat, double lng}) destination,
     http.Client? client,
   }) async {
-    final key = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+    const key = BuildConfig.googleMapsApiKey;
     if (key.isEmpty) {
       debugPrint('RouteService: GOOGLE_MAPS_API_KEY missing');
       return null;

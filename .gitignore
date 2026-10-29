@@ -95,3 +95,6 @@ supabase/.temp/
 # Full dumps of the live database (personal data, password hashes) — never
 # commit.
 backups/2026-10-25/
+
+# Build-time values (see dart_defines.example.json)
+dart_defines.json

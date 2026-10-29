@@ -2,11 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../utils/location_service.dart';
+import '../../config/build_config.dart';
 
 const _purple = Color(0xFF6C3DE1);
 
@@ -78,8 +78,8 @@ class _AddressChoiceScreenState extends State<AddressChoiceScreen> {
   }
 
   Future<void> _fetchSuggestions(String query) async {
-    final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
-    if (key == null || key.isEmpty) return;
+    const key = BuildConfig.googleMapsApiKey;
+    if (key.isEmpty) return;
 
     setState(() => _isSearching = true);
     try {

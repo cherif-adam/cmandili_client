@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import '../config/build_config.dart';
 
 class LocationService {
   // Check if location services are enabled
@@ -122,8 +122,8 @@ class LocationService {
     double lat2,
     double lon2,
   ) {
-    final key = dotenv.env['GOOGLE_MAPS_API_KEY'];
-    if (key == null || key.isEmpty) return null;
+    const key = BuildConfig.googleMapsApiKey;
+    if (key.isEmpty) return null;
     return Uri.parse(
       'https://maps.googleapis.com/maps/api/directions/json'
       '?origin=$lat1,$lon1&destination=$lat2,$lon2&mode=driving&key=$key',

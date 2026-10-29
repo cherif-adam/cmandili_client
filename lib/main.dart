@@ -12,9 +12,8 @@ import 'l10n/app_localizations.dart';
 import 'core/providers/localization_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'core/config/supabase_config.dart';
+import 'core/config/build_config.dart';
 import 'core/push/push_service.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -28,15 +27,18 @@ void main() async {
   // Default to local device timezone.
   tz.setLocalLocation(tz.getLocation('Africa/Tunis'));
 
-  // dotenv MUST resolve first — SupabaseConfig reads from it. The Google Maps
-  // key is read from the native manifest, not here. Then run Supabase +
-  // Firebase in parallel.
-  await dotenv.load(fileName: '.env');
+  // Built without --dart-define-from-file: say so now rather than fail later
+  // on an empty Supabase URL. The map tiles' key is read from the native
+  // manifest, not here. Then run Supabase + Firebase in parallel.
+  if (BuildConfig.missing.isNotEmpty) {
+    throw StateError('Missing ${BuildConfig.missing.join(', ')}: build with '
+        '--dart-define-from-file=dart_defines.json');
+  }
 
   await Future.wait([
     Supabase.initialize(
-      url: SupabaseConfig.url,
-      anonKey: SupabaseConfig.anonKey,
+      url: BuildConfig.supabaseUrl,
+      anonKey: BuildConfig.supabaseAnonKey,
     ),
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
         .catchError((_) => Firebase.app()),

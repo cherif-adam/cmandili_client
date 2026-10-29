@@ -60,7 +60,6 @@ dependencies:
 
   # HTTP client for the Google Directions API (route polyline)
   http: ^1.6.0
-  flutter_dotenv: ^6.0.0
 
   # Phone call / external launches
   url_launcher: ^6.2.5
@@ -90,7 +89,6 @@ flutter:
   uses-material-design: true
   
   assets:
-    - .env
     - assets/images/
     - assets/animations/
     - assets/icons/
