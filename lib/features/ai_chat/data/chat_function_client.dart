@@ -21,6 +21,7 @@ class ChatFunctionClient {
     String userText,
     List<Map<String, dynamic>> history, {
     File? imageFile,
+    String? appLang,
   }) async {
     String? imageBase64;
     String? mimeType;
@@ -52,6 +53,8 @@ class ChatFunctionClient {
               'history': history,
               if (imageBase64 != null) 'imageBase64': imageBase64,
               if (mimeType != null) 'mimeType': mimeType,
+              // The app's display language: a greeting is answered in it.
+              if (appLang != null) 'app_lang': appLang,
             },
           )
           .timeout(const Duration(seconds: 60)); // longer for vision

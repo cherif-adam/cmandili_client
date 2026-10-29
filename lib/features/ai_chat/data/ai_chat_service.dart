@@ -36,6 +36,7 @@ import 'chat_history_repository.dart';
 import 'chat_intent.dart';
 import 'chat_vocabulary.dart';
 import 'chat_wording.dart';
+import 'healthy_food_rules.dart';
 
 class AiChatService {
   // ── Supabase ──────────────────────────────────────────────────────────────
@@ -125,14 +126,18 @@ class AiChatService {
   // ── Public API ────────────────────────────────────────────────────────────
 
   /// [imageFile] is optional — if provided, sends image to Gemini Vision.
+  /// [appLang] is the app's display language (fr/en/ar): a greeting is
+  /// answered in it.
   Future<ChatMessage> sendMessage(
     String userText,
     List<Map<String, dynamic>> history, {
     File? imageFile,
+    String? appLang,
   }) async {
     final ChatIntent intent;
     try {
-      intent = await _function.call(userText, history, imageFile: imageFile);
+      intent = await _function.call(userText, history,
+          imageFile: imageFile, appLang: appLang);
     } catch (e) {
       debugPrint('AiChatService – ai-chat function error: $e');
       final kind = e is ChatFailure ? e.kind : ChatFailureKind.malformed;
@@ -158,6 +163,29 @@ class AiChatService {
     try {
       switch (resolved.intentRaw) {
         case 'search_food':
+          // A health goal, from the model or from the user's own words (this
+          // turn or a recent one: "a5tarli haja behya" after "ena naaml fi
+          // régime"), shows light dishes only, so the cards match the advice.
+          final goals = HealthyFoodRules.lightGoalsFor(
+            modelGoal: resolved.healthGoal,
+            userText: userText,
+            earlierUserTexts: _userTextsOf(history),
+            keyword: resolved.keyword,
+            category: resolved.category,
+          );
+          if (goals.isNotEmpty) {
+            products = await _catalogue.queryLightFood(resolved,
+                goals: goals, userText: userText);
+            if (products.isEmpty) {
+              finalText = (resolved.maxPrice != null || resolved.minPrice != null)
+                  ? noResultsMessageFor('food',
+                      maxPrice: resolved.maxPrice,
+                      minPrice: resolved.minPrice,
+                      lang: resolved.lang)
+                  : ChatWording.noLightDishMessage(lang: resolved.lang);
+            }
+            break;
+          }
           final foodResult = await _catalogue.queryFoodItems(resolved);
           products = foodResult.items;
           if (products.isEmpty) {
@@ -246,6 +274,14 @@ class AiChatService {
       products: products,
     );
   }
+
+  /// The user's own messages in [history] (Gemini-style turns), oldest first.
+  static List<String> _userTextsOf(List<Map<String, dynamic>> history) => [
+        for (final turn in history)
+          if (turn['role'] == 'user')
+            for (final part in (turn['parts'] as List? ?? const []))
+              if (part is Map && part['text'] is String) part['text'] as String,
+      ];
 
   // ── Saved conversation and order context ──────────────────────────────────
 

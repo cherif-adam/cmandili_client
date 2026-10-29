@@ -11,7 +11,9 @@
 //     "text":        string,                       // user message (may be "")
 //     "history":     [{role, parts:[{text}]}] | [] // Gemini-style chat history
 //     "imageBase64": string | undefined,           // optional photo (vision)
-//     "mimeType":    string | undefined            // e.g. "image/jpeg"
+//     "mimeType":    string | undefined,           // e.g. "image/jpeg"
+//     "app_lang":    "fr" | "en" | "ar" | undefined // the app's language: a greeting
+//                                                  // is answered in it (app_language.ts)
 //   }
 //
 // Response (HTTP 200) — the structured intent the app's `_AiIntent` expects:
@@ -42,6 +44,12 @@
 //                          no credits, outage) — same model family, so the
 //                          assistant behaves identically. At least ONE of the
 //                          two keys must be set.
+
+import {
+  appLanguageNote,
+  followAppLanguageOnGreeting,
+  normaliseAppLang,
+} from "./app_language.ts";
 
 // .trim() defends against secrets pasted with stray whitespace/newlines.
 const OPENROUTER_API_KEY = (Deno.env.get("OPENROUTER_API_KEY") ?? "").trim();
@@ -107,6 +115,10 @@ the rest of the conversation. Never refuse a language switch.
 Don't ASSUME English just because you are an AI — detect the user's language first. But the moment the
 user uses English or asks for it, speak English normally. NEVER use Fusha if the user speaks Derja.
 Set "lang" to the language YOU wrote in, on every single reply.
+GREETINGS: a bare greeting ("bonjour", "salut", "hello", "hi", "مرحبا", 👋) is answered in the APP
+LANGUAGE given at the end of this prompt, whatever language the greeting word itself is in: "hello" in
+the French app gets the French greeting. A Derja greeting ("aaslema", "ahla", "sbe7 el khir") still
+gets a Derja reply.
 
 ━━━ RULE 1B — REGISTER: ONE PER LANGUAGE, NEVER MIXED ━━━
 The register is fixed per language. Pick it from the language and do not drift inside a conversation.
@@ -284,13 +296,21 @@ Example: "Le poulet grillé est riche en protéines et pauvre en graisses — pa
 
 ━━━ RULE 4 — HEALTH GOAL → FOOD MATCHING ━━━
 Map user's health goal to the best food search strategy using health_goal field:
-• "régime" / "diet" / "maigrir" / "perte de poids" → health_goal:"diet" → search: grillé, salade, poulet, poisson, légumes, light
-• "sport" / "musculation" / "protéines" → health_goal:"sport" → search: poulet, viande, œufs, légumineuses, thon
+• "régime" / "diet" / "maigrir" / "perte de poids" / "léger" / "healthy" / "rejim" / "حمية" → health_goal:"diet" → search: grillé, salade, poisson, légumes, soupe
+• "sport" / "musculation" / "protéines" / "gym" / "رياضة" → health_goal:"sport" → search: poulet grillé, poisson, œufs, légumineuses, thon
 • "diabète" / "sucre" → health_goal:"diabetes" → search: grillé, légumes, poisson, salade, fibres (avoid: sucré, pâtisserie)
 • "cholestérol" / "cœur" → health_goal:"cholesterol" → search: poisson, légumes, salade (avoid: friterie, gras)
 • "végétarien" / "vegan" → health_goal:"vegetarian" → vegetarian:true, exclude meat
 • "ramadan" / "iftar" → health_goal:"iftar" → search: harissa, chorba, brik, dattes
 • null if no health goal mentioned
+For diet / sport / diabetes / cholesterol the app shows LIGHT dishes only: grilled or roasted, salads, fish,
+soups, vegetables, legumes, eggs. It never shows fried or heavy food (makloub, mlawi, malfouf, chapati,
+tabouna, calzone, frites, pizza, burgers, tacos, sandwiches, desserts) unless the user names it. So for a
+health goal never recommend those in "message": name only light dishes, and put the main one in "keyword"
+in French, as the menus write it ("poulet grillé", "poisson grillé", "salade").
+FOLLOW-UPS KEEP THE GOAL (RULE 5): once a health goal is in the conversation, a request that names no dish
+("a5tarli haja behya", "choisissez pour moi", "pick something", "اختر لي") is still about it: same
+intent:"search_food", same health_goal, a light keyword. Only a named dish ("nheb pizza") drops the goal.
 
 ━━━ RULE 5 — CONVERSATION MEMORY ━━━
 The conversation history is passed to you. USE IT.
@@ -371,6 +391,9 @@ Set intent:"search_food" and search for the last mentioned item.
 
 [FR] "je fais de la musculation, qu'est-ce que tu me conseilles ?"
 → {"message":"Pour la musculation, privilégiez les protéines : poulet grillé, thon, légumineuses. Voici les plats riches en protéines disponibles 💪","lang":"fr","intent":"search_food","health_goal":"sport","service_category":"food","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"poulet"}
+
+[TN — earlier in the conversation: "ena naaml fi régime w f sport nhebk tansa7ni B plat yfidni"] "a5tarli haja behya"
+→ {"message":"Behi! 5tartlek el mchwi w el salades: ghanin bel protéines w qlal fel gras, ynasbou el régime w el sport 💪","lang":"tn","intent":"search_food","health_goal":"sport","service_category":"food","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"poulet grillé"}
 
 [FR] "je veux une pizza thon"
 → {"message":"Pizza au thon, bon choix — voici ce qui est disponible 🍕","lang":"fr","intent":"search_food","health_goal":null,"service_category":"food","category":"pizza","spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"thon"}
@@ -612,6 +635,7 @@ async function callOpenRouter(messages: unknown[]): Promise<string> {
 
 async function callGemini(
   contents: { role: string; parts: unknown[] }[],
+  systemPrompt: string,
 ): Promise<string> {
   console.log(`[ai-chat] calling Gemini directly model="${GEMINI_MODEL}"`);
   const res = await fetch(
@@ -623,7 +647,7 @@ async function callGemini(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        system_instruction: { parts: [{ text: systemPrompt }] },
         contents,
         generationConfig: {
           temperature: 0.4,
@@ -853,6 +877,7 @@ Deno.serve(async (req) => {
     history?: unknown;
     imageBase64?: string;
     mimeType?: string;
+    app_lang?: unknown;
   };
   try {
     body = await req.json();
@@ -884,9 +909,11 @@ Deno.serve(async (req) => {
   }
 
   const history = historyToMessages(body.history);
+  const appLang = normaliseAppLang(body.app_lang);
+  const systemPrompt = SYSTEM_PROMPT + appLanguageNote(appLang);
 
   const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     ...history,
     { role: "user", content: userContent },
   ];
@@ -921,7 +948,7 @@ Deno.serve(async (req) => {
     let content: string;
     if (!OPENROUTER_API_KEY) {
       console.warn("[ai-chat] no OPENROUTER_API_KEY — using direct Gemini");
-      content = await callGemini(geminiContents);
+      content = await callGemini(geminiContents, systemPrompt);
     } else {
       try {
         content = await callOpenRouter(messages);
@@ -932,11 +959,11 @@ Deno.serve(async (req) => {
             String(e).slice(0, 200)
           }`,
         );
-        content = await callGemini(geminiContents);
+        content = await callGemini(geminiContents, systemPrompt);
       }
     }
     const parsed = extractJson<Record<string, unknown>>(content);
-    return json(shapeIntent(parsed));
+    return json(followAppLanguageOnGreeting(shapeIntent(parsed), appLang, text));
   } catch (e) {
     // Surface the real cause in the Edge Function logs (dashboard Logs tab /
     // `supabase functions logs ai-chat`), not just to the client.

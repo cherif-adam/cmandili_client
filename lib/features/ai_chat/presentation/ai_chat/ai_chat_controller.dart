@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/models/service_category.dart';
+import '../../../../core/providers/localization_provider.dart';
 import '../../../../core/providers/vendor_provider.dart';
 import '../../../../models/chat_message.dart';
 import '../../../home/data/models/restaurant.dart';
@@ -139,6 +140,7 @@ class AiChatController extends AutoDisposeFamilyNotifier<AiChatState, Object> {
       text,
       _apiHistory,
       imageFile: imageToSend,
+      appLang: ref.read(localizationProvider).languageCode,
     );
 
     _set(isLoading: false, messages: [aiResponse, ...state.messages]);

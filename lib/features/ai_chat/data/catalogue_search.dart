@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../models/chat_message.dart';
 import 'chat_intent.dart';
 import 'chat_vocabulary.dart';
+import 'healthy_food_rules.dart';
 
 /// The three catalogue searches (dishes, restaurants, one shop catalogue),
 /// each relaxing its filters tier by tier until something comes back, and
@@ -156,25 +157,8 @@ class CatalogueSearch {
           // this; the null guard stays because a left-embed shape change would
           // otherwise crash the cast below rather than drop a row.
           .where((r) => r['restaurants'] != null)
-          .map<ProductResult>((r) {
-        final restaurant = r['restaurants'] as Map<String, dynamic>;
-        return ProductResult(
-          type: 'food',
-          id: (r['id'] ?? '').toString(),
-          name: (r['name'] ?? '') as String,
-          description: r['description'] as String?,
-          price:
-              ((r['discount_price'] ?? r['price']) as num?)?.toDouble() ?? 0.0,
-          currency: 'TND',
-          imageUrl: _resolveImageUrl(r['image_url']),
-          sourceName: (restaurant['name'] ?? '') as String,
-          sourceId: (restaurant['id'] ?? '').toString(),
-          rating: (restaurant['rating'] as num?)?.toDouble(),
-          deliveryTime: (restaurant['delivery_time_min'] as num?)?.toInt(),
-          deliveryFee:
-              (restaurant['delivery_fee'] as num?)?.toDouble(),
-        );
-      }).toList();
+          .map<ProductResult>(_foodCard)
+          .toList();
     } catch (e) {
       debugPrint('AiChatService – food query error: $e');
       // NOT `return []`. An empty list means "the catalogue genuinely has
@@ -184,6 +168,77 @@ class CatalogueSearch {
       // for three weeks. Fail loudly instead; sendMessage shows an error.
       throw QueryFailure('food', e);
     }
+  }
+
+  ProductResult _foodCard(dynamic r) {
+    final restaurant = r['restaurants'] as Map<String, dynamic>;
+    return ProductResult(
+      type: 'food',
+      id: (r['id'] ?? '').toString(),
+      name: (r['name'] ?? '') as String,
+      description: r['description'] as String?,
+      price:
+          ((r['discount_price'] ?? r['price']) as num?)?.toDouble() ?? 0.0,
+      currency: 'TND',
+      imageUrl: _resolveImageUrl(r['image_url']),
+      sourceName: (restaurant['name'] ?? '') as String,
+      sourceId: (restaurant['id'] ?? '').toString(),
+      rating: (restaurant['rating'] as num?)?.toDouble(),
+      deliveryTime: (restaurant['delivery_time_min'] as num?)?.toInt(),
+      deliveryFee:
+          (restaurant['delivery_fee'] as num?)?.toDouble(),
+    );
+  }
+
+  // ── Light dishes (diet, sport, diabetes, cholesterol) ─────────────────────
+
+  /// The dishes for a health goal: light ones only, best first.
+  ///
+  /// The database is asked for every dish with a light word in its name,
+  /// category or description, under the user's own hard filters (budget,
+  /// vegetarian, spicy, fast). [HealthyFoodRules.pickLightDishes] then drops
+  /// the heavy ones the user did not ask for and ranks the rest. There is no
+  /// relaxation tier: an empty result is said as such, because showing
+  /// makloub under advice about grilled chicken is exactly the bug this
+  /// replaces (see [HealthyFoodRules]).
+  Future<List<ProductResult>> queryLightFood(
+    ChatIntent intent, {
+    required Set<String> goals,
+    required String userText,
+  }) async {
+    final List<dynamic> rows;
+    try {
+      var query = _supabase.from('food_items').select('''
+        id, name, description, price, discount_price, image_url,
+        category, is_spicy, is_vegetarian, preparation_time, restaurant_id,
+        restaurants!inner (id, name, image_url, rating, delivery_time_min, delivery_fee, is_open)
+      ''').eq('is_available', true).eq('restaurants.is_open', true);
+
+      if (intent.spicy == true) query = query.eq('is_spicy', true);
+      if (intent.vegetarian == true) query = query.eq('is_vegetarian', true);
+      if (intent.maxPrice != null) query = query.lte('price', intent.maxPrice!);
+      if (intent.minPrice != null) query = query.gte('price', intent.minPrice!);
+      if (intent.deliveryFast) query = query.lte('preparation_time', 20);
+      query = query.or(HealthyFoodRules.serverStems
+          .map((s) => 'name.ilike.%$s%,category.ilike.%$s%,description.ilike.%$s%')
+          .join(','));
+
+      rows = await query.order('price', ascending: true).limit(300) as List<dynamic>;
+    } catch (e) {
+      debugPrint('AiChatService – light food query error: $e');
+      throw QueryFailure('food', e);
+    }
+
+    final asked = '${intent.keyword ?? ''} ${intent.category ?? ''}';
+    return HealthyFoodRules.pickLightDishes(
+      rows
+          .cast<Map<String, dynamic>>()
+          .where((r) => r['restaurants'] != null)
+          .toList(),
+      goals: goals,
+      preferred: asked,
+      askedFor: '$userText $asked',
+    ).map<ProductResult>(_foodCard).toList();
   }
 
   // ── Query restaurants (restaurant_search intent) ──────────────────────────

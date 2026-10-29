@@ -194,6 +194,22 @@ class ChatWording {
             'en ce moment dans les restaurants ouverts 👇',
       };
 
+  /// A health goal (diet, sport, diabetes, cholesterol) found no light dish
+  /// in the open restaurants. Said instead of the advice, because the cards
+  /// are never widened to the rest of the menu (see HealthyFoodRules).
+  static String noLightDishMessage({String lang = 'fr'}) =>
+      switch (normaliseLang(lang)) {
+        'en' => 'I cannot find a light dish (grilled, salad, fish, soup) in '
+            'the restaurants open right now. Please try again a little later 🥗',
+        'ar' => 'لا أجد طبقًا خفيفًا (مشويًا أو سلطة أو سمكًا أو حساءً) في '
+            'المطاعم المفتوحة حاليًا. يُرجى المحاولة لاحقًا 🥗',
+        'tn' => 'Ma lqitech plat khfif (mchwi, salade, 7out, chorba) fel '
+            'restaurants el mftou7in tw. Jarreb ba3d chwaya 🥗',
+        _ => 'Je ne trouve pas de plat léger (grillé, salade, poisson, soupe) '
+            'dans les restaurants ouverts en ce moment. Réessayez un peu plus '
+            'tard 🥗',
+      };
+
   /// Same, for a venue search.
   static String relaxedRestaurantNotice({String lang = 'fr'}) =>
       switch (normaliseLang(lang)) {
