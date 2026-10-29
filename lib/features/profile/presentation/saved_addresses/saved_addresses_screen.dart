@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../providers/address_provider.dart';
 import '../../../../core/widgets/map_address_picker.dart';
 import '../../../checkout/data/models/delivery_address.dart';
+import 'widgets/add_address_dialog.dart';
 import 'widgets/saved_address_tile.dart';
 
 /// The customer's saved delivery addresses: one SavedAddressTile each
@@ -61,7 +61,7 @@ class SavedAddressesScreen extends ConsumerWidget {
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => _AddAddressDialog(
+      builder: (dialogContext) => AddAddressDialog(
         picked: picked,
         onSave: (name) => ref.read(addressProvider.notifier).addAddress(
               name,
@@ -106,76 +106,6 @@ class _AddressesList extends StatelessWidget {
           onSetDefault: () => onSetDefault(address),
         );
       },
-    );
-  }
-}
-
-/// The picked address, then its name (pre-filled with the map's label).
-/// "Enregistrer" needs a name ([AddressNotifier.canSaveAddress]).
-class _AddAddressDialog extends StatefulWidget {
-  const _AddAddressDialog({required this.picked, required this.onSave});
-
-  final DeliveryAddress picked;
-  final ValueChanged<String> onSave;
-
-  @override
-  State<_AddAddressDialog> createState() => _AddAddressDialogState();
-}
-
-class _AddAddressDialogState extends State<_AddAddressDialog> {
-  late final nameController = TextEditingController(text: widget.picked.label);
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(AppLocalizations.of(context)!.addNewAddress),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.location_on, size: 20, color: AppColors.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  widget.picked.fullAddress,
-                  style: const TextStyle(fontSize: 13, height: 1.3),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: nameController,
-            autofocus: true,
-            decoration: InputDecoration(
-              labelText: AppLocalizations.of(context)!.labelHint,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(AppLocalizations.of(context)!.cancel),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (!AddressNotifier.canSaveAddress(nameController.text)) return;
-            widget.onSave(nameController.text);
-            Navigator.pop(context);
-          },
-          child: Text(AppLocalizations.of(context)!.save),
-        ),
-      ],
     );
   }
 }

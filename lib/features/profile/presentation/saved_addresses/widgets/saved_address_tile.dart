@@ -40,18 +40,40 @@ class SavedAddressTile extends StatelessWidget {
             address.isDefault ? Icons.home_filled : Icons.location_on_outlined,
             color: AppColors.primary,
           ),
-          title: Text(address.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text(address.fullAddress),
-          trailing: address.isDefault
-              ? Chip(
-                  label: Text(AppLocalizations.of(context)!.defaultLabel,
-                      style: const TextStyle(fontSize: 10, color: Colors.white)),
-                  backgroundColor: AppColors.primary,
-                )
-              : TextButton(
-                  onPressed: onSetDefault,
-                  child: Text(AppLocalizations.of(context)!.setDefault),
-                ),
+          title: Text(
+            address.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Text(
+            address.fullAddress,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          // Capped: on a 320 px phone "Définir par défaut" took the whole
+          // tile and ListTile refused to lay out ("Trailing widget consumes
+          // the entire tile width"). It wraps onto two lines instead.
+          trailing: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 104),
+            child: address.isDefault
+                ? Chip(
+                    label: Text(AppLocalizations.of(context)!.defaultLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 10, color: Colors.white)),
+                    backgroundColor: AppColors.primary,
+                  )
+                : TextButton(
+                    onPressed: onSetDefault,
+                    child: Text(
+                      AppLocalizations.of(context)!.setDefault,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+          ),
         ),
       ),
     );

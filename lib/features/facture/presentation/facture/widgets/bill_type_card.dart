@@ -44,12 +44,16 @@ class BillTypeCard extends StatelessWidget {
           children: [
             Icon(type.icon, size: 20, color: selected ? type.color : Colors.grey),
             const SizedBox(width: 8),
-            Text(
-              type.label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: selected ? type.color : Colors.grey.shade700,
+            Flexible(
+              child: Text(
+                type.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: selected ? type.color : Colors.grey.shade700,
+                ),
               ),
             ),
           ],

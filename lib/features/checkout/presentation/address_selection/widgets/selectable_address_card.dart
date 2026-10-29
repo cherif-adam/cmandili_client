@@ -49,11 +49,17 @@ class SelectableAddressCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          address.label,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                        // Flexible + ellipsis: a long name used to push the
+                        // row past the card ("RIGHT OVERFLOWED BY 14 PIXELS").
+                        Flexible(
+                          child: Text(
+                            address.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                         if (address.isDefault) ...[
@@ -82,6 +88,8 @@ class SelectableAddressCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       address.fullAddress,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 14,
@@ -92,6 +100,8 @@ class SelectableAddressCard extends StatelessWidget {
                       Text(
                         AppLocalizations.of(context)!.addressAptFloor(
                             '${address.apartmentNumber}', '${address.floor}'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textLight,
                           fontSize: 12,

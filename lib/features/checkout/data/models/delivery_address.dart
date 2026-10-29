@@ -29,12 +29,13 @@ class DeliveryAddress {
   });
 
   DeliveryAddress copyWith({
+    String? label,
     String? recipientName,
     String? phone,
   }) {
     return DeliveryAddress(
       id: id,
-      label: label,
+      label: label ?? this.label,
       fullAddress: fullAddress,
       latitude: latitude,
       longitude: longitude,

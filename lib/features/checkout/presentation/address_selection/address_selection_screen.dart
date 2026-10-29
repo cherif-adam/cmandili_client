@@ -72,7 +72,13 @@ class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen>
         ),
       ),
     );
-    if (address != null && mounted) Navigator.pop(context, address);
+    if (address == null || !mounted) return;
+    // The picker names its result after its own title ("Choisir sur la
+    // carte"), which then travelled into the order as the address name.
+    Navigator.pop(
+      context,
+      address.copyWith(label: AppLocalizations.of(context)!.deliveryLocation),
+    );
   }
 
   Future<void> _useCurrentLocation() async {

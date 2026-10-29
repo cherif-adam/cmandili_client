@@ -96,8 +96,13 @@ class OrderDetailsSection extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${item.quantity}x ${item.name}',
-                      style: const TextStyle(color: AppColors.textSecondary)),
+                  Expanded(
+                    child: Text('${item.quantity}x ${item.name}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppColors.textSecondary)),
+                  ),
+                  const SizedBox(width: 8),
                   Text(CurrencyFormatter.formatPrice(item.totalPrice),
                       style: const TextStyle(color: AppColors.textSecondary)),
                 ],
