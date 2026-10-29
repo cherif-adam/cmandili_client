@@ -27,22 +27,19 @@
 --              (self_delivery + onTheWay)
 --   livreur    prise de course (driver_id vide → lui) ; avant la prise en
 --              charge → pickedUp (colis : → onTheWay) ; pickedUp → onTheWay ;
---              → delivered ; reçu de facture (bill_receipt_url) ; « je ne
---              peux pas livrer » (driver_id et assigned_driver_id vidés,
---              statut 'ready', son id ajouté à passed_driver_ids)
+--              → delivered ; reçu de facture (bill_receipt_url)
 --   Tout le reste passe par des fonctions SECURITY DEFINER (offres, dispatch,
---   colis, confirmation de réception, règlements, suppression de compte) :
+--   colis, confirmation de réception, règlements, suppression de compte, et
+--   « je ne peux pas livrer » : driver_release_order, 20261029130000) :
 --   elles tournent sous leur propriétaire et ne sont pas concernées.
 --
 -- ── CE QUE FAIT CE FICHIER ──────────────────────────────────────────────────
 -- 1. guard_orders_column_scope repasse en SECURITY INVOKER, avec les colonnes
---    ci-dessus et rien d'autre. Ajouts par rapport à l'original : les
---    colonnes d'annulation pour le partenaire, et pour le livreur affecté le
---    retrait de la course (driver_id / assigned_driver_id seulement vers
---    vide, passed_driver_ids seulement en y ajoutant ses propres ids).
+--    ci-dessus et rien d'autre. Ajout par rapport à l'original : les
+--    colonnes d'annulation pour le partenaire.
 -- 2. Nouveau aa_guard_status_by_role (SECURITY INVOKER) : chaque rôle ne
 --    déplace la commande que sur ses propres étapes, comme ci-dessus.
---    Jamais de retour en arrière, sauf le retrait du livreur vers 'ready'.
+--    Jamais de retour en arrière.
 --
 -- Restent libres : l'admin connecté, postgres (SQL Editor), service_role
 -- (tableau de bord, Edge Functions) et toutes les fonctions SECURITY DEFINER.
@@ -111,24 +108,9 @@ begin
       || array['status', 'self_delivery', 'cancellation_reason', 'cancelled_by', 'cancelled_at'];
   end if;
 
-  -- Livreur affecté.
+  -- Livreur affecté. Se retirer de la course passe par driver_release_order.
   if old.driver_id is not null and old.driver_id = any (v_my_drivers) then
     v_allowed := v_allowed || array['status', 'bill_receipt_url'];
-    -- « Je ne peux pas livrer » : il se retire de la course…
-    if new.driver_id is null then
-      v_allowed := v_allowed || array['driver_id'];
-    end if;
-    if new.assigned_driver_id is null then
-      v_allowed := v_allowed || array['assigned_driver_id'];
-    end if;
-    -- …et s'ajoute lui-même, et lui seul, à la liste des refus.
-    if not exists (select 1 from unnest(coalesce(old.passed_driver_ids, array[]::uuid[])) x
-                    where x <> all (coalesce(new.passed_driver_ids, array[]::uuid[])))
-       and not exists (select 1 from unnest(coalesce(new.passed_driver_ids, array[]::uuid[])) x
-                        where x <> all (coalesce(old.passed_driver_ids, array[]::uuid[]))
-                          and x <> all (v_my_drivers)) then
-      v_allowed := v_allowed || array['passed_driver_ids'];
-    end if;
   end if;
 
   -- Prise de course atomique.
@@ -209,14 +191,10 @@ begin
     return new;
   end if;
 
-  -- Livreur affecté : avancer vers récupérée / en route / livrée, ou se
-  -- retirer de la course (retour à 'ready' sans livreur).
+  -- Livreur affecté : avancer vers récupérée / en route / livrée.
   if v_uid is not null and old.driver_id is not null and exists (
        select 1 from public.drivers d where d.id = old.driver_id and d.user_id = v_uid)
-     and (
-       (new.status in ('pickedUp', 'onTheWay', 'delivered') and v_new > v_old)
-    or (new.status = 'ready' and new.driver_id is null and old.status <> 'delivered')
-  ) then
+     and new.status in ('pickedUp', 'onTheWay', 'delivered') and v_new > v_old then
     return new;
   end if;
 

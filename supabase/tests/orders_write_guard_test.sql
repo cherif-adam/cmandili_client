@@ -18,13 +18,11 @@
 --       partie, changer les frais ou le livreur est refusé
 --   W3  livreur : prise de course, reçu de facture, récupérée → en route →
 --       livrée passent ; annuler, reculer, changer les frais ou passer la
---       course à un autre est refusé ; « je ne peux pas livrer » : voir R
+--       course à un autre est refusé
+--   R   se retirer en écrivant soi-même sur la commande (anciennes versions
+--       de l'app livreur) est refusé : le retrait passe par
+--       driver_release_order (harnais driver_release_order_test.sql)
 --   W4  service_role et postgres : inchangés
---   R   « je ne peux pas livrer » : sur le live, la RLS de orders le refuse
---       DÉJÀ (aucune policy n'accepte driver_id vide pour un livreur) —
---       bug existant, indépendant de ce fichier. Avec une policy de test
---       qui laisse passer la RLS, les gardes acceptent le retrait tel que
---       l'app l'écrit et refusent d'y glisser l'id d'un autre livreur.
 -- ============================================================================
 
 begin;
@@ -250,44 +248,18 @@ begin
   reset role;
   res := res || 'W3 ok; ';
 
-  -- ── R « je ne peux pas livrer » ──────────────────────────────────────────
-  -- Sur le live : refusé par la RLS (bug existant).
+  -- ── R retrait écrit directement sur la commande (anciennes versions) ─────
   begin
     set local role authenticated;
     update public.orders
        set driver_id = null, assigned_driver_id = null, status = 'ready', passed_driver_ids = array[d_e, d_d]
      where id = k3 and driver_id = d_d;
-    get diagnostics n = row_count;
-    reset role;
-    res := res || 'R : retrait accepté par la RLS du live (' || n || ' ligne); ';
-  exception when insufficient_privilege then
-    res := res || 'R : retrait refusé par la RLS du live (bug existant); ';
-  end;
-  reset role;
-  -- Avec une policy de test qui laisse passer la RLS : seules les gardes jugent.
-  create policy wgtest_release on public.orders for update to authenticated using (true) with check (true);
-  set local role authenticated;
-  update public.orders
-     set driver_id = null, assigned_driver_id = null, status = 'ready', passed_driver_ids = array[d_e, d_d]
-   where id = k3 and driver_id = d_d;
-  get diagnostics n = row_count;
-  reset role;
-  if n <> 1 or (select driver_id is null and status = 'ready' and passed_driver_ids = array[d_e, d_d]
-                  from public.orders where id = k3) is not true then
-    raise exception 'FAIL R : les gardes refusent le retrait tel que l''app l''écrit';
-  end if;
-  begin
-    set local role authenticated;
-    update public.orders
-       set driver_id = null, assigned_driver_id = null, status = 'ready', passed_driver_ids = array[d_e]
-     where id = k4 and driver_id = d_d;
-    raise exception 'FAIL R : un livreur glisse l''id d''un autre dans passed_driver_ids';
+    raise exception 'FAIL R : un livreur se retire en écrivant lui-même sur la commande';
   exception when raise_exception then
     get stacked diagnostics msg = message_text;
     if msg not like 'ORDER_COLUMN_SCOPE%' then raise; end if;
   end;
   reset role;
-  drop policy wgtest_release on public.orders;
   res := res || 'R ok; ';
 
   -- ── W4 chemins serveur ───────────────────────────────────────────────────
