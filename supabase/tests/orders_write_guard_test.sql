@@ -12,10 +12,11 @@
 --   W1  client : annuler avant la prise en charge passe ; annuler une
 --       commande récupérée, la marquer livrée ou prête est refusé ; changer
 --       le total ou les frais est refusé ; colis en route → livré passe
---   W2  partenaire : pending → confirmed → preparing → ready → pickedUp →
---       delivered passe, confirmed → ready aussi ; refus avec motif passe ;
---       livraison par la boutique passe ; reculer, livrer une commande pas
---       partie, changer les frais ou le livreur est refusé
+--   W2  partenaire : pending → confirmed → preparing → ready → pickedUp
+--       passe, confirmed → ready aussi ; refus avec motif passe ; livraison
+--       par la boutique jusqu'à « livrée » passe ; reculer, marquer livrée
+--       une commande qu'il ne livre pas lui-même, reprendre une commande
+--       portée par un livreur, changer les frais ou le livreur est refusé
 --   W3  livreur : prise de course, reçu de facture, récupérée → en route →
 --       livrée passent ; annuler, reculer, changer les frais ou passer la
 --       course à un autre est refusé
@@ -148,7 +149,7 @@ begin
   -- ── W2 partenaire ────────────────────────────────────────────────────────
   perform set_config('request.jwt.claims', json_build_object('sub', u_p, 'role', 'authenticated')::text, true);
   set local role authenticated;
-  foreach st in array array['confirmed', 'preparing', 'ready', 'pickedUp', 'delivered'] loop
+  foreach st in array array['confirmed', 'preparing', 'ready', 'pickedUp'] loop
     update public.orders set status = st where id = p1;
     get diagnostics n = row_count;
     if n <> 1 then reset role; raise exception 'FAIL W2 : le partenaire ne passe plus p1 à %', st; end if;
@@ -178,6 +179,27 @@ begin
     end;
     reset role;
   end loop;
+  -- « Livrée » : seulement ce que la boutique livre elle-même.
+  foreach st in array array['p1', 'k4'] loop
+    begin
+      set local role authenticated;
+      update public.orders set status = 'delivered' where id = case st when 'p1' then p1 else k4 end;
+      raise exception 'FAIL W2 : le partenaire marque livrée une commande qu''il ne livre pas (%)', st;
+    exception when raise_exception then
+      get stacked diagnostics msg = message_text;
+      if msg not like 'ORDER_STATUS_SCOPE%' then raise; end if;
+    end;
+    reset role;
+  end loop;
+  begin
+    set local role authenticated;
+    update public.orders set self_delivery = true where id = k4;
+    raise exception 'FAIL W2 : le partenaire reprend une commande portée par un livreur';
+  exception when raise_exception then
+    get stacked diagnostics msg = message_text;
+    if msg not like 'ORDER_COLUMN_SCOPE%' then raise; end if;
+  end;
+  reset role;
   begin
     set local role authenticated;
     update public.orders set delivery_fee = 0 where id = p4;

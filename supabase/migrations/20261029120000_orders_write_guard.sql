@@ -22,9 +22,12 @@
 --              (cancelOrderByCustomer, cancelOrder après un paiement refusé) ;
 --              colis en route → 'delivered' (« le destinataire l'a reçu »)
 --   partenaire pending → confirmed → preparing → ready (ou confirmed → ready),
---              ready → pickedUp / onTheWay, puis → delivered ; refus avec
---              motif (cancelOrderByPartner) ; livraison par la boutique
---              (self_delivery + onTheWay)
+--              ready → pickedUp / onTheWay ; refus avec motif
+--              (cancelOrderByPartner) ; livraison par la boutique
+--              (self_delivery + onTheWay, puis → delivered). Depuis le 29/10,
+--              « livrée » n'est permise au partenaire que pour une commande
+--              qu'il livre lui-même : portée par un livreur, c'est le livreur
+--              qui la livre.
 --   livreur    prise de course (driver_id vide → lui) ; avant la prise en
 --              charge → pickedUp (colis : → onTheWay) ; pickedUp → onTheWay ;
 --              → delivered ; reçu de facture (bill_receipt_url)
@@ -105,7 +108,11 @@ begin
         or p.entity_id::text::uuid = old.supermarket_id)
   ) then
     v_allowed := v_allowed
-      || array['status', 'self_delivery', 'cancellation_reason', 'cancelled_by', 'cancelled_at'];
+      || array['status', 'cancellation_reason', 'cancelled_by', 'cancelled_at'];
+    -- Livrer soi-même : seulement une commande qu'aucun livreur ne porte.
+    if old.driver_id is null then
+      v_allowed := v_allowed || array['self_delivery'];
+    end if;
   end if;
 
   -- Livreur affecté. Se retirer de la course passe par driver_release_order.
@@ -176,7 +183,8 @@ begin
   end if;
 
   -- Partenaire : avancer, jamais reculer ; annuler avant la prise en charge ;
-  -- « livrée » seulement une fois la commande partie.
+  -- « livrée » seulement pour une commande qu'il livre lui-même, une fois
+  -- partie.
   if v_uid is not null and exists (
        select 1 from public.partners p
         where p.user_id = v_uid
@@ -186,7 +194,8 @@ begin
      and (
        (new.status = 'cancelled' and v_before_pickup)
     or (new.status in ('confirmed', 'preparing', 'ready', 'pickedUp', 'onTheWay') and v_new > v_old)
-    or (new.status = 'delivered' and old.status in ('pickedUp', 'onTheWay'))
+    or (new.status = 'delivered' and old.status in ('pickedUp', 'onTheWay')
+        and coalesce(old.self_delivery, false) and old.driver_id is null)
   ) then
     return new;
   end if;
@@ -232,16 +241,29 @@ begin
                     and tgname = 'aa_guard_orders_column_scope') then
     raise exception 'orders_write_guard incomplet : trigger aa_guard_orders_column_scope absent ou désactivé';
   end if;
+  -- La version du 29/10 au soir : « livrée » réservée à la livraison par la
+  -- boutique, plus de retrait direct du livreur.
+  if (select prosrc like '%coalesce(old.self_delivery, false)%' from pg_proc
+       where oid = to_regprocedure('public.aa_guard_status_by_role()')) is distinct from true
+     or (select prosrc like '%passed_driver_ids%' from pg_proc
+          where oid = to_regprocedure('public.guard_orders_column_scope()')) is distinct from false then
+    raise exception 'orders_write_guard incomplet : ancienne version des gardes';
+  end if;
 end
 $check$;
 
 -- ── Vérification (à lire après l'exécution) ─────────────────────────────────
--- Attendu : quatre colonnes à true.
+-- Attendu : cinq colonnes à true.
 select (select not prosecdef from pg_proc
          where oid = to_regprocedure('public.guard_orders_column_scope()')) as colonnes_invoker,
        exists (select 1 from pg_trigger
                 where tgrelid = 'public.orders'::regclass and tgenabled = 'O'
                   and tgname = 'aa_guard_status_by_role') as statuts_actifs,
+       coalesce((select prosrc like '%coalesce(old.self_delivery, false)%' from pg_proc
+                  where oid = to_regprocedure('public.aa_guard_status_by_role()'))
+                and (select prosrc not like '%passed_driver_ids%' from pg_proc
+                      where oid = to_regprocedure('public.guard_orders_column_scope()')),
+                false) as version_finale,
        exists (select 1 from pg_trigger
                 where tgrelid = 'public.orders'::regclass and tgenabled = 'O'
                   and tgname = 'aa_guard_delivered_terminal') as garde_livree_appliquee,
