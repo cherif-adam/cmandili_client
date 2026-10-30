@@ -1363,6 +1363,9 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا توجد نتائج مطابقة — إليك بعض الأطباق الشائعة';
 
   @override
+  String get aiSearchAllClosed => 'هذه المطاعم مغلقة حاليًا';
+
+  @override
   String get aiSearchModalTitle => 'البحث بالصورة';
 
   @override

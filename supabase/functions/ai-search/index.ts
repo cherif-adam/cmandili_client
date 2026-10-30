@@ -33,7 +33,7 @@
 //   error -> { error: string, details?: string }   (always HTTP 200 or 4xx/5xx)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { CANDIDATE_LIMIT, diversifyByShop, taxonomyFilter } from "./search_filters.ts";
+import { CANDIDATE_LIMIT, openShopsFirst, taxonomyFilter } from "./search_filters.ts";
 
 // The client type, derived from an actual CALL rather than from
 // `ReturnType<typeof createClient>`.
@@ -77,8 +77,10 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// The shop a result belongs to, for diversifyByShop.
+// The shop a result belongs to, and whether it is open, for openShopsFirst.
 const shopOf = (row: Record<string, unknown>) => row.restaurant_id;
+const isOpenShop = (row: Record<string, unknown>) =>
+  (row.restaurants as { is_open?: boolean } | null)?.is_open === true;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -334,12 +336,10 @@ function buildCandidateQuery(
   intent: TextIntent,
   tier: RelaxTier,
 ) {
-  // Closed shops are left out at every tier: their dishes cannot be ordered.
-  // Hidden shops (deleted_at) never get this far: the food_items and
-  // restaurants views already leave them out.
-  let q = supabase.from("food_items").select(FOOD_SELECT)
-    .eq("is_available", true)
-    .eq("restaurants.is_open", true);
+  // Closed shops are kept and come after the open ones (openShopsFirst); the
+  // app shows them dimmed, like the home screen. Hidden shops (deleted_at)
+  // never get this far: the food_items and restaurants views leave them out.
+  let q = supabase.from("food_items").select(FOOD_SELECT).eq("is_available", true);
 
   if (tier.taxonomy) {
     const taxonomy = taxonomyFilter(intent);
@@ -447,7 +447,7 @@ async function handleTextSearch(query: string, supabase: Db) {
     );
   }
 
-  return json({ intent, results: diversifyByShop(results, shopOf), fallback });
+  return json({ intent, results: openShopsFirst(results, shopOf, isOpenShop), fallback });
 }
 
 // ── Mode: image ───────────────────────────────────────────────────────────────
@@ -513,12 +513,11 @@ async function handleImageSearch(
     .flatMap((t) => [`name.ilike.%${t}%`, `description.ilike.%${t}%`])
     .join(",");
 
-  // Same rules as the text search: open shops only, cheapest first.
+  // Same rules as the text search: closed shops kept, cheapest first.
   const { data: candidates, error } = await supabase
     .from("food_items")
     .select(FOOD_SELECT)
     .eq("is_available", true)
-    .eq("restaurants.is_open", true)
     .or(orFilter)
     .order("price", { ascending: true })
     .limit(CANDIDATE_LIMIT);
@@ -571,7 +570,7 @@ async function handleImageSearch(
     // best-effort ranking — keep DB order on failure
   }
 
-  return json({ dish_name: dishName, confidence, results: diversifyByShop(results, shopOf) });
+  return json({ dish_name: dishName, confidence, results: openShopsFirst(results, shopOf, isOpenShop) });
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────

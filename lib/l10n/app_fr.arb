@@ -469,6 +469,7 @@
     },
     "aiSearchNoResultsText": "Aucun plat ne correspond à ta demande",
     "aiSearchFallbackMessage": "Aucun résultat exact — voici des plats populaires",
+    "aiSearchAllClosed": "Ces restaurants sont fermés pour le moment",
     "aiSearchModalTitle": "Rechercher par photo",
     "aiSearchModalHint": "Envoie une photo d'un plat pour le trouver en {city}",
     "@aiSearchModalHint": {

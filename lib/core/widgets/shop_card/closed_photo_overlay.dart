@@ -11,51 +11,61 @@ class ClosedPhotoOverlay extends StatelessWidget {
   final double screenWidth;
   final double screenHeight;
 
+  /// The photo's own corners. Defaults to a shop card's rounded top.
+  final BorderRadius? borderRadius;
+
   const ClosedPhotoOverlay({
     super.key,
     required this.label,
     required this.screenWidth,
     required this.screenHeight,
+    this.borderRadius,
   });
 
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: ClipRRect(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(screenWidth * 0.06),
-          topRight: Radius.circular(screenWidth * 0.06),
-        ),
+        borderRadius: borderRadius ??
+            BorderRadius.only(
+              topLeft: Radius.circular(screenWidth * 0.06),
+              topRight: Radius.circular(screenWidth * 0.06),
+            ),
         child: Container(
           color: Colors.black.withValues(alpha: 0.45),
           alignment: Alignment.center,
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: screenWidth * 0.04,
-              vertical: screenHeight * 0.01,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.65),
-              borderRadius: BorderRadius.circular(screenWidth * 0.06),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.lock_rounded,
-                  size: screenWidth * 0.04,
-                  color: Colors.white,
-                ),
-                SizedBox(width: screenWidth * 0.015),
-                Text(
-                  label,
-                  style: TextStyle(
+          // Shrinks the label on a photo narrower than it (the AI search
+          // thumbnail); on a shop card's photo it already fits and is left as is.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: screenWidth * 0.04,
+                vertical: screenHeight * 0.01,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(screenWidth * 0.06),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.lock_rounded,
+                    size: screenWidth * 0.04,
                     color: Colors.white,
-                    fontSize: screenWidth * 0.035,
-                    fontWeight: FontWeight.bold,
                   ),
-                ),
-              ],
+                  SizedBox(width: screenWidth * 0.015),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: screenWidth * 0.035,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

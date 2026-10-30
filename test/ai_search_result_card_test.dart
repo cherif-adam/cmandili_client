@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cmandili_mobile/core/widgets/shop_card/closed_photo_overlay.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import 'package:cmandili_mobile/features/ai_search/data/models/search_result.dart';
 import 'package:cmandili_mobile/features/ai_search/presentation/ai_search/widgets/ai_search_result_card.dart';
 
 /// The result the phone test showed for "N7eb chapati 7arra matfoutch 10 dt":
 /// a shop with no review yet (rating 0, the column default) and no dish photo.
-AiSearchFoodResult _chapati({double? rating}) => AiSearchFoodResult.fromJson({
+AiSearchFoodResult _chapati({double? rating, bool open = true}) => AiSearchFoodResult.fromJson({
       'id': 'c1',
       'name': 'Chapati Poulet',
       'description': '',
@@ -22,7 +23,7 @@ AiSearchFoodResult _chapati({double? rating}) => AiSearchFoodResult.fromJson({
         'name': 'Seven pizza Kairouan',
         'image_url': null,
         'rating': rating,
-        'is_open': true,
+        'is_open': open,
       },
     });
 
@@ -53,5 +54,23 @@ void main() {
     await _pump(tester, _chapati(rating: 4.2));
     expect(find.text('4.2'), findsOneWidget);
     expect(find.byIcon(Icons.star_rounded), findsOneWidget);
+  });
+
+  testWidgets('a closed shop\'s dish gets the home screen\'s dim and « Fermé »', (tester) async {
+    await _pump(tester, _chapati(open: false));
+    expect(find.text('Chapati Poulet'), findsOneWidget);
+    expect(find.byType(ClosedPhotoOverlay), findsOneWidget);
+    expect(find.text('Fermé'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
+    // The label fits the 110 px thumbnail even on this 800 px test screen.
+    expect(tester.takeException(), isNull);
+    // Nothing to order from: no add button, open or closed.
+    expect(find.byWidgetPredicate((w) => w is ButtonStyleButton || w is IconButton), findsNothing);
+  });
+
+  testWidgets('an open shop\'s dish has no « Fermé »', (tester) async {
+    await _pump(tester, _chapati());
+    expect(find.byType(ClosedPhotoOverlay), findsNothing);
+    expect(find.text('Fermé'), findsNothing);
   });
 }

@@ -100,3 +100,22 @@ export function diversifyByShop<T>(ranked: T[], shopOf: (item: T) => unknown): T
   }
   return [...firsts, ...rest];
 }
+
+/**
+ * Open shops' dishes first, then closed shops' dishes, each part diversified.
+ *
+ * Closed shops are shown like on the home screen (dimmed, « Fermé », no
+ * ordering) rather than hidden: a customer searching at night still learns
+ * who sells the dish. When every matching shop is closed, everything still
+ * comes back and the app says so above the list.
+ */
+export function openShopsFirst<T>(
+  ranked: T[],
+  shopOf: (item: T) => unknown,
+  isOpen: (item: T) => boolean,
+): T[] {
+  return [
+    ...diversifyByShop(ranked.filter((item) => isOpen(item)), shopOf),
+    ...diversifyByShop(ranked.filter((item) => !isOpen(item)), shopOf),
+  ];
+}

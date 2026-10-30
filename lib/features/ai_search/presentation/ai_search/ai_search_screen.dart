@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../providers/ai_search_provider.dart';
+import 'widgets/ai_all_closed_notice.dart';
 import 'widgets/ai_dish_badge.dart';
 import 'widgets/ai_empty_state.dart';
 import 'widgets/ai_error_view.dart';
@@ -26,8 +27,8 @@ import 'widgets/image_source_sheet.dart';
 ///   error     → AiErrorView
 ///   no search → AiEmptyState (example queries)
 ///   nothing   → AiNoResults
-///   results   → _ResultsSection: AiIntentChips / AiDishBadge +
-///               AiSearchResultCard list
+///   results   → _ResultsSection: AiAllClosedNotice (every shop closed),
+///               AiIntentChips / AiDishBadge + AiSearchResultCard list
 ///
 /// UI only: searching, the state and the retry live in [aiSearchProvider]
 /// (AiSearchNotifier, AiSearchRepository behind it). This screen keeps the
@@ -202,8 +203,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
 
 // ── Sections ──────────────────────────────────────────────────────────────────
 
-/// What the search understood (intent chips, or the recognised dish), then
-/// one AiSearchResultCard per result.
+/// "These restaurants are closed" when every shop is, what the search
+/// understood (intent chips, or the recognised dish), then one
+/// AiSearchResultCard per result (the server puts open shops first).
 class _ResultsSection extends StatelessWidget {
   const _ResultsSection({required this.state});
 
@@ -213,6 +215,8 @@ class _ResultsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverMainAxisGroup(
       slivers: [
+        if (state.allShopsClosed)
+          const SliverToBoxAdapter(child: AiAllClosedNotice()),
         if (state.mode == AiSearchMode.text && state.textResponse != null)
           SliverToBoxAdapter(
             child: AiIntentChips(response: state.textResponse!),

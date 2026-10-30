@@ -1398,6 +1398,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Aucun résultat exact — voici des plats populaires';
 
   @override
+  String get aiSearchAllClosed => 'Ces restaurants sont fermés pour le moment';
+
+  @override
   String get aiSearchModalTitle => 'Rechercher par photo';
 
   @override

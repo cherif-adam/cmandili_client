@@ -2608,6 +2608,12 @@ abstract class AppLocalizations {
   /// **'No exact match — here are some popular dishes'**
   String get aiSearchFallbackMessage;
 
+  /// No description provided for @aiSearchAllClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'These restaurants are closed for now'**
+  String get aiSearchAllClosed;
+
   /// No description provided for @aiSearchModalTitle.
   ///
   /// In en, this message translates to:

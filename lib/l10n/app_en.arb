@@ -496,6 +496,7 @@
     },
     "aiSearchNoResultsText": "No dishes match your request",
     "aiSearchFallbackMessage": "No exact match — here are some popular dishes",
+    "aiSearchAllClosed": "These restaurants are closed for now",
     "aiSearchModalTitle": "Search by Photo",
     "aiSearchModalHint": "Upload a photo of a dish to find it in {city}",
     "@aiSearchModalHint": {

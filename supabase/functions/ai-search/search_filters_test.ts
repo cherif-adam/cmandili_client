@@ -7,7 +7,7 @@
 // only ONE filed under a "Sandwiches" section. Requiring the guessed category
 // AND the keyword returned that one dish only.
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { diversifyByShop, keywordPattern, taxonomyFilter } from "./search_filters.ts";
+import { diversifyByShop, keywordPattern, openShopsFirst, taxonomyFilter } from "./search_filters.ts";
 
 interface Row {
   name: string;
@@ -163,4 +163,40 @@ Deno.test("diversifying drops nothing, duplicates nothing and keeps each shop's 
     assertEquals(after.filter((d) => d.shop === shop), before.filter((d) => d.shop === shop));
   }
   assertEquals(diversifyByShop([] as Dish[], (d) => d.shop), []);
+});
+
+// ── Closed shops: shown after the open ones, never hidden ────────────────────
+
+interface ShopDish extends Dish {
+  open: boolean;
+}
+
+/** The model ranked a closed shop's dishes first, then the open shops'. */
+function rankedOpenAndClosed(): ShopDish[] {
+  return [
+    { id: "nuit-1", shop: "Chez Nuit", open: false },
+    { id: "nuit-2", shop: "Chez Nuit", open: false },
+    { id: "planb-1", shop: "plan b", open: true },
+    { id: "planb-2", shop: "plan b", open: true },
+    { id: "planb-3", shop: "plan b", open: true },
+    { id: "seven-1", shop: "Seven pizza", open: true },
+    { id: "midi-1", shop: "Midi", open: false },
+  ];
+}
+
+const order = (dishes: ShopDish[]) =>
+  openShopsFirst(dishes, (d) => d.shop, (d) => d.open).map((d) => d.id);
+
+Deno.test("open + closed: every open shop leads, closed shops follow, each diversified", () => {
+  assertEquals(order(rankedOpenAndClosed()), [
+    "planb-1", "seven-1", "planb-2", "planb-3", // open, best of each shop first
+    "nuit-1", "midi-1", "nuit-2", // closed, best of each shop first
+  ]);
+});
+
+Deno.test("all closed: every dish still comes back, best of each shop first", () => {
+  const allClosed = rankedOpenAndClosed().map((d) => ({ ...d, open: false }));
+  const got = order(allClosed);
+  assertEquals(got.length, allClosed.length);
+  assertEquals(got.slice(0, 4), ["nuit-1", "planb-1", "seven-1", "midi-1"]);
 });

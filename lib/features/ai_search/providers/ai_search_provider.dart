@@ -55,6 +55,11 @@ class AiSearchState {
 
   bool get hasResults => results.isNotEmpty;
 
+  /// Every result comes from a closed shop. They are listed anyway, dimmed
+  /// like closed shops on the home screen, and the screen says why above them.
+  bool get allShopsClosed =>
+      hasResults && results.every((r) => !r.restaurantIsOpen);
+
   AiSearchState copyWith({
     AiSearchMode? mode,
     bool? isLoading,

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/widgets/shop_card/closed_photo_overlay.dart';
 import '../../../data/models/search_result.dart';
 
 /// Card displaying a single food item from an AI search result.
 /// Shows the dish image, name, price, restaurant, and smart badges (spicy, veg, etc).
+/// A closed shop's dish gets the home screen's dim and « Fermé » on its photo.
+/// The card has no add button: nothing is ordered from the search list.
 class AiSearchResultCard extends StatelessWidget {
   final AiSearchFoodResult item;
 
@@ -59,6 +62,16 @@ class AiSearchResultCard extends StatelessWidget {
                         color: AppColors.textLight, size: 32),
                   ),
                 ),
+                // Before the discount badge, which stays visible above the
+                // dim (same order as the home screen's shop cards).
+                if (!item.restaurantIsOpen)
+                  ClosedPhotoOverlay(
+                    label: AppLocalizations.of(context)!.shopClosed,
+                    screenWidth: MediaQuery.of(context).size.width,
+                    screenHeight: MediaQuery.of(context).size.height,
+                    // The ClipRRect above already rounds the photo.
+                    borderRadius: BorderRadius.zero,
+                  ),
                 // Discount badge overlay
                 if (hasDiscount)
                   Positioned(

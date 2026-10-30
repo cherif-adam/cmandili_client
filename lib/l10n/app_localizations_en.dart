@@ -1370,6 +1370,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'No exact match — here are some popular dishes';
 
   @override
+  String get aiSearchAllClosed => 'These restaurants are closed for now';
+
+  @override
   String get aiSearchModalTitle => 'Search by Photo';
 
   @override
