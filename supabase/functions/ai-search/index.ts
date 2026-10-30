@@ -33,7 +33,7 @@
 //   error -> { error: string, details?: string }   (always HTTP 200 or 4xx/5xx)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { taxonomyFilter } from "./search_filters.ts";
+import { CANDIDATE_LIMIT, diversifyByShop, taxonomyFilter } from "./search_filters.ts";
 
 // The client type, derived from an actual CALL rather than from
 // `ReturnType<typeof createClient>`.
@@ -76,6 +76,9 @@ const CORS_HEADERS = {
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+// The shop a result belongs to, for diversifyByShop.
+const shopOf = (row: Record<string, unknown>) => row.restaurant_id;
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -331,7 +334,12 @@ function buildCandidateQuery(
   intent: TextIntent,
   tier: RelaxTier,
 ) {
-  let q = supabase.from("food_items").select(FOOD_SELECT).eq("is_available", true);
+  // Closed shops are left out at every tier: their dishes cannot be ordered.
+  // Hidden shops (deleted_at) never get this far: the food_items and
+  // restaurants views already leave them out.
+  let q = supabase.from("food_items").select(FOOD_SELECT)
+    .eq("is_available", true)
+    .eq("restaurants.is_open", true);
 
   if (tier.taxonomy) {
     const taxonomy = taxonomyFilter(intent);
@@ -344,14 +352,10 @@ function buildCandidateQuery(
   if (intent.max_price != null) q = q.lte("price", intent.max_price);
   if (intent.min_price != null) q = q.gte("price", intent.min_price);
 
-  // The widest tier has no user signal to sort by, so lead with the cheapest
-  // dishes. We deliberately do NOT filter on restaurants.is_open here — that
-  // could re-introduce the empty result this tier exists to prevent.
-  if (!tier.attributes && !tier.taxonomy) {
-    q = q.order("price", { ascending: true });
-  }
-
-  return q.limit(60);
+  // Cheapest first at every tier: a fixed order, so a query that ever matches
+  // more than CANDIDATE_LIMIT dishes is cut by price, not by whichever shop's
+  // rows Postgres happens to read first.
+  return q.order("price", { ascending: true }).limit(CANDIDATE_LIMIT);
 }
 
 async function handleTextSearch(query: string, supabase: Db) {
@@ -443,7 +447,7 @@ async function handleTextSearch(query: string, supabase: Db) {
     );
   }
 
-  return json({ intent, results, fallback });
+  return json({ intent, results: diversifyByShop(results, shopOf), fallback });
 }
 
 // ── Mode: image ───────────────────────────────────────────────────────────────
@@ -509,12 +513,15 @@ async function handleImageSearch(
     .flatMap((t) => [`name.ilike.%${t}%`, `description.ilike.%${t}%`])
     .join(",");
 
+  // Same rules as the text search: open shops only, cheapest first.
   const { data: candidates, error } = await supabase
     .from("food_items")
     .select(FOOD_SELECT)
     .eq("is_available", true)
+    .eq("restaurants.is_open", true)
     .or(orFilter)
-    .limit(60);
+    .order("price", { ascending: true })
+    .limit(CANDIDATE_LIMIT);
 
   if (error) {
     return errorResponse("Database query failed.", error.message, 500);
@@ -564,7 +571,7 @@ async function handleImageSearch(
     // best-effort ranking — keep DB order on failure
   }
 
-  return json({ dish_name: dishName, confidence, results });
+  return json({ dish_name: dishName, confidence, results: diversifyByShop(results, shopOf) });
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────

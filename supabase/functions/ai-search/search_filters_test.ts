@@ -7,7 +7,7 @@
 // only ONE filed under a "Sandwiches" section. Requiring the guessed category
 // AND the keyword returned that one dish only.
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { keywordPattern, taxonomyFilter } from "./search_filters.ts";
+import { diversifyByShop, keywordPattern, taxonomyFilter } from "./search_filters.ts";
 
 interface Row {
   name: string;
@@ -113,4 +113,54 @@ Deno.test("Arabic and multi-word keywords; nothing unsafe reaches the filter", (
   // filter string: they are dropped with the other non-letters.
   assertEquals(keywordPattern('pi"zza,(x)\\'), "p+i+.*z+a+.*x+");
   assertEquals(keywordPattern("!!!"), null);
+});
+
+// ── No shop hides the others (phone test, 30/10/2026) ────────────────────────
+// "N7eb chapati w matfoutch 10 dt" came back as 10 plan b chapatis and 1 from
+// Seven pizza. That was every chapati on the menu that day (the 24 others
+// belonged to the two test shops hidden the same day), but nothing stopped the
+// shop with the most matches from filling the screen.
+
+interface Dish {
+  id: string;
+  shop: string;
+}
+
+/** The model's ranking: one shop's 30 matches first, three small shops after. */
+function rankedDishes(): Dish[] {
+  const dishes: Dish[] = [];
+  for (let i = 1; i <= 30; i++) dishes.push({ id: `planb-${i}`, shop: "plan b" });
+  dishes.push(
+    { id: "seven-1", shop: "Seven pizza" },
+    { id: "baguette-1", shop: "Baguette" },
+    { id: "baguette-2", shop: "Baguette" },
+    { id: "ali-1", shop: "Chez Ali" },
+  );
+  return dishes;
+}
+
+/** The first page: the 20 dishes the ranking model picks (RANK_SYSTEM_PROMPT). */
+const FIRST_PAGE = 20;
+const shops = (dishes: Dish[]) => new Set(dishes.map((d) => d.shop));
+
+Deno.test("one shop with 30 matches no longer pushes the other shops off the first page", () => {
+  const before = rankedDishes();
+  assertEquals(shops(before.slice(0, FIRST_PAGE)), new Set(["plan b"]));
+
+  const after = diversifyByShop(before, (d) => d.shop);
+  assertEquals(shops(after.slice(0, FIRST_PAGE)), shops(before));
+  // Each shop's best dish leads, in ranking order: every shop is on screen
+  // before any shop shows a second dish.
+  assertEquals(after.slice(0, 4).map((d) => d.id), ["planb-1", "seven-1", "baguette-1", "ali-1"]);
+});
+
+Deno.test("diversifying drops nothing, duplicates nothing and keeps each shop's order", () => {
+  const before = rankedDishes();
+  const after = diversifyByShop(before, (d) => d.shop);
+  assertEquals(after.length, before.length);
+  assertEquals(new Set(after.map((d) => d.id)).size, before.length);
+  for (const shop of shops(before)) {
+    assertEquals(after.filter((d) => d.shop === shop), before.filter((d) => d.shop === shop));
+  }
+  assertEquals(diversifyByShop([] as Dish[], (d) => d.shop), []);
 });

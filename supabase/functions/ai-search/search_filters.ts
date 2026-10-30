@@ -64,3 +64,39 @@ export function taxonomyFilter(
   }
   return null;
 }
+
+/**
+ * How many candidate dishes a search fetches, cheapest first.
+ *
+ * It used to be 60 with no ORDER BY, so Postgres handed back whichever 60 rows
+ * it read first, whole shops at a time, and a shop it did not reach was simply
+ * not in the answer. On 30/10/2026 the menu held 319 available dishes and the
+ * broadest dish query ("sandwich") matched 37 in 6 shops: a dish search stays
+ * far below this; only the budget-only fallback tier can reach it.
+ */
+export const CANDIDATE_LIMIT = 200;
+
+/**
+ * No shop hides the others: each shop's best dish first, in ranking order,
+ * then every other dish in ranking order.
+ *
+ * Without it a shop with 30 matching chapatis fills the whole first screen and
+ * the shop with one chapati comes 31st, after the customer has stopped
+ * scrolling. Nothing is dropped or duplicated, and each shop keeps its own
+ * ranking order.
+ */
+export function diversifyByShop<T>(ranked: T[], shopOf: (item: T) => unknown): T[] {
+  const firsts: T[] = [];
+  const rest: T[] = [];
+  const seen = new Set<unknown>();
+  for (const item of ranked) {
+    const shop = shopOf(item);
+    if (seen.has(shop)) {
+      rest.push(item);
+    } else {
+      seen.add(shop);
+      firsts.push(item);
+    }
+  }
+  return [...firsts, ...rest];
+}
