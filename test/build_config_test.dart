@@ -15,9 +15,12 @@ void main() {
     expect(pubspec, isNot(contains('flutter_dotenv')));
   });
 
+  // integration_test too: the device test kept loading .env after it was gone.
   test('no code reads .env any more', () {
-    final readers = Directory('lib')
-        .listSync(recursive: true)
+    final readers = ['lib', 'integration_test']
+        .map(Directory.new)
+        .where((d) => d.existsSync())
+        .expand((d) => d.listSync(recursive: true))
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))
         .where((f) => RegExp(r'flutter_dotenv|dotenv\.(env|load)').hasMatch(f.readAsStringSync()))

@@ -8,18 +8,18 @@
 //
 // Lancement (les identifiants viennent de --dart-define, jamais du depot) :
 //   flutter test integration_test/auth_flow_repro_test.dart -d <device> \
+//     --dart-define-from-file=dart_defines.json \
 //     --dart-define=REPRO_EMAIL=... --dart-define=REPRO_PASSWORD=... \
 //     --dart-define=REPRO_NEW_PASSWORD=...
 
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import 'package:cmandili_mobile/main.dart';
-import 'package:cmandili_mobile/core/config/supabase_config.dart';
+import 'package:cmandili_mobile/core/config/build_config.dart';
 import 'package:cmandili_mobile/features/auth/data/auth_repository.dart';
 import 'package:cmandili_mobile/features/auth/presentation/auth/auth_screen.dart';
 import 'package:cmandili_mobile/features/home/presentation/home/home_screen.dart';
@@ -158,10 +158,11 @@ void main() {
     expect(_email.isNotEmpty, isTrue, reason: 'REPRO_EMAIL manquant');
     expect(_password.isNotEmpty, isTrue, reason: 'REPRO_PASSWORD manquant');
 
-    await dotenv.load(fileName: '.env');
+    expect(BuildConfig.missing, isEmpty,
+        reason: 'lancer avec --dart-define-from-file=dart_defines.json');
     await sb.Supabase.initialize(
-      url: SupabaseConfig.url,
-      anonKey: SupabaseConfig.anonKey,
+      url: BuildConfig.supabaseUrl,
+      anonKey: BuildConfig.supabaseAnonKey,
     );
 
     final client = sb.Supabase.instance.client;
