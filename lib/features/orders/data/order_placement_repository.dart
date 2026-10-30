@@ -64,68 +64,78 @@ class OrderPlacementRepository {
 
       final orderId = orderResponse['id'] as String;
 
-      // Insert order items. If a customization holds a local voice clip, upload
-      // it to the public `voice-messages` bucket and store the URL on
-      // `order_items.voice_note_url` so the partner can stream it without a
-      // signed-URL roundtrip.
-      for (final item in items) {
-        final customization = item.customization;
-        String? voiceUrl;
-        OrderCustomization? finalCustomization = customization;
+      // From here on the order row exists. If one of its lines cannot be
+      // saved, cancel it before giving up: on 30/10 a line the database
+      // refused left three orders 'pending' with no item, waiting in the
+      // partner's queue. The caller releases a committed promo; the
+      // cancellation trigger frees the loyalty slot.
+      try {
+        // Insert order items. If a customization holds a local voice clip, upload
+        // it to the public `voice-messages` bucket and store the URL on
+        // `order_items.voice_note_url` so the partner can stream it without a
+        // signed-URL roundtrip.
+        for (final item in items) {
+          final customization = item.customization;
+          String? voiceUrl;
+          OrderCustomization? finalCustomization = customization;
 
-        if (customization != null && customization.type == CustomizationType.voice) {
-          if (customization.content.isNotEmpty && !customization.content.startsWith('http')) {
-            voiceUrl = await _uploadVoiceClip(orderId, customization.content);
-            if (voiceUrl != null) {
-              finalCustomization = customization.copyWith(content: voiceUrl);
+          if (customization != null && customization.type == CustomizationType.voice) {
+            if (customization.content.isNotEmpty && !customization.content.startsWith('http')) {
+              voiceUrl = await _uploadVoiceClip(orderId, customization.content);
+              if (voiceUrl != null) {
+                finalCustomization = customization.copyWith(content: voiceUrl);
+              }
+            } else if (customization.content.startsWith('http')) {
+              voiceUrl = customization.content;
             }
-          } else if (customization.content.startsWith('http')) {
-            voiceUrl = customization.content;
           }
-        }
 
-        // Build the options JSONB blob: voice/text customization, the
-        // selected variant, and any selected option-group add-ons (so the
-        // partner can see "Chocolate cake — 8DT" / "Harissa, Gruyère" on the
-        // order detail screen, even though it's also baked into `price`).
-        final options = <String, dynamic>{};
-        if (finalCustomization != null) {
-          options.addAll(finalCustomization.toJson());
-        }
-        if (item.variant != null) {
-          options['variant'] = item.variant!.toJson();
-        }
-        if (item.selectedOptionGroups.isNotEmpty) {
-          options['optionGroups'] =
-              item.selectedOptionGroups.map((g) => g.toJson()).toList();
-        }
+          // Build the options JSONB blob: voice/text customization, the
+          // selected variant, and any selected option-group add-ons (so the
+          // partner can see "Chocolate cake — 8DT" / "Harissa, Gruyère" on the
+          // order detail screen, even though it's also baked into `price`).
+          final options = <String, dynamic>{};
+          if (finalCustomization != null) {
+            options.addAll(finalCustomization.toJson());
+          }
+          if (item.variant != null) {
+            options['variant'] = item.variant!.toJson();
+          }
+          if (item.selectedOptionGroups.isNotEmpty) {
+            options['optionGroups'] =
+                item.selectedOptionGroups.map((g) => g.toJson()).toList();
+          }
 
-        // The customer's typed note. The partner app shows a text note from
-        // order_items.special_instructions and nothing else, but this only
-        // ever went into `options` (below) -- so "Instructions spéciales" was
-        // saved and never seen by the shop. Written to both now: the column
-        // for the partner, `options` unchanged for anything already reading it.
-        final typedNote = (finalCustomization != null &&
-                finalCustomization.type == CustomizationType.text)
-            ? finalCustomization.content.trim()
-            : (item.specialInstructions ?? '').trim();
+          // The customer's typed note. The partner app shows a text note from
+          // order_items.special_instructions and nothing else, but this only
+          // ever went into `options` (below) -- so "Instructions spéciales" was
+          // saved and never seen by the shop. Written to both now: the column
+          // for the partner, `options` unchanged for anything already reading it.
+          final typedNote = (finalCustomization != null &&
+                  finalCustomization.type == CustomizationType.text)
+              ? finalCustomization.content.trim()
+              : (item.specialInstructions ?? '').trim();
 
-        await _supabase.from('order_items').insert({
-          'order_id': orderId,
-          // One nullable FK per vertical; exactly one is set per line. A
-          // generic-vendor line (flowers, pets, gifts, bakery, electronics)
-          // uses the third column — without it the line would save with every
-          // product reference null and the partner could not tell what was
-          // ordered.
-          'food_item_id': item.type == CartItemType.restaurant ? item.foodItem?.id : null,
-          'grocery_item_id': item.type == CartItemType.grocery ? item.groceryItem?.id : null,
-          'vendor_item_id': item.type == CartItemType.vendor ? item.vendorItem?.id : null,
-          'quantity': item.quantity,
-          'price': item.price,
-          'options': options,
-          if (typedNote.isNotEmpty) 'special_instructions': typedNote,
-          if (voiceUrl != null) 'voice_note_url': voiceUrl,
-        });
+          await _supabase.from('order_items').insert({
+            'order_id': orderId,
+            // One nullable FK per vertical; exactly one is set per line. A
+            // generic-vendor line (flowers, pets, gifts, bakery, electronics)
+            // uses the third column — without it the line would save with every
+            // product reference null and the partner could not tell what was
+            // ordered.
+            'food_item_id': item.type == CartItemType.restaurant ? item.foodItem?.id : null,
+            'grocery_item_id': item.type == CartItemType.grocery ? item.groceryItem?.id : null,
+            'vendor_item_id': item.type == CartItemType.vendor ? item.vendorItem?.id : null,
+            'quantity': item.quantity,
+            'price': item.price,
+            'options': options,
+            if (typedNote.isNotEmpty) 'special_instructions': typedNote,
+            if (voiceUrl != null) 'voice_note_url': voiceUrl,
+          });
+        }
+      } catch (_) {
+        await _cancelEmptyOrder(orderId);
+        rethrow;
       }
 
       return (
@@ -139,6 +149,22 @@ class OrderPlacementRepository {
     } catch (e) {
       debugPrint('Error creating order: $e');
       rethrow;
+    }
+  }
+
+  /// Cancels an order whose lines could not all be saved, so it does not
+  /// sit 'pending' and empty in the partner's queue. Best effort: the error
+  /// the caller needs is the one that stopped the order, not this one.
+  Future<void> _cancelEmptyOrder(String orderId) async {
+    try {
+      await _supabase.from('orders').update({
+        'status': 'cancelled',
+        'cancelled_by': 'system',
+        'cancellation_reason': 'Articles non enregistrés',
+        'cancelled_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', orderId);
+    } catch (e) {
+      debugPrint('createOrder: could not cancel the empty order $orderId: $e');
     }
   }
 
