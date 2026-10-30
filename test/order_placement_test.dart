@@ -1,11 +1,11 @@
 // Phone test, 30/10/2026: "Commander" at Charlot failed with
 //   insert or update on table "order_items" violates foreign key constraint
 //   "order_items_food_item_id_fkey" ... not present in table "food_items_legacy"
-// and the order stayed 'pending' with no item. The foreign keys are fixed in
-// 20261030120000_order_items_fk_vendor_items.sql (and tested on live in
-// supabase/tests/order_items_vendor_fk_test.sql). Here: each shop type writes
-// its line in its own column, and a line the database refuses cancels the
-// order instead of leaving it empty in the partner's queue.
+// and the order stayed 'pending' with no item. The database side is fixed in
+// 20261030120000_order_items_legacy_mirror.sql (tested on live in
+// supabase/tests/order_items_legacy_mirror_test.sql). Here: each shop type
+// writes its line in its own column, and a line the database refuses cancels
+// the order instead of leaving it empty in the partner's queue.
 
 import 'dart:convert';
 
