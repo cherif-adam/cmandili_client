@@ -18,6 +18,17 @@ void main() {
     expect(declared, isEmpty);
   });
 
+  test('the manifest does not declare the shared-storage permissions', () {
+    // Google Play treats READ_EXTERNAL_STORAGE as photo / video access and
+    // then demands the core-functionality declaration (it blocked 1.0.2 (6)).
+    final declared = RegExp(
+            r'<uses-permission[^>]*android\.permission\.((?:READ|WRITE)_EXTERNAL_STORAGE)')
+        .allMatches(manifest)
+        .map((m) => m.group(1))
+        .toList();
+    expect(declared, isEmpty);
+  });
+
   test('no screen asks for photo access before picking', () {
     // Asking for Permission.photos / videos would need the permission above:
     // undeclared, Android answers "permanently denied" and the pick never
