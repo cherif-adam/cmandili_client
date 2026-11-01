@@ -1401,6 +1401,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get aiSearchAllClosed => 'Ces restaurants sont fermés pour le moment';
 
   @override
+  String get aiSearchShopUnavailable => 'Ce restaurant n\'est plus disponible';
+
+  @override
   String get aiSearchModalTitle => 'Rechercher par photo';
 
   @override

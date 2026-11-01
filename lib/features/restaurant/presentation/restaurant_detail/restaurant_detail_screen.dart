@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
+import '../../../../core/widgets/dish_spotlight.dart';
 import '../../../home/data/models/restaurant.dart';
 import '../../data/models/food_item.dart';
 import '../../providers/restaurant_provider.dart';
@@ -20,15 +21,22 @@ import 'widgets/view_cart_button.dart';
 ///   list of FoodItemCard
 ///   ViewCartButton           floating, once the cart has something
 ///
+/// Opened from a search result, it scrolls to [highlightItemId] and makes
+/// that dish glow a moment (DishSpotlight).
+///
 /// UI only: the selected category, the category list and the filtering
 /// live in [RestaurantDetailController]; the dishes come from
 /// [foodItemsProvider] (ShopRepository behind it).
 class RestaurantDetailScreen extends ConsumerStatefulWidget {
   final Restaurant restaurant;
 
+  /// The dish to scroll to and make glow, when opened from a search result.
+  final String? highlightItemId;
+
   const RestaurantDetailScreen({
     super.key,
     required this.restaurant,
+    this.highlightItemId,
   });
 
   @override
@@ -41,9 +49,11 @@ class _RestaurantDetailScreenState
   /// This page's own controller (see [restaurantDetailControllerProvider]).
   late final _provider = restaurantDetailControllerProvider(Object());
   final ScrollController _scrollController = ScrollController();
+  late final _spotlight = DishSpotlight(widget.highlightItemId);
 
   @override
   void dispose() {
+    _spotlight.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -60,31 +70,40 @@ class _RestaurantDetailScreenState
         appBar: AppBar(),
         body: Center(child: Text(AppLocalizations.of(context)!.errorLoadingMenu)),
       ),
-      data: (menuItems) => Scaffold(
-        body: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            RestaurantDetailAppBar(restaurant: widget.restaurant),
+      data: (menuItems) {
+        // Once the menu is on screen, if the searched dish is on it (it may
+        // have sold out since); the spotlight only runs the first time.
+        if (menuItems.any((dish) => dish.id == widget.highlightItemId)) {
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => _spotlight.reveal(_scrollController));
+        }
+        return Scaffold(
+          body: CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              RestaurantDetailAppBar(restaurant: widget.restaurant),
 
-            SliverToBoxAdapter(
-              child: RestaurantInfoHeader(restaurant: widget.restaurant),
-            ),
+              SliverToBoxAdapter(
+                child: RestaurantInfoHeader(restaurant: widget.restaurant),
+              ),
 
-            _CategoryChipsHeader(
-              categories: controller.categoriesOf(menuItems),
-              selected: selectedCategory,
-              onSelected: controller.selectCategory,
-            ),
+              _CategoryChipsHeader(
+                categories: controller.categoriesOf(menuItems),
+                selected: selectedCategory,
+                onSelected: controller.selectCategory,
+              ),
 
-            _MenuList(
-              items: controller.visibleItems(menuItems),
-              isOpen: widget.restaurant.isOpen,
-            ),
-          ],
-        ),
-        floatingActionButton: const ViewCartButton(),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      ),
+              _MenuList(
+                items: controller.visibleItems(menuItems),
+                isOpen: widget.restaurant.isOpen,
+                spotlight: _spotlight,
+              ),
+            ],
+          ),
+          floatingActionButton: const ViewCartButton(),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        );
+      },
     );
   }
 }
@@ -120,12 +139,18 @@ class _CategoryChipsHeader extends StatelessWidget {
   }
 }
 
-/// One FoodItemCard per dish of the selected category.
+/// One FoodItemCard per dish of the selected category; the searched dish, if
+/// any, inside the spotlight's glow.
 class _MenuList extends StatelessWidget {
-  const _MenuList({required this.items, required this.isOpen});
+  const _MenuList({
+    required this.items,
+    required this.isOpen,
+    required this.spotlight,
+  });
 
   final List<FoodItem> items;
   final bool isOpen;
+  final DishSpotlight spotlight;
 
   @override
   Widget build(BuildContext context) {
@@ -133,9 +158,15 @@ class _MenuList extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
-          (context, index) => FoodItemCard(
-            foodItem: items[index],
-            isOpen: isOpen,
+          (context, index) => spotlight.frame(
+            items[index].id,
+            FoodItemCard(
+              foodItem: items[index],
+              isOpen: isOpen,
+            ),
+            // FoodItemCard's own corners and bottom margin.
+            radius: 20,
+            margin: const EdgeInsets.only(bottom: 20),
           ),
           childCount: items.length,
         ),

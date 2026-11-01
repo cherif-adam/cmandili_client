@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../restaurant/presentation/restaurant_detail/open_restaurant_at_dish.dart';
+import '../../data/models/search_result.dart';
 import '../../providers/ai_search_provider.dart';
 import 'widgets/ai_all_closed_notice.dart';
 import 'widgets/ai_dish_badge.dart';
@@ -30,6 +32,9 @@ import 'widgets/image_source_sheet.dart';
 ///   results   → _ResultsSection: AiAllClosedNotice (every shop closed),
 ///               AiIntentChips / AiDishBadge + AiSearchResultCard list
 ///
+/// A tap on a result opens its restaurant's page at the dish
+/// ([openRestaurantAtDish]).
+///
 /// UI only: searching, the state and the retry live in [aiSearchProvider]
 /// (AiSearchNotifier, AiSearchRepository behind it). This screen keeps the
 /// text field, the focus, the animations and the photo picker.
@@ -48,6 +53,9 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
   late final AnimationController _fabController;
 
   final ImagePicker _picker = ImagePicker();
+
+  /// A result's restaurant is being read: further taps wait for it.
+  bool _openingShop = false;
 
   @override
   void initState() {
@@ -130,6 +138,28 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
     }
   }
 
+  /// Opens [item]'s restaurant page, scrolled to the dish. A closed
+  /// restaurant opens too: its page shows it closed and blocks the cart.
+  Future<void> _openShop(AiSearchFoodResult item) async {
+    if (_openingShop) return;
+    _openingShop = true;
+    try {
+      final opened = await openRestaurantAtDish(
+        context,
+        ref,
+        restaurantId: item.restaurantId,
+        dishId: item.id,
+      );
+      if (!opened && mounted) {
+        _showError(AppLocalizations.of(context)!.aiSearchShopUnavailable);
+      }
+    } catch (_) {
+      if (mounted) _showError(AppLocalizations.of(context)!.aiSearchErrorNetwork);
+    } finally {
+      _openingShop = false;
+    }
+  }
+
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -194,7 +224,7 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           else if (!state.hasResults)
             SliverToBoxAdapter(child: AiNoResults(state: state))
           else
-            _ResultsSection(state: state),
+            _ResultsSection(state: state, onOpen: _openShop),
         ],
       ),
     );
@@ -205,11 +235,13 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
 
 /// "These restaurants are closed" when every shop is, what the search
 /// understood (intent chips, or the recognised dish), then one
-/// AiSearchResultCard per result (the server puts open shops first).
+/// AiSearchResultCard per result (the server puts open shops first); a tap
+/// on one calls [onOpen].
 class _ResultsSection extends StatelessWidget {
-  const _ResultsSection({required this.state});
+  const _ResultsSection({required this.state, required this.onOpen});
 
   final AiSearchState state;
+  final ValueChanged<AiSearchFoodResult> onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +261,10 @@ class _ResultsSection extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
-              (_, i) => AiSearchResultCard(item: state.results[i]),
+              (_, i) => AiSearchResultCard(
+                item: state.results[i],
+                onTap: () => onOpen(state.results[i]),
+              ),
               childCount: state.results.length,
             ),
           ),

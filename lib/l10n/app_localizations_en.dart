@@ -1373,6 +1373,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSearchAllClosed => 'These restaurants are closed for now';
 
   @override
+  String get aiSearchShopUnavailable =>
+      'This restaurant is no longer available';
+
+  @override
   String get aiSearchModalTitle => 'Search by Photo';
 
   @override

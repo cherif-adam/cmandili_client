@@ -120,6 +120,16 @@ class ShopRepository {
         .toList();
   }
 
+  /// One restaurant, read fresh. For pages opened from a search or chat
+  /// result, which only carries the restaurant's id: the page blocks the cart
+  /// when the restaurant is closed and applies its minimum order, so it needs
+  /// the real row. Null when the restaurant is gone (hidden since).
+  Future<Restaurant?> getRestaurant(String id) async {
+    final row =
+        await _supabase.from('restaurants').select().eq('id', id).maybeSingle();
+    return row == null ? null : Restaurant.fromJson(_restaurantFromDb(row));
+  }
+
   /// Live version of [getRestaurants] — pushes a new list the moment a
   /// restaurant is added, edited, or removed, instead of waiting for the
   /// screen to be reopened.

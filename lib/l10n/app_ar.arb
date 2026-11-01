@@ -470,6 +470,7 @@
     "aiSearchNoResultsText": "لا توجد أطباق تطابق طلبك",
     "aiSearchFallbackMessage": "لا توجد نتائج مطابقة — إليك بعض الأطباق الشائعة",
     "aiSearchAllClosed": "هذه المطاعم مغلقة حاليًا",
+    "aiSearchShopUnavailable": "هذا المطعم لم يعد متاحًا",
     "aiSearchModalTitle": "البحث بالصورة",
     "aiSearchModalHint": "احمل صورة طبق للعثور عليه في {city}",
     "@aiSearchModalHint": {

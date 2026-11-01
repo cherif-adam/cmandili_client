@@ -24,7 +24,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../models/chat_message.dart';
-import '../../../restaurant/presentation/restaurant_detail/restaurant_detail_screen.dart';
+import '../../../restaurant/presentation/restaurant_detail/open_restaurant_at_dish.dart';
 import '../../../../core/models/service_category.dart';
 import '../../../vendors/presentation/vendor_detail/vendor_detail_screen.dart';
 import '../../../courier/presentation/courier/courier_screen.dart';
@@ -337,9 +337,12 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen>
       _showSnack('Boutique introuvable');
       return;
     }
+    // 'shop' cards are products: the page scrolls to this one.
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => VendorDetailScreen(vendor: vendor)),
+      MaterialPageRoute(
+        builder: (_) => VendorDetailScreen(vendor: vendor, highlightItemId: product.id),
+      ),
     );
   }
 
@@ -369,22 +372,28 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen>
     );
   }
 
-  // ── Task 2: Navigate to RestaurantDetailScreen ────────────────────────────
+  // ── Navigate to the restaurant (dish cards: scrolled to the dish) ─────────
+  // The real row is read first (openRestaurantAtDish): the page takes the
+  // open/closed state and the minimum order from it. Built from the card's
+  // fields, it always showed the restaurant open with no minimum order.
 
-  void _navigateToRestaurant(ProductResult product) {
-    if (product.sourceId == null || product.sourceId!.isEmpty) {
+  Future<void> _navigateToRestaurant(ProductResult product) async {
+    final id = product.sourceId;
+    if (id == null || id.isEmpty) {
       _showSnack('Restaurant introuvable');
       return;
     }
-
-    final restaurant = AiChatController.restaurantFor(product);
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RestaurantDetailScreen(restaurant: restaurant),
-      ),
-    );
+    try {
+      final opened = await openRestaurantAtDish(
+        context,
+        ref,
+        restaurantId: id,
+        dishId: product.type == 'food' ? product.id : null,
+      );
+      if (!opened && mounted) _showSnack('Restaurant introuvable');
+    } catch (_) {
+      if (mounted) _showSnack('Restaurant introuvable');
+    }
   }
 }
 

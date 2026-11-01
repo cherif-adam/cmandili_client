@@ -7,7 +7,6 @@ import '../../../../core/models/service_category.dart';
 import '../../../../core/providers/localization_provider.dart';
 import '../../../../core/providers/vendor_provider.dart';
 import '../../../../models/chat_message.dart';
-import '../../../home/data/models/restaurant.dart';
 import '../../../../core/models/vendor.dart';
 import '../../data/ai_chat_service.dart';
 
@@ -202,22 +201,4 @@ class AiChatController extends AutoDisposeFamilyNotifier<AiChatState, Object> {
         return 'Je veux payer une facture';
     }
   }
-
-  /// Builds a minimal Restaurant object from the card's data. The
-  /// RestaurantDetailScreen will load the full menu via foodItemsProvider.
-  static Restaurant restaurantFor(ProductResult product) => Restaurant(
-        id: product.sourceId!,
-        name: product.sourceName,
-        description: product.description ?? '',
-        imageUrl: product.imageUrl ?? '',
-        rating: product.rating ?? 0.0,
-        reviewCount: 0,
-        deliveryTime: product.deliveryTime ?? 30,
-        deliveryFee: product.deliveryFee ?? 0.0,
-        minimumOrder: 0.0,
-        categories: const [],
-        isOpen: true,
-        latitude: 0,
-        longitude: 0,
-      );
 }

@@ -2614,6 +2614,12 @@ abstract class AppLocalizations {
   /// **'These restaurants are closed for now'**
   String get aiSearchAllClosed;
 
+  /// No description provided for @aiSearchShopUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This restaurant is no longer available'**
+  String get aiSearchShopUnavailable;
+
   /// No description provided for @aiSearchModalTitle.
   ///
   /// In en, this message translates to:
