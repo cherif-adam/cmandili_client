@@ -13,6 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cmandili_mobile/core/models/service_category.dart';
 import 'package:cmandili_mobile/features/ai_chat/presentation/ai_chat/ai_chat_screen.dart';
+import 'package:cmandili_mobile/features/ai_chat/presentation/ai_chat/widgets/chat_app_bar.dart';
 
 Future<void> pumpChat(WidgetTester tester, {double width = 393}) async {
   tester.view.physicalSize = Size(width, 800);
@@ -156,7 +157,15 @@ void main() {
             (w) => w is ListView && w.scrollDirection == Axis.horizontal),
       );
       expect(inHeader, findsNothing);
-      expect(find.text('Amana Assistant'), findsOneWidget);
+      // The empty chat's welcome title carries the same name, so look in the
+      // header itself.
+      expect(
+        find.descendant(
+          of: find.byType(ChatAppBar),
+          matching: find.text('Amana Assistant'),
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

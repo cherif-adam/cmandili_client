@@ -35,7 +35,7 @@ class ChatEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Cmandili Assistant',
+            'Amana Assistant',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: kChatTextDark),
           ),
           const SizedBox(height: 8),

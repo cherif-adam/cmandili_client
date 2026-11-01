@@ -46,13 +46,13 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Cmandili uses your location to find nearby restaurants and supermarkets, and to deliver your order to the right place.</string>
+	<string>Amana uses your location to find nearby restaurants and supermarkets, and to deliver your order to the right place.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Cmandili needs access to your photo library so you can attach photos to reviews and support tickets.</string>
+	<string>Amana needs access to your photo library so you can attach photos to reviews and support tickets.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Cmandili uses the camera so you can take photos for reviews and support tickets.</string>
+	<string>Amana uses the camera so you can take photos for reviews and support tickets.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Cmandili uses the microphone to record voice notes for your orders.</string>
+	<string>Amana uses the microphone to record voice notes for your orders.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
