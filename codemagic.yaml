@@ -1,0 +1,50 @@
+# iOS build of the Amana client on Codemagic's Macs (no local Mac needed).
+# Codemagic setup, once:
+#   - Team integrations > Developer Portal: add the App Store Connect API key,
+#     named exactly "Amana ASC".
+#   - Environment variables: group "amana_secrets" with SUPABASE_URL,
+#     SUPABASE_ANON_KEY and GOOGLE_MAPS_API_KEY (same values as the local
+#     dart_defines.json, which is git-ignored).
+workflows:
+  ios-client:
+    name: Amana client - iOS (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: Amana ASC
+    environment:
+      groups:
+        - amana_secrets
+      flutter: 3.41.1
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.amana.mobile
+    scripts:
+      - name: Write dart_defines.json from the secrets
+        script: |
+          jq -n \
+            --arg url "$SUPABASE_URL" \
+            --arg anon "$SUPABASE_ANON_KEY" \
+            --arg maps "$GOOGLE_MAPS_API_KEY" \
+            '{SUPABASE_URL: $url, SUPABASE_ANON_KEY: $anon, GOOGLE_MAPS_API_KEY: $maps}' \
+            > dart_defines.json
+      - name: Get packages
+        script: flutter pub get
+      - name: Install pods
+        script: cd ios && pod install --repo-update
+      - name: Use the App Store profiles
+        script: xcode-project use-profiles
+      - name: Build the IPA
+        script: |
+          flutter build ipa --release \
+            --dart-define-from-file=dart_defines.json \
+            --build-number=$PROJECT_BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
