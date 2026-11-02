@@ -63,6 +63,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '785469526658',
     projectId: 'cmandili-c1ade',
     storageBucket: 'cmandili-c1ade.firebasestorage.app',
-    iosBundleId: 'com.amana.mobile',
+    iosBundleId: 'com.amanatunisia.mobile',
   );
 }
