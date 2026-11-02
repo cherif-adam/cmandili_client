@@ -103,3 +103,11 @@ flutter:
   #         weight: 600
   #       - asset: assets/fonts/Poppins-Bold.ttf
   #         weight: 700
+
+# Firebase 10.25 (firebase_core 2 / firebase_messaging 14) needs GoogleUtilities 7.
+# google_sign_in_ios 5.9.0 moved to Google Sign-In SDK 8, which needs
+# GoogleUtilities 8: CocoaPods cannot resolve both ("Install pods" fails on
+# Codemagic). 5.8.1 is the last release on SDK 7. iOS only: Android is not
+# affected. Drop this once firebase_core / firebase_messaging are upgraded.
+dependency_overrides:
+  google_sign_in_ios: 5.8.1
