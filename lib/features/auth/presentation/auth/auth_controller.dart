@@ -102,7 +102,25 @@ class AuthScreenController extends AutoDisposeFamilyNotifier<AuthScreenState, Ob
       _setLoading(false);
     }
   }
+
+  /// Sign in with Apple (iPhone only, see [showAppleSignIn]). Same contract
+  /// as [signInWithGoogle].
+  Future<bool> signInWithApple() async {
+    final authRepo = ref.read(authRepositoryProvider);
+    _setLoading(true);
+    try {
+      await authRepo.signInWithApple();
+      return authRepo.hasSession;
+    } finally {
+      _setLoading(false);
+    }
+  }
 }
+
+/// Whether the login screen offers Sign in with Apple. Apple rejects an
+/// iPhone app that offers Google sign-in without it (App Store guideline
+/// 4.8); on Android it would need a web flow the app does not have.
+bool get showAppleSignIn => defaultTargetPlatform == TargetPlatform.iOS;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

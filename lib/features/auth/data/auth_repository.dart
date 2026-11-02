@@ -199,6 +199,11 @@ class AuthRepository {
       }
 
       return User.fromSupabase(user);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // Closing the Apple sheet is a cancel, like Google returning null.
+      if (e.code == AuthorizationErrorCode.canceled) return null;
+      debugPrint('Apple Sign In Error: $e');
+      rethrow;
     } catch (e) {
       debugPrint('Apple Sign In Error: $e');
       rethrow;

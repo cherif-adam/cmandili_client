@@ -23,7 +23,7 @@ import 'widgets/social_sign_in_button.dart';
 ///     AuthTabBar       Se connecter | S'inscrire
 ///     AuthTextField    (name), e-mail, password
 ///     ForgotPasswordLink, AuthSubmitButton
-///     OrDivider, SocialSignInButton (Google)
+///     OrDivider, SocialSignInButton (Apple on iPhone, Google)
 ///
 ///   sections: _LogoHeader, _AuthCard, _BuildLabel
 ///
@@ -180,6 +180,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                               ref.read(_provider.notifier).toggleObscurePassword,
                           onSubmit: _handleEmailAuth,
                           onGoogle: _handleGoogleSignIn,
+                          onApple: showAppleSignIn ? _handleAppleSignIn : null,
                         ),
                         SizedBox(height: screenHeight * 0.01),
                       ],
@@ -288,6 +289,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       _showAuthError(e);
     }
   }
+
+  Future<void> _handleAppleSignIn() async {
+    try {
+      final hasSession = await ref.read(_provider.notifier).signInWithApple();
+      if (mounted && hasSession && Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      _showAuthError(e);
+    }
+  }
 }
 
 // ── Sections ──────────────────────────────────────────────────────────────────
@@ -316,7 +328,8 @@ class _LogoHeader extends StatelessWidget {
 }
 
 /// The glass card, sliding up: tabs, the form (name on sign-up, e-mail,
-/// password, "Mot de passe oublié ?", submit), then "ou" and Google.
+/// password, "Mot de passe oublié ?", submit), then "ou", Apple (iPhone
+/// only) and Google.
 class _AuthCard extends StatelessWidget {
   const _AuthCard({
     required this.slide,
@@ -332,6 +345,7 @@ class _AuthCard extends StatelessWidget {
     required this.onToggleObscure,
     required this.onSubmit,
     required this.onGoogle,
+    required this.onApple,
   });
 
   final Animation<Offset> slide;
@@ -347,6 +361,9 @@ class _AuthCard extends StatelessWidget {
   final VoidCallback onToggleObscure;
   final VoidCallback onSubmit;
   final VoidCallback onGoogle;
+
+  /// Null hides the Apple button (everywhere but iPhone).
+  final VoidCallback? onApple;
 
   @override
   Widget build(BuildContext context) {
@@ -431,7 +448,18 @@ class _AuthCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
+                  // Apple first and the same size as Google: Apple asks that
+                  // its button be at least as prominent as the others.
+                  if (onApple != null)
+                    SocialSignInButton(
+                      key: const Key('auth_apple'),
+                      icon: Icons.apple,
+                      onPressed: isLoading ? null : onApple,
+                      screenWidth: screenWidth,
+                      screenHeight: screenHeight,
+                    ),
                   SocialSignInButton(
+                    key: const Key('auth_google'),
                     icon: Icons.g_mobiledata_rounded,
                     onPressed: isLoading ? null : onGoogle,
                     screenWidth: screenWidth,
