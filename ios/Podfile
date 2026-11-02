@@ -46,6 +46,16 @@ post_install do |installer|
     # ("Include of non-modular header inside framework module").
     target.build_configurations.each do |config|
       config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      config.build_settings['CLANG_WARN_NON_MODULAR_INCLUDE_IN_FRAMEWORK_MODULE'] = 'NO'
+      # The newest Xcode raises it as a hard error whatever the settings above
+      # say: demote it with the compiler flag itself.
+      ['OTHER_CFLAGS', 'OTHER_CPLUSPLUSFLAGS'].each do |key|
+        flags = config.build_settings[key] || ['$(inherited)']
+        flags = flags.split(' ') if flags.is_a?(String)
+        flags << '-Wno-error=non-modular-include-in-framework-module'
+        flags << '-Wno-non-modular-include-in-framework-module'
+        config.build_settings[key] = flags.uniq
+      end
     end
   end
 end
