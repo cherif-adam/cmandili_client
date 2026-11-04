@@ -55,7 +55,7 @@ class FacturePriceSummary extends StatelessWidget {
                   ? l10n.loyaltyFreeDelivery
                   : l10n.factureLoyaltyHalf,
               value:
-                  '− ${(serviceFee * loyaltyPreview!.discountMultiplier).toStringAsFixed(3)} TND',
+                  '− ${loyaltyPreview!.discountOn(serviceFee).toStringAsFixed(3)} TND',
               bold: true,
               color: AppColors.success,
             ),

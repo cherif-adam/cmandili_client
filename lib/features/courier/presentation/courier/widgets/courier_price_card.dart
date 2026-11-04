@@ -98,7 +98,7 @@ class CourierPriceCard extends StatelessWidget {
                             ),
                             SizedBox(width: w * 0.02),
                             Text(
-                              '${(estimatedPrice! * (1 - loyaltyPreview!.discountMultiplier)).toStringAsFixed(3)} TND',
+                              '${loyaltyPreview!.paidFee(estimatedPrice!).toStringAsFixed(3)} TND',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: w * 0.06,

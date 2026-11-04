@@ -126,7 +126,7 @@ class CheckoutState {
       : subtotal;
   final loyaltyDiscountPreview = loyaltyPreview == null
       ? 0.0
-      : deliveryFee * loyaltyPreview.discountMultiplier;
+      : loyaltyPreview.discountOn(deliveryFee);
   final previewDeliveryFee = deliveryFee - loyaltyDiscountPreview;
   final estimatedTotal = effectiveSubtotal + previewDeliveryFee;
   return (

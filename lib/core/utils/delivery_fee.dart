@@ -1,4 +1,5 @@
 import 'location_service.dart';
+import 'money.dart';
 
 /// Platform delivery fee constants.
 ///
@@ -6,10 +7,15 @@ import 'location_service.dart';
 /// Threshold:  3 km       — no surcharge up to this distance.
 /// Surcharge:  0.500 TND per km beyond the threshold.
 ///
+/// The final fee is rounded to the money step (50 millimes, [roundMoney]) :
+/// the distance is not a whole number of km, and 4.185 TND is not an amount
+/// anyone pays in cash.
+///
 /// Examples:
-///   2.5 km → 3.500 TND
-///   4.0 km → 4.000 TND  (3.500 + 1.0 × 0.500)
-///   4.5 km → 4.250 TND  (3.500 + 1.5 × 0.500)
+///   2.5 km  → 3.500 TND
+///   4.0 km  → 4.000 TND  (3.500 + 1.0 × 0.500)
+///   4.37 km → 4.200 TND  (3.500 + 1.37 × 0.500 = 4.185, rounded)
+///   4.5 km  → 4.250 TND  (3.500 + 1.5 × 0.500)
 const double kDeliveryBaseFee = 3.5;
 const double _kThresholdKm = 3.0;
 const double _kPerKmSurcharge = 0.5;
@@ -39,11 +45,13 @@ double calculateDeliveryFee({
   double? distanceKm,
   bool isFlatRate = false,
 }) {
-  if (isFlatRate) return partnerFlatFee;
+  if (isFlatRate) return roundMoney(partnerFlatFee);
   final extraKm = (distanceKm ?? 0) - _kThresholdKm;
   final surcharge = extraKm > 0 ? extraKm * _kPerKmSurcharge : 0.0;
   final candidate = partnerFlatFee + surcharge;
-  return candidate < kDeliveryBaseFee ? kDeliveryBaseFee : candidate;
+  // Same rule as round_money on the server, which rounds the fee again at
+  // insert: what the cart and the checkout show is what gets charged.
+  return roundMoney(candidate < kDeliveryBaseFee ? kDeliveryBaseFee : candidate);
 }
 
 /// Distance helper that returns null when either side has missing/zero

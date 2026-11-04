@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/utils/money.dart';
 import '../../orders/data/models/order.dart';
 
 /// Order types the loyalty program counts, mirroring
@@ -28,6 +29,18 @@ class LoyaltyMilestonePreview {
   final String type; // 'half' | 'free'
   final double discountMultiplier; // 0.5 | 1.0
   const LoyaltyMilestonePreview(this.type, this.discountMultiplier);
+
+  /// What the customer pays of [fullFee]: nothing on a free delivery, else
+  /// the remaining share rounded to the money step — the same rule as
+  /// `apply_loyalty_at_checkout()`: paid = round_money(fee / 2) on the 5th.
+  double paidFee(double fullFee) => discountMultiplier >= 1.0
+      ? 0.0
+      : roundMoney(fullFee * (1 - discountMultiplier));
+
+  /// The discount on [fullFee]: the full fee minus what is paid, so that
+  /// fee = paid + discount to the millime, like on the server.
+  double discountOn(double fullFee) =>
+      subtractMoney(fullFee, paidFee(fullFee));
 }
 
 /// Predicts the milestone for whatever order the customer creates next, by
