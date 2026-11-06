@@ -2,4 +2,8 @@
 <p>We received a request to reset the password for your Amana Partner account.</p>
 <p>Enter this code in the app to continue:</p>
 <p style="font-size: 32px; font-weight: bold; letter-spacing: 6px; text-align: center; margin: 24px 0; color: #333333;">{{ .Token }}</p>
+{{ if ne .RedirectTo .SiteURL }}
+<p>Administrateur Amana : vous pouvez aussi choisir votre nouveau mot de passe directement avec ce lien.</p>
+<p style="text-align: center; margin: 24px 0;"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery" style="background: #f97316; color: #ffffff; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">Réinitialiser mon mot de passe</a></p>
+{{ end }}
 <p>This code will expire shortly. If you didn't request a password reset, you can safely ignore this email.</p>

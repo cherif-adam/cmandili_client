@@ -36,6 +36,50 @@ Flutter `OrderStatus` enums serialize via `toString().split('.').last` — new l
 
 ---
 
+## ADMIN FORGOT-PASSWORD — 2026-11-06 (pushed on adam-branch, full flow NOT yet tested)
+
+The admin is NOT deployed: it only runs locally on `localhost:3000`, so every
+setting below is for localhost.
+
+**Cause found:** `origin/main` (likely the deployed admin) still has the old
+login page: "Mot de passe oublié ?" styled `text-gray-500`, which this Tailwind
+setup does not generate (near-invisible 124×16 px target), and a reset page
+waiting for a link that the shared "Reset password" template never sends
+(the template only has `{{ .Token }}`, an 8-digit code, also used by the 3
+mobile apps). Adam's admin address has `recovery_sent_at` NULL: Supabase never
+sent it a reset email. Email sending itself works (a driver +alias account got
+one on 06/11 15:04 UTC). `auth.audit_log_entries` is empty project-wide, so it
+proves nothing. `adam-branch` already carried 4 unpushed-to-main login/reset
+fixes (code flow).
+
+**Code changed on adam-branch (admin `bbf033c`, pushed 06/11 at Adam's request before his localhost test):**
+`cmandili_admin/app/login/page.tsx` (`redirectTo = origin + /reset-password`,
+exact success text "Si cet email existe, un lien de réinitialisation a été
+envoyé.", friendly errors only, `?view=forgot`, no auto-redirect) and
+`app/reset-password/page.tsx` (token_hash link, PKCE `?code=`, expired-link
+screen "Ce lien a expiré. Demandez un nouveau lien.", 8-digit code fallback,
+min 8 + match checks; link spent on submit only; own non-singleton client with
+`detectSessionInUrl: false`). Repo template `supabase/templates/recovery.html`
+gets an admin-only link block `{{ if ne .RedirectTo .SiteURL }}` (mobile apps
+pass no redirect, so their email is unchanged). tsc + eslint clean; verified
+locally: validation, success message, `POST /auth/v1/recover?redirect_to=…`
+→ 200, expired screen, link-mode form. NOT yet verified: submit on the reset
+page (browser pane was hidden).
+
+The 3 mobile apps call `resetPasswordForEmail(email)` with no redirect, so the
+template's admin block (`{{ if ne .RedirectTo .SiteURL }}`) never shows in
+their emails.
+
+**Still to do:** read the live URL Configuration, Reset Password template, SMTP
+and email rate limits (dashboard sign-in needed — the CLI token route was
+refused by the permission system); then Adam ADDS
+`http://localhost:3000/reset-password` to Redirect URLs (keeping every existing
+entry; the Site URL can stay as it is unless it equals that URL) and pastes the
+template block after the `{{ .Token }}` line; then the localhost end-to-end
+test. When the admin gets deployed, add `<admin URL>/reset-password` too.
+
+---
+
 ## AI SEARCH & ASSISTANT — 2026-11-06 (Recherche IA + Amana Assistant)
 
 Three bugs fixed: Recherche IA printed Gemini's raw 429 JSON; dish names with a
