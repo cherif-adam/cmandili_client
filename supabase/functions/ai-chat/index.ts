@@ -28,13 +28,31 @@
 //     "max_price": number | null,
 //     "min_price": number | null,
 //     "delivery_time": "fast" | "any" | null,
-//     "keyword": string | null
+//     "keyword": string | null,
+//     "status": "ok" | "degraded",
+//     "dish_results"?: [{ dish, found, items: [food_items row + restaurants] }]
 //   }
-//   error -> { error: string, details?: string }
+//   error -> HTTP 503/500 { error: "assistant_unavailable", status: "unavailable" }
+//            Never any provider detail: those are logged here, not returned.
 //
-// The app still runs the food_items / grocery_items queries itself (plain
-// RLS-guarded reads, no secret needed) and builds the product cards — so card
-// images, navigation and persistence are unchanged. Only the LLM call moved.
+// DISH SEARCH (2026-11-06). For a search_food with a named dish and no health
+// goal, this function now searches the dishes itself (public.search_dishes,
+// fuzzy, one search per dish: "malfouf thon et calzone" is two searches),
+// open restaurants and available dishes only, and returns them in
+// `dish_results` with a message that says dish by dish what was found and what
+// was not (dish_reply.ts). Nothing unrelated is ever added to fill the
+// carousel. The app shows these rows as they are. Builds released before that
+// date ignore `dish_results`: for them `keyword` is rewritten to the names of
+// the dishes found, and `intent` becomes "general" when nothing was found, so
+// their own search shows the same thing (see legacyKeyword).
+//
+// Every other search (light dishes for a health goal, restaurants, shops) is
+// still run by the app itself against RLS-guarded tables.
+//
+// WITHOUT A MODEL (both providers failing or cooling down): the dish search
+// runs on the user's own words, ignoring words that match no dish ("n7eb",
+// "bonjour"), and answers with status "degraded". When that finds nothing too,
+// HTTP 503 and the app shows its own "momentanément indisponible" message.
 //
 // Secrets required (set with `supabase secrets set ...`):
 //   OPENROUTER_API_KEY     sk-or-v1-...   the OpenRouter key (SERVER-ONLY)
@@ -46,10 +64,23 @@
 //                          two keys must be set.
 
 import {
+  type AppLang,
   appLanguageNote,
   followAppLanguageOnGreeting,
   normaliseAppLang,
 } from "./app_language.ts";
+import { callLlmJson, extractJsonObject, LlmUnavailableError } from "../_shared/llm.ts";
+import { simulatedLlmStatus } from "../_shared/simulate.ts";
+import {
+  type DishOutcome,
+  findDishes,
+  parseBudget,
+  postgrestRpc,
+  type RpcClient,
+  toFoodItemRow,
+  uniqueRows,
+} from "../_shared/dish_search.ts";
+import { chatMessageFor, degradedLead, dishLabel, legacyKeyword } from "./dish_reply.ts";
 
 // .trim() defends against secrets pasted with stray whitespace/newlines.
 const OPENROUTER_API_KEY = (Deno.env.get("OPENROUTER_API_KEY") ?? "").trim();
@@ -61,7 +92,16 @@ const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
 // Same model as the OpenRouter default, minus the "google/" route prefix.
 const GEMINI_MODEL = (Deno.env.get("GEMINI_CHAT_MODEL") ?? "gemini-2.5-flash").trim();
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+// Per provider. The app waits 60 s for the whole answer (vision included), so
+// two providers at 25 s each still leave room for the dish search.
+const LLM_TIMEOUT_MS = 25_000;
+
+// Auto-provided by the platform. Only used for the dish search.
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const db: RpcClient | null = SUPABASE_URL && SERVICE_ROLE_KEY
+  ? postgrestRpc(SUPABASE_URL, SERVICE_ROLE_KEY)
+  : null;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -75,10 +115,6 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
   });
-}
-
-function errorResponse(message: string, details: string, status = 502): Response {
-  return json({ error: message, details }, status);
 }
 
 // ── System prompt ───────────────────────────────────────────────────────────
@@ -374,6 +410,9 @@ Set intent:"search_food" and search for the last mentioned item.
 "category": a cuisine or food category — pizza/burger/patisserie/couscous/salade/sandwich/poulet/
   poisson/tunisien/italien/pharmacie/supermarche... — or null. Used for both dish and restaurant search.
 "keyword": specific dish name (from image or text), or a restaurant name fragment, or null.
+  When the user names SEVERAL dishes, give each one with its full name, separated by commas:
+  "malfouf thon w calzone" → "malfouf thon, calzone". Never glue them with "et" / "w" / "and".
+  The app searches each dish and writes what it found itself — your message must not promise them.
 "vegetarian": true only if user explicitly said they are vegetarian.
 "spicy": true only if explicitly mentioned.
 "max_price": the user's upper budget as a bare number in TND, or null. REQUIRED whenever they gave one,
@@ -480,6 +519,9 @@ Set intent:"search_food" and search for the last mentioned item.
 [TN] "n7eb nakel chapati"
 → {"message":"Hani njiblek el chapati el disponible tw 🌯","lang":"tn","intent":"search_food","health_goal":null,"service_category":"food","category":"chapati","spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"chapati"}
 
+[TN — several dishes] "malfouf thon w calzone"
+→ {"message":"Behi! Nchouf lek el malfouf thon w el calzone 🌯","lang":"tn","intent":"search_food","health_goal":null,"service_category":"food","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"malfouf thon, calzone"}
+
 [HONESTY — EN] "which restaurant is rated highest?"
 → {"message":"Ratings aren't live for most places yet, so I can't rank them — but here's everything open right now 🍴","lang":"en","intent":"restaurant_search","health_goal":null,"service_category":"food","category":null,"spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":null}
 
@@ -573,136 +615,6 @@ Set intent:"search_food" and search for the last mentioned item.
 
 [IMAGE - pizza photo]
 → {"message":"Je vois une pizza dans votre photo ! 🍕 Voici les meilleures pizzas disponibles !","lang":"fr","intent":"search_food","health_goal":null,"service_category":"food","category":"pizza","spicy":null,"vegetarian":null,"max_price":null,"min_price":null,"delivery_time":null,"keyword":"pizza"}`;
-
-// ── OpenRouter call ───────────────────────────────────────────────────────────
-
-async function callOpenRouter(messages: unknown[]): Promise<string> {
-  console.log(`[ai-chat] calling OpenRouter model="${OPENROUTER_MODEL}"`);
-  const res = await fetch(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://cmandili.com",
-      "X-Title": "Cmandili Mobile",
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL,
-      response_format: { type: "json_object" },
-      messages,
-      temperature: 0.4,
-      // gemini-2.5-flash is a THINKING model: with a tight max_tokens the
-      // reasoning tokens can eat the whole budget and the visible content
-      // comes back EMPTY (finish_reason: "length"), which used to throw
-      // "OpenRouter returned no content" -> 502 on every message. Disable
-      // reasoning so the budget is spent on the JSON answer, and give it
-      // generous headroom.
-      reasoning: { enabled: false },
-      max_tokens: 1024,
-    }),
-  });
-
-  const raw = await res.text();
-  // TEMP DIAGNOSTIC: log status + a slice of the body so the real failure is
-  // visible in `supabase functions logs ai-chat` / the dashboard Logs tab.
-  console.log(`[ai-chat] OpenRouter status=${res.status} body=${raw.slice(0, 800)}`);
-  if (!res.ok) {
-    throw new Error(`OpenRouter API error ${res.status}: ${raw}`);
-  }
-
-  let parsed: {
-    choices?: { message?: { content?: string }; finish_reason?: string }[];
-  };
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`OpenRouter returned non-JSON envelope: ${raw.slice(0, 500)}`);
-  }
-
-  const content = parsed.choices?.[0]?.message?.content;
-  if (!content) {
-    const finish = parsed.choices?.[0]?.finish_reason ?? "unknown";
-    throw new Error(
-      `OpenRouter returned no content (finish_reason=${finish}): ${raw.slice(0, 500)}`,
-    );
-  }
-  return content;
-}
-
-// ── Direct Gemini call (fallback provider) ───────────────────────────────────
-// Speaks the native Generative Language API. Same system prompt, same JSON
-// output contract, same vision support — so a fallback is invisible to the app.
-
-async function callGemini(
-  contents: { role: string; parts: unknown[] }[],
-  systemPrompt: string,
-): Promise<string> {
-  console.log(`[ai-chat] calling Gemini directly model="${GEMINI_MODEL}"`);
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": GEMINI_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 2048,
-          responseMimeType: "application/json",
-          // gemini-2.5-flash is a thinking model — spend the budget on the
-          // JSON answer, not on reasoning (same rationale as the OpenRouter
-          // path's `reasoning: { enabled: false }`).
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
-    },
-  );
-
-  const raw = await res.text();
-  console.log(`[ai-chat] Gemini status=${res.status} body=${raw.slice(0, 400)}`);
-  if (!res.ok) {
-    throw new Error(`Gemini API error ${res.status}: ${raw.slice(0, 500)}`);
-  }
-
-  let parsed: {
-    candidates?: {
-      content?: { parts?: { text?: string }[] };
-      finishReason?: string;
-    }[];
-    promptFeedback?: { blockReason?: string };
-  };
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`Gemini returned non-JSON envelope: ${raw.slice(0, 500)}`);
-  }
-
-  const text = (parsed.candidates?.[0]?.content?.parts ?? [])
-    .map((p) => p.text ?? "")
-    .join("");
-  if (!text) {
-    const why = parsed.promptFeedback?.blockReason ??
-      parsed.candidates?.[0]?.finishReason ?? "unknown";
-    throw new Error(`Gemini returned no content (${why}): ${raw.slice(0, 500)}`);
-  }
-  return text;
-}
-
-// Models sometimes wrap JSON in ```json fences despite response_format — strip.
-function extractJson<T>(text: string): T {
-  let s = text.trim();
-  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) s = fence[1].trim();
-  if (!s.startsWith("{") && !s.startsWith("[")) {
-    const obj = s.match(/[{[][\s\S]*[}\]]/);
-    if (obj) s = obj[0];
-  }
-  return JSON.parse(s) as T;
-}
 
 // ── Intent shaping ──────────────────────────────────────────────────────────
 
@@ -854,6 +766,120 @@ function historyToMessages(history: unknown): { role: string; content: string }[
   return out;
 }
 
+// ── Dish search ───────────────────────────────────────────────────────────────
+
+interface DishResult {
+  dish: string;
+  found: boolean;
+  items: Record<string, unknown>[];
+}
+
+type ChatReply = ChatIntent & {
+  status: "ok" | "degraded";
+  dish_results?: DishResult[];
+};
+
+/// Several dishes: at most this many cards each, so one dish with 30 matches
+/// cannot push the others out of the carousel.
+const CARDS_PER_DISH_WHEN_SEVERAL = 8;
+const MAX_CARDS = 20;
+
+/// `dish_results`, the dishes found, and the keyword for older app builds.
+function packDishes(outcomes: DishOutcome[]) {
+  const several = outcomes.length > 1;
+  const rows = uniqueRows(outcomes, several ? CARDS_PER_DISH_WHEN_SEVERAL : MAX_CARDS, MAX_CARDS);
+  const kept = new Set(rows.map((r) => r.id));
+  const shown = new Set<string>();
+  const results: DishResult[] = outcomes.map((o) => {
+    const items = o.rows.filter((r) => kept.has(r.id) && !shown.has(r.id));
+    items.forEach((r) => shown.add(r.id));
+    return { dish: dishLabel(o.dish), found: o.rows.length > 0, items: items.map(toFoodItemRow) };
+  });
+  return { rows, results };
+}
+
+/// A dish request: search each named dish and say, dish by dish, what was
+/// found. Any other reply, a health goal (the app picks light dishes itself),
+/// or a database failure (the app then runs its own search) is returned as is.
+async function withDishResults(reply: ChatIntent): Promise<ChatReply> {
+  const plain: ChatReply = { ...reply, status: "ok" };
+  if (!db || reply.intent !== "search_food" || reply.health_goal || !reply.keyword?.trim()) {
+    return plain;
+  }
+  let outcomes: DishOutcome[];
+  try {
+    outcomes = await findDishes(db, reply.keyword, reply.category, {
+      openOnly: true,
+      maxPrice: reply.max_price,
+      minPrice: reply.min_price,
+      spicy: reply.spicy,
+      vegetarian: reply.vegetarian,
+      limit: MAX_CARDS,
+    });
+  } catch (e) {
+    console.error("[ai-chat] dish search failed, the app will search itself:", e);
+    return plain;
+  }
+  if (outcomes.length === 0) return plain;
+
+  const { rows, results } = packDishes(outcomes);
+  const anyFound = rows.length > 0;
+  return {
+    ...reply,
+    message: chatMessageFor(reply.message, outcomes, reply.lang, reply.max_price, reply.min_price),
+    // For builds released before 2026-11-06 (see legacyKeyword): nothing
+    // found -> no search at all; something found -> search exactly that.
+    intent: anyFound ? "search_food" : "general",
+    keyword: anyFound ? (legacyKeyword(rows) ?? reply.keyword) : null,
+    category: anyFound ? null : reply.category,
+    status: "ok",
+    dish_results: results,
+  };
+}
+
+/// No model answered: search the dishes named in the user's own words.
+/// Null when that finds nothing (or there is nothing to search).
+async function degradedReply(text: string, appLang: AppLang | null): Promise<ChatReply | null> {
+  if (!db || text.length === 0) return null;
+  const { maxPrice, rest } = parseBudget(text);
+  let outcomes: DishOutcome[];
+  try {
+    outcomes = await findDishes(db, rest, null, {
+      openOnly: true,
+      ignoreUnknownWords: true,
+      maxPrice,
+      limit: MAX_CARDS,
+    });
+  } catch (e) {
+    console.error("[ai-chat] degraded dish search failed:", e);
+    return null;
+  }
+  const { rows, results } = packDishes(outcomes);
+  if (rows.length === 0) return null;
+  return {
+    message: degradedLead(appLang ?? "fr"),
+    lang: appLang ?? "fr",
+    intent: "search_food",
+    health_goal: null,
+    service_category: "food",
+    category: null,
+    spicy: null,
+    vegetarian: null,
+    max_price: maxPrice,
+    min_price: null,
+    delivery_time: null,
+    keyword: legacyKeyword(rows),
+    status: "degraded",
+    dish_results: results.filter((r) => r.found),
+  };
+}
+
+/// No model and nothing found: the app shows its own friendly message.
+/// Deliberately no detail — the cause is in the logs.
+function unavailable(status: number): Response {
+  return json({ error: "assistant_unavailable", status: "unavailable" }, status);
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -864,12 +890,10 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed." }, 405);
   }
 
+  // No provider key at all is handled like every provider failing: the dish
+  // search on the user's words still answers (degradedReply below).
   if (!OPENROUTER_API_KEY && !GEMINI_API_KEY) {
-    return errorResponse(
-      "Server misconfiguration.",
-      "Neither OPENROUTER_API_KEY nor GEMINI_API_KEY secret is set on the Edge Function.",
-      500,
-    );
+    console.error("[ai-chat] neither OPENROUTER_API_KEY nor GEMINI_API_KEY is set");
   }
 
   let body: {
@@ -943,31 +967,48 @@ Deno.serve(async (req) => {
   ];
 
   try {
-    // OpenRouter is the primary provider; direct Gemini covers ANY OpenRouter
-    // failure (invalid key, 402 no credits, outage) so the assistant stays up.
-    let content: string;
-    if (!OPENROUTER_API_KEY) {
-      console.warn("[ai-chat] no OPENROUTER_API_KEY — using direct Gemini");
-      content = await callGemini(geminiContents, systemPrompt);
-    } else {
-      try {
-        content = await callOpenRouter(messages);
-      } catch (e) {
-        if (!GEMINI_API_KEY) throw e;
-        console.warn(
-          `[ai-chat] OpenRouter failed, falling back to direct Gemini: ${
-            String(e).slice(0, 200)
-          }`,
-        );
-        content = await callGemini(geminiContents, systemPrompt);
-      }
-    }
-    const parsed = extractJson<Record<string, unknown>>(content);
-    return json(followAppLanguageOnGreeting(shapeIntent(parsed), appLang, text));
+    // OpenRouter first, direct Gemini second; any failure of one (402, 429,
+    // 5xx, timeout, unparseable answer) moves on to the other.
+    const { value: parsed, provider } = await callLlmJson(
+      {
+        label: "ai-chat",
+        timeoutMs: LLM_TIMEOUT_MS,
+        // Test hook, off by default: ../_shared/simulate.ts.
+        simulateStatus: simulatedLlmStatus(req),
+        openRouter: {
+          apiKey: OPENROUTER_API_KEY,
+          model: OPENROUTER_MODEL,
+          title: "Cmandili Mobile",
+          messages,
+          temperature: 0.4,
+          // gemini-2.5-flash is a THINKING model: with a tight max_tokens the
+          // reasoning tokens can eat the whole budget and the visible content
+          // comes back EMPTY. Disable reasoning, keep generous headroom.
+          maxTokens: 1024,
+          extra: { reasoning: { enabled: false } },
+        },
+        gemini: {
+          apiKey: GEMINI_API_KEY,
+          model: GEMINI_MODEL,
+          systemPrompt,
+          contents: geminiContents,
+          temperature: 0.4,
+          maxOutputTokens: 2048,
+        },
+      },
+      extractJsonObject,
+    );
+    console.log(`[ai-chat] answered by ${provider}`);
+    const reply = followAppLanguageOnGreeting(shapeIntent(parsed), appLang, text);
+    return json(await withDishResults(reply));
   } catch (e) {
-    // Surface the real cause in the Edge Function logs (dashboard Logs tab /
-    // `supabase functions logs ai-chat`), not just to the client.
+    if (e instanceof LlmUnavailableError) {
+      console.error(`[ai-chat] no model available: ${e.message}`);
+      const degraded = await degradedReply(text, appLang);
+      return degraded ? json(degraded) : unavailable(503);
+    }
+    // The real cause stays in the logs (dashboard Logs tab), never in the reply.
     console.error("[ai-chat] request failed:", e);
-    return errorResponse("Failed to get AI response.", String(e), 502);
+    return unavailable(500);
   }
 });

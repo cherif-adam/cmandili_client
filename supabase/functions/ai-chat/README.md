@@ -52,7 +52,13 @@ The structured intent the app's `_AiIntent` parses:
 }
 ```
 
-Errors: `{ "error": string, "details"?: string }` with a 4xx/5xx status.
+Since 2026-11-06 the reply also carries `status` (`ok` | `degraded`) and, for a
+dish search, `dish_results: [{ dish, found, items }]` — see the header of
+`index.ts` and `dish_reply.ts`.
+
+Errors: 4xx for a bad request; when no model answers and the dish search on
+the user's words finds nothing, HTTP 503 `{ "error": "assistant_unavailable",
+"status": "unavailable" }`. No provider detail is ever returned.
 
 ## Providers & secrets
 

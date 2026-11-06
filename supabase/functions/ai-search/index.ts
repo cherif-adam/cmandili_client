@@ -1,11 +1,8 @@
 // Supabase Edge Function: ai-search
 //
-// Two modes, driven by an LLM — OpenRouter primary, direct Gemini fallback on
-// ANY OpenRouter failure (invalid key, no credits, outage). Same fallback
-// pattern as `ai-chat`, ported here 2026-08-04 after OPENROUTER_API_KEY was
-// found to be a dead truncated key (401 "User not found" on every call),
-// which 502'd every ai-search request with no way to recover except a new
-// OpenRouter key. Gemini covers that gap so the feature stays up regardless.
+// Two modes, driven by an LLM — OpenRouter first, direct Gemini second
+// (../_shared/llm.ts: any failure of one provider, including a 429, a timeout
+// or an unparseable answer, moves on to the other).
 //
 //   mode: "text"   — Conversational query in Darija / French / Arabic.
 //                    The model extracts a structured intent (category, budget,
@@ -14,26 +11,55 @@
 //                    best matches for the user's request and budget.
 //
 //   mode: "image"  — A base64 photo of a dish. The vision model names the dish,
-//                    we full-text match it against food_items, then the model
-//                    re-ranks the candidates by visual/semantic fit.
+//                    we match it against the menu, then the model re-ranks the
+//                    candidates by visual/semantic fit.
 //
-// Secrets required (set with `supabase secrets set ...`):
-//   OPENROUTER_API_KEY   sk-or-v1-...   primary provider
-//   OPENROUTER_MODEL     e.g. google/gemini-2.0-flash-001  (optional, has default)
-//   GEMINI_API_KEY       AIza...        fallback: direct Google Gemini API.
-//                        Same model family as the OpenRouter default, so a
-//                        fallback is invisible to the app. At least ONE of
-//                        OPENROUTER_API_KEY / GEMINI_API_KEY must be set.
-//   SUPABASE_URL         auto-provided by the platform
-//   SUPABASE_SERVICE_ROLE_KEY  auto-provided by the platform
+// Dishes the user NAMED are found with public.search_dishes (migration
+// 20261106120000): fuzzy, word by word, accents and case ignored, one search
+// per dish ("calzone et malfouf" is two). See ../_shared/dish_search.ts.
 //
-// Response shapes (consumed by lib/features/ai_search/data/models/search_result.dart):
-//   text  -> { intent: {...}, results: [ {food_item + restaurants:{...}} ], fallback: bool }
-//   image -> { dish_name, confidence, results: [ ... ] }
-//   error -> { error: string, details?: string }   (always HTTP 200 or 4xx/5xx)
+// WITHOUT A MODEL (both providers failing — on 2026-11-06 OpenRouter answered
+// 402 and Gemini's free tier 429 after 20 requests a day): the text search
+// falls back to a plain database search on the user's own words, ignoring the
+// words that match no dish ("n7eb", "bghit"), with a budget read from the
+// text ("20d", "moins de 15"). status "degraded". A photo cannot be searched
+// without the vision model: status "degraded" with no results.
+//
+// Responses are ALWAYS HTTP 200 with a status, except a broken request (4xx)
+// or a database failure (5xx):
+//   text  -> { intent: {...}, results: [...], fallback: bool, status }
+//   image -> { dish_name, confidence, results: [...], status, reason? }
+//   status: "ok"        results understood by the model
+//           "no_match"  the named dish is not on any menu (results: [])
+//           "degraded"  results from the search without a model (maybe [])
+//   error -> { error: <French sentence an older app may print as is>,
+//              code, status: "error" }
+// Provider and database error details are logged here, never returned: the
+// app used to print Gemini's whole 429 JSON on the Recherche IA screen.
+//
+// Secrets (set with `supabase secrets set ...`):
+//   OPENROUTER_API_KEY   sk-or-v1-...   first provider (optional)
+//   OPENROUTER_MODEL     e.g. google/gemini-2.5-flash  (optional, has default)
+//   GEMINI_API_KEY       AIza...        second provider (optional)
+//   GEMINI_SEARCH_MODEL  (optional, default gemini-2.5-flash)
+//   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY  auto-provided by the platform
+// With no provider key at all, every text search runs in degraded mode.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { CANDIDATE_LIMIT, openShopsFirst, taxonomyFilter } from "./search_filters.ts";
+import { callLlmJson, extractJsonObject, type LlmCall, LlmUnavailableError } from "../_shared/llm.ts";
+import { simulatedLlmStatus } from "../_shared/simulate.ts";
+import {
+  type DishRow,
+  DishSearchError,
+  findDishes,
+  parseBudget,
+  postgrestRpc,
+  type RpcClient,
+  searchDish,
+  toFoodItemRow,
+  uniqueRows,
+} from "../_shared/dish_search.ts";
 
 // The client type, derived from an actual CALL rather than from
 // `ReturnType<typeof createClient>`.
@@ -51,17 +77,19 @@ const makeClient = (url: string, key: string) => createClient(url, key);
 
 // .trim() defends against secrets pasted with stray whitespace/newlines.
 const OPENROUTER_API_KEY = (Deno.env.get("OPENROUTER_API_KEY") ?? "").trim();
-const OPENROUTER_MODEL =
-  (Deno.env.get("OPENROUTER_MODEL") ?? "google/gemini-2.0-flash-001").trim();
+const OPENROUTER_MODEL = (Deno.env.get("OPENROUTER_MODEL") ?? "google/gemini-2.5-flash").trim();
 const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
 const GEMINI_MODEL = (Deno.env.get("GEMINI_SEARCH_MODEL") ?? "gemini-2.5-flash").trim();
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+// Per provider. Text calls are short JSON answers; a photo takes longer.
+const TEXT_TIMEOUT_MS = 15_000;
+const VISION_TIMEOUT_MS = 25_000;
 
 // Columns we select from food_items + the joined restaurant. Kept in one place
-// so the text and image paths stay in sync with the Flutter model.
+// so the text and image paths stay in sync with the Flutter model, and with
+// toFoodItemRow in ../_shared/dish_search.ts.
 const FOOD_SELECT = `
   id, name, description, price, discount_price, image_url, category,
   is_spicy, is_vegetarian, preparation_time, restaurant_id,
@@ -89,169 +117,95 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function errorResponse(message: string, details: string, status = 502): Response {
-  return json({ error: message, details }, status);
+// What an older app build prints as is (it shows the `error` field), so it is
+// worded for the customer. The current app shows its own sentences.
+const UNAVAILABLE_SENTENCE =
+  "La recherche intelligente est momentanément indisponible. Réessayez dans quelques instants.";
+
+function errorResponse(code: string, status: number): Response {
+  return json({ error: UNAVAILABLE_SENTENCE, code, status: "error" }, status);
 }
 
-// ── OpenRouter helpers ────────────────────────────────────────────────────────
+/** The database failed: the only case that answers 5xx. */
+class DatabaseError extends Error {}
+
+// ── LLM calls ─────────────────────────────────────────────────────────────────
 
 /**
- * Calls OpenRouter chat completions and returns the assistant message content.
- * `messages` follows the OpenAI chat format; for vision, a message's content
- * can be an array with image_url parts.
+ * One system + user turn, in both providers' shapes. `openRouterUserContent`
+ * is OpenAI-style content (string, or parts with `image_url` for vision);
+ * `geminiUserParts` the same turn as Gemini parts (`{text}` / `{inline_data}`).
  */
-async function callOpenRouter(messages: unknown[]): Promise<string> {
-  const res = await fetch(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      // OpenRouter asks for these for attribution; harmless if generic.
-      "HTTP-Referer": "https://cmandili.com",
-      "X-Title": "Cmandili AI Search",
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL,
-      messages,
-      temperature: 0.2,
-      max_tokens: 2048,
-      // Ask the model to return strict JSON. Most OpenRouter models honor this.
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  const raw = await res.text();
-  if (!res.ok) {
-    throw new Error(`OpenRouter API error ${res.status}: ${raw}`);
-  }
-
-  let parsed: { choices?: { message?: { content?: string } }[] };
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`OpenRouter returned non-JSON envelope: ${raw.slice(0, 500)}`);
-  }
-
-  const content = parsed.choices?.[0]?.message?.content;
-  if (!content) {
-    throw new Error(`OpenRouter returned no content: ${raw.slice(0, 500)}`);
-  }
-  return content;
-}
-
-// ── Gemini helpers (fallback provider) ──────────────────────────────────────
-// Speaks the native Generative Language API directly. Same JSON-object output
-// contract as the OpenRouter path, so callers don't need to know which
-// provider actually answered.
-
-/**
- * Calls Gemini directly with a single system + user turn. `userParts`
- * mirrors `messages`' user content in Gemini's part shape: `{text}` for text,
- * `{inline_data: {mime_type, data}}` for images (raw base64, no data: prefix).
- */
-async function callGemini(systemPrompt: string, userParts: unknown[]): Promise<string> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "x-goog-api-key": GEMINI_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: "user", parts: userParts }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 2048,
-          responseMimeType: "application/json",
-          // gemini-2.5-flash is a thinking model — spend the budget on the
-          // JSON answer, not on reasoning tokens (same rationale as ai-chat).
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
-    },
-  );
-
-  const raw = await res.text();
-  if (!res.ok) {
-    throw new Error(`Gemini API error ${res.status}: ${raw.slice(0, 500)}`);
-  }
-
-  let parsed: {
-    candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
-    promptFeedback?: { blockReason?: string };
-  };
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`Gemini returned non-JSON envelope: ${raw.slice(0, 500)}`);
-  }
-
-  const text = (parsed.candidates?.[0]?.content?.parts ?? [])
-    .map((p) => p.text ?? "")
-    .join("");
-  if (!text) {
-    const why = parsed.promptFeedback?.blockReason ??
-      parsed.candidates?.[0]?.finishReason ?? "unknown";
-    throw new Error(`Gemini returned no content (${why}): ${raw.slice(0, 500)}`);
-  }
-  return text;
-}
-
-/**
- * Single entry point for every LLM call in this file: tries OpenRouter first,
- * falls back to direct Gemini on ANY OpenRouter failure (bad key, no credits,
- * outage) as long as GEMINI_API_KEY is set. Every call site in this file is a
- * single system+user turn (no conversation history), so callers only need to
- * supply the same turn in both providers' shapes.
- *
- * `openRouterUserContent` — OpenAI-style `content` (string, or an array with
- *   `image_url` parts for vision).
- * `geminiUserParts` — the same user turn in Gemini's part shape (`{text}` /
- *   `{inline_data}`).
- */
-async function callLLM(
+function llmCall(
+  label: string,
   systemPrompt: string,
   openRouterUserContent: unknown,
   geminiUserParts: unknown[],
-): Promise<string> {
-  if (!OPENROUTER_API_KEY) {
-    if (!GEMINI_API_KEY) {
-      throw new Error("Neither OPENROUTER_API_KEY nor GEMINI_API_KEY is set.");
-    }
-    console.warn("[ai-search] no OPENROUTER_API_KEY — using direct Gemini");
-    return await callGemini(systemPrompt, geminiUserParts);
-  }
-  try {
-    return await callOpenRouter([
-      { role: "system", content: systemPrompt },
-      { role: "user", content: openRouterUserContent },
-    ]);
-  } catch (e) {
-    if (!GEMINI_API_KEY) throw e;
-    console.warn(
-      `[ai-search] OpenRouter failed, falling back to direct Gemini: ${String(e).slice(0, 200)}`,
-    );
-    return await callGemini(systemPrompt, geminiUserParts);
-  }
+  simulate: number | null,
+  timeoutMs = TEXT_TIMEOUT_MS,
+): LlmCall {
+  return {
+    label: `ai-search:${label}`,
+    timeoutMs,
+    simulateStatus: simulate,
+    openRouter: {
+      apiKey: OPENROUTER_API_KEY,
+      model: OPENROUTER_MODEL,
+      title: "Cmandili AI Search",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: openRouterUserContent },
+      ],
+      temperature: 0.2,
+      maxTokens: 2048,
+    },
+    gemini: {
+      apiKey: GEMINI_API_KEY,
+      model: GEMINI_MODEL,
+      systemPrompt,
+      contents: [{ role: "user", parts: geminiUserParts }],
+      temperature: 0.2,
+      maxOutputTokens: 2048,
+    },
+  };
+}
+
+/** Accepts `{ ids: [...] }` only: anything else is a failed answer. */
+function parseRanking(text: string): string[] {
+  const parsed = extractJsonObject(text);
+  if (!Array.isArray(parsed.ids)) throw new Error("ranking answer has no ids array");
+  return parsed.ids.filter((id): id is string => typeof id === "string");
 }
 
 /**
- * Extracts a JSON object/array from a model response. Models sometimes wrap
- * JSON in ```json fences or add prose despite response_format — strip both.
+ * Asks the model to order [candidates] for [request]. Best effort: when no
+ * model answers, the database order stands (closest match first). Any
+ * candidate the model leaves out is appended, so none is ever lost.
  */
-function extractJson<T>(text: string): T {
-  let s = text.trim();
-  // Strip code fences if present.
-  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) s = fence[1].trim();
-  // Otherwise grab the first {...} or [...] block.
-  if (!s.startsWith("{") && !s.startsWith("[")) {
-    const obj = s.match(/[{[][\s\S]*[}\]]/);
-    if (obj) s = obj[0];
+async function rankCandidates(
+  candidates: Record<string, unknown>[],
+  request: string,
+  label: string,
+  simulate: number | null,
+): Promise<Record<string, unknown>[]> {
+  try {
+    const { value: ids } = await callLlmJson(
+      llmCall(label, RANK_SYSTEM_PROMPT, request, [{ text: request }], simulate),
+      parseRanking,
+    );
+    if (ids.length === 0) return candidates;
+    const byId = new Map(candidates.map((c) => [c.id, c]));
+    const ordered = ids.map((id) => byId.get(id)).filter((c): c is Record<string, unknown> => c != null);
+    const seen = new Set(ids);
+    for (const c of candidates) {
+      if (!seen.has(c.id as string)) ordered.push(c);
+    }
+    return ordered.length > 0 ? ordered : candidates;
+  } catch (e) {
+    if (!(e instanceof LlmUnavailableError)) throw e;
+    console.warn(`[ai-search] ranking skipped: ${e.message}`);
+    return candidates;
   }
-  return JSON.parse(s) as T;
 }
 
 // ── Mode: text ────────────────────────────────────────────────────────────────
@@ -265,6 +219,16 @@ interface TextIntent {
   delivery_time: string | null; // "fast" | null
   keyword: string | null;
 }
+
+const NO_INTENT: TextIntent = {
+  category: null,
+  spicy: null,
+  vegetarian: null,
+  max_price: null,
+  min_price: null,
+  delivery_time: null,
+  keyword: null,
+};
 
 const INTENT_SYSTEM_PROMPT = `You are the intent parser for a Tunisian food delivery app (city: Kairouan).
 Users write in Tunisian Darija, French, Arabic, or a mix. They describe what
@@ -280,7 +244,7 @@ Return ONLY a JSON object with EXACTLY these keys:
   "max_price": number | null,     // budget upper bound in TND, e.g. "20d" -> 20; null if no budget
   "min_price": number | null,     // usually null
   "delivery_time": "fast" | null, // "fast" if they want it quick ("fissa3","rapide","vite","سريع")
-  "keyword": string | null        // a specific dish name they mentioned, e.g. "lablabi","makloub","chapati"; null otherwise
+  "keyword": string | null        // the dish(es) they named, e.g. "lablabi","makloub","chapati"; several dishes separated by commas ("malfouf thon, calzone"); null otherwise
 }
 Do not add comments or any text outside the JSON object.`;
 
@@ -295,6 +259,20 @@ well, return the closest few anyway.
 Return ONLY a JSON object: { "ids": [ "id1", "id2", ... ] }
 List at most 20 ids, best first. Do not add text outside the JSON.`;
 
+function parseIntent(text: string): TextIntent {
+  const parsed = extractJsonObject(text);
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+  return {
+    category: str(parsed.category),
+    spicy: typeof parsed.spicy === "boolean" ? parsed.spicy : null,
+    vegetarian: typeof parsed.vegetarian === "boolean" ? parsed.vegetarian : null,
+    max_price: typeof parsed.max_price === "number" ? parsed.max_price : null,
+    min_price: typeof parsed.min_price === "number" ? parsed.min_price : null,
+    delivery_time: parsed.delivery_time === "fast" ? "fast" : null,
+    keyword: str(parsed.keyword),
+  };
+}
+
 // Progressive relaxation ladder. Each tier is tried in order and the first one
 // that returns rows wins, so an over-constrained query degrades into something
 // useful instead of dead-ending on an empty list.
@@ -302,27 +280,23 @@ List at most 20 ids, best first. Do not add text outside the JSON.`;
 //   1. everything the user asked for
 //   2. drop is_spicy / is_vegetarian — these columns are sparsely populated, so
 //      they are the most likely reason a reasonable query returns nothing
-//   3. drop category / keyword, keep the budget — respect what they can spend
+//   3. drop the CATEGORY the model guessed, keep the budget
 //
-// "category / keyword" is ONE filter, not two: the dish the user named when
-// there is one, else the category the model guessed (see taxonomyFilter in
-// search_filters.ts — requiring both lost most of the matching dishes).
+// A dish the user NAMED is never dropped (since 2026-11-06): when "calzone"
+// is on no menu the answer is status "no_match", not the cheapest dishes of
+// the city presented as suggestions. Tier 3 therefore only exists for a
+// request with a guessed category and no named dish.
 //
-// THE BUDGET IS NOT A TIER. There used to be a fourth tier with no filters at
-// all, justified as "guarantees we never hand back zero results" — but what it
-// actually guaranteed was handing back results the user cannot afford, with no
-// way for them to tell. A budget is the user's own constraint, not a search
-// hint, and an empty answer is the correct answer to "nothing under 10 TND".
-// The chat assistant's two ladders (AiChatService.relaxationPlan and the
-// venue search) carry the same rule, structurally: their tier record has no
-// price field to drop. Keep all three consistent.
+// THE BUDGET IS NOT A TIER. A budget is the user's own constraint, not a
+// search hint, and an empty answer is the correct answer to "nothing under
+// 10 TND". The chat assistant's ladders carry the same rule.
 //
 // Any tier past the first means we did NOT match what was asked for, so the
 // response is flagged and the client says so rather than passing these off as
 // genuine matches.
 interface RelaxTier {
   attributes: boolean; // is_spicy / is_vegetarian
-  taxonomy: boolean; // category / keyword
+  taxonomy: boolean; // category (or the named dish)
 }
 
 const RELAX_TIERS: RelaxTier[] = [
@@ -331,20 +305,28 @@ const RELAX_TIERS: RelaxTier[] = [
   { attributes: false, taxonomy: false },
 ];
 
-function buildCandidateQuery(
-  supabase: Db,
-  intent: TextIntent,
-  tier: RelaxTier,
-) {
+function withinBudget(intent: TextIntent, price: number): boolean {
+  if (intent.max_price != null && price > intent.max_price) return false;
+  if (intent.min_price != null && price < intent.min_price) return false;
+  return true;
+}
+
+function hasAttributes(intent: TextIntent, row: DishRow): boolean {
+  if (intent.spicy === true && row.is_spicy !== true) return false;
+  if (intent.vegetarian === true && row.is_vegetarian !== true) return false;
+  return true;
+}
+
+/** Category-only (or no taxonomy) tier, as a database query. */
+function buildCandidateQuery(supabase: Db, intent: TextIntent, tier: RelaxTier) {
   // Closed shops are kept and come after the open ones (openShopsFirst); the
   // app shows them dimmed, like the home screen. Hidden shops (deleted_at)
   // never get this far: the food_items and restaurants views leave them out.
   let q = supabase.from("food_items").select(FOOD_SELECT).eq("is_available", true);
 
   if (tier.taxonomy) {
-    const taxonomy = taxonomyFilter(intent);
-    if (taxonomy?.kind === "keyword") q = q.or(taxonomy.or);
-    else if (taxonomy?.kind === "category") q = q.ilike("category", taxonomy.pattern);
+    const taxonomy = taxonomyFilter({ category: intent.category, keyword: null });
+    if (taxonomy?.kind === "category") q = q.ilike("category", taxonomy.pattern);
   }
   if (tier.attributes && intent.spicy === true) q = q.eq("is_spicy", true);
   if (tier.attributes && intent.vegetarian === true) q = q.eq("is_vegetarian", true);
@@ -358,96 +340,112 @@ function buildCandidateQuery(
   return q.order("price", { ascending: true }).limit(CANDIDATE_LIMIT);
 }
 
-async function handleTextSearch(query: string, supabase: Db) {
-  if (!query || query.trim().length === 0) {
-    return json({ error: "Empty query." }, 400);
+/** Candidates for a request that named a dish: tiers 1-2 only, in memory. */
+async function namedDishCandidates(
+  rpc: RpcClient,
+  intent: TextIntent,
+): Promise<{ rows: Record<string, unknown>[]; tier: number }> {
+  const outcomes = await findDishes(rpc, intent.keyword, intent.category, {
+    openOnly: false,
+    matchDescription: true,
+    limit: CANDIDATE_LIMIT,
+  });
+  const all = uniqueRows(outcomes);
+  for (let i = 0; i < 2; i++) {
+    const rows = all.filter((r) =>
+      withinBudget(intent, Number(r.price)) && (!RELAX_TIERS[i].attributes || hasAttributes(intent, r))
+    );
+    if (rows.length > 0) return { rows: rows.map(toFoodItemRow), tier: i };
   }
+  return { rows: [], tier: 0 };
+}
 
-  // 1. Parse intent.
-  let intent: TextIntent;
-  try {
-    const content = await callLLM(INTENT_SYSTEM_PROMPT, query, [{ text: query }]);
-    const parsed = extractJson<Partial<TextIntent>>(content);
-    intent = {
-      category: parsed.category ?? null,
-      spicy: parsed.spicy ?? null,
-      vegetarian: parsed.vegetarian ?? null,
-      max_price: typeof parsed.max_price === "number" ? parsed.max_price : null,
-      min_price: typeof parsed.min_price === "number" ? parsed.min_price : null,
-      delivery_time: parsed.delivery_time === "fast" ? "fast" : null,
-      keyword: parsed.keyword ?? null,
-    };
-  } catch (e) {
-    return errorResponse("Failed to parse AI response.", String(e));
-  }
-
-  // 2. Walk the relaxation ladder until a tier returns rows. The model does the
-  //    fine ranking afterwards, so each tier stays deliberately broad.
-  let candidates: Record<string, unknown>[] | null = null;
-  let tierUsed = 0;
-
+/** Candidates for a request without a named dish: the database ladder. */
+async function ladderCandidates(
+  supabase: Db,
+  intent: TextIntent,
+): Promise<{ rows: Record<string, unknown>[]; tier: number }> {
   for (let i = 0; i < RELAX_TIERS.length; i++) {
     const { data, error } = await buildCandidateQuery(supabase, intent, RELAX_TIERS[i]);
-    if (error) {
-      return errorResponse("Database query failed.", error.message, 500);
-    }
-    if (data && data.length > 0) {
-      candidates = data as Record<string, unknown>[];
-      tierUsed = i;
-      break;
-    }
+    if (error) throw new DatabaseError(error.message);
+    if (data && data.length > 0) return { rows: data as Record<string, unknown>[], tier: i };
+  }
+  return { rows: [], tier: 0 };
+}
+
+/** No model: the user's own words, unknown words ignored. */
+async function degradedTextSearch(query: string, rpc: RpcClient): Promise<Response> {
+  const { maxPrice, rest } = parseBudget(query);
+  const outcomes = await findDishes(rpc, rest, null, {
+    openOnly: false,
+    ignoreUnknownWords: true,
+    maxPrice,
+    limit: CANDIDATE_LIMIT,
+  });
+  const rows = uniqueRows(outcomes).map(toFoodItemRow);
+  return json({
+    intent: { ...NO_INTENT, max_price: maxPrice },
+    results: openShopsFirst(rows, shopOf, isOpenShop),
+    fallback: false,
+    status: "degraded",
+  });
+}
+
+async function handleTextSearch(
+  query: string,
+  supabase: Db,
+  rpc: RpcClient,
+  simulate: number | null,
+): Promise<Response> {
+  if (!query || query.trim().length === 0) {
+    return json({ error: "Requête vide.", code: "empty_query", status: "error" }, 400);
   }
 
-  // Only reachable if the catalogue itself is empty.
-  if (!candidates || candidates.length === 0) {
-    return json({ intent, results: [], fallback: false });
+  // 1. Parse intent. No model -> plain database search.
+  let intent: TextIntent;
+  try {
+    ({ value: intent } = await callLlmJson(
+      llmCall("intent", INTENT_SYSTEM_PROMPT, query, [{ text: query }], simulate),
+      parseIntent,
+    ));
+  } catch (e) {
+    if (!(e instanceof LlmUnavailableError)) throw e;
+    console.error(`[ai-search] no model for the intent, degraded search: ${e.message}`);
+    return await degradedTextSearch(query, rpc);
   }
+
+  // 2. Candidates: the named dish(es), else the category ladder.
+  const { rows: candidates, tier } = intent.keyword
+    ? await namedDishCandidates(rpc, intent)
+    : await ladderCandidates(supabase, intent);
+
+  if (candidates.length === 0) {
+    return json({ intent, results: [], fallback: false, status: "no_match" });
+  }
+
+  // 3. Ask the model to pick + rank the best matches (best effort).
+  const slim = candidates.map((c) => ({
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    price: c.price,
+    category: c.category,
+    is_spicy: c.is_spicy,
+    is_vegetarian: c.is_vegetarian,
+  }));
+  const request = `User request: "${query}"\nBudget max_price: ${intent.max_price ?? "none"}\nCandidates:\n${
+    JSON.stringify(slim)
+  }`;
+  const results = await rankCandidates(candidates, request, "rank", simulate);
 
   // Past the first tier we dropped something the user asked for, so the client
   // must present these as suggestions rather than matches.
-  const fallback = tierUsed > 0;
-
-  // 3. Ask the model to pick + rank the best matches.
-  let results = candidates;
-  try {
-    const slim = candidates.map((c: Record<string, unknown>) => ({
-      id: c.id,
-      name: c.name,
-      description: c.description,
-      price: c.price,
-      category: c.category,
-      is_spicy: c.is_spicy,
-      is_vegetarian: c.is_vegetarian,
-    }));
-    const rankUserContent = `User request: "${query}"\nBudget max_price: ${
-      intent.max_price ?? "none"
-    }\nCandidates:\n${JSON.stringify(slim)}`;
-    const content = await callLLM(RANK_SYSTEM_PROMPT, rankUserContent, [
-      { text: rankUserContent },
-    ]);
-    const ranked = extractJson<{ ids?: string[] }>(content);
-    if (Array.isArray(ranked.ids) && ranked.ids.length > 0) {
-      const byId = new Map(candidates.map((c: Record<string, unknown>) => [c.id, c]));
-      const ordered = ranked.ids
-        .map((id) => byId.get(id))
-        .filter((c): c is Record<string, unknown> => c != null);
-      // Append any candidate the model dropped, so we never lose results.
-      const seen = new Set(ranked.ids);
-      for (const c of candidates) {
-        if (!seen.has((c as Record<string, unknown>).id as string)) ordered.push(c);
-      }
-      if (ordered.length > 0) results = ordered;
-    }
-  } catch (_) {
-    // Ranking is best-effort — if the model fails, fall back to DB order
-    // sorted cheapest-first so the list is still useful.
-    results = [...candidates].sort(
-      (a: Record<string, unknown>, b: Record<string, unknown>) =>
-        ((a.price as number) ?? 0) - ((b.price as number) ?? 0),
-    );
-  }
-
-  return json({ intent, results: openShopsFirst(results, shopOf, isOpenShop), fallback });
+  return json({
+    intent,
+    results: openShopsFirst(results, shopOf, isOpenShop),
+    fallback: tier > 0,
+    status: "ok",
+  });
 }
 
 // ── Mode: image ───────────────────────────────────────────────────────────────
@@ -463,114 +461,100 @@ Return ONLY a JSON object:
 If there is no recognizable food dish, return {"dish_name": null, "keywords": [], "confidence": "low"}.
 Do not add text outside the JSON object.`;
 
+interface VisionAnswer {
+  dishName: string | null;
+  keywords: string[];
+  confidence: string;
+}
+
+function parseVision(text: string): VisionAnswer {
+  const parsed = extractJsonObject(text);
+  const dishName = typeof parsed.dish_name === "string" && parsed.dish_name.trim()
+    ? parsed.dish_name.trim()
+    : null;
+  const keywords = Array.isArray(parsed.keywords)
+    ? parsed.keywords.filter((k): k is string => typeof k === "string" && k.trim().length > 0)
+    : [];
+  const confidence = ["high", "medium", "low"].includes(parsed.confidence as string)
+    ? (parsed.confidence as string)
+    : "low";
+  return { dishName, keywords, confidence };
+}
+
 async function handleImageSearch(
   imageBase64: string,
   mimeType: string,
-  supabase: Db,
-) {
+  rpc: RpcClient,
+  simulate: number | null,
+): Promise<Response> {
   if (!imageBase64 || imageBase64.length === 0) {
-    return json({ error: "Empty image." }, 400);
+    return json({ error: "Image vide.", code: "empty_image", status: "error" }, 400);
   }
 
-  // 1. Vision: identify the dish.
-  let dishName: string | null;
-  let keywords: string[];
-  let confidence: string;
+  // 1. Vision: identify the dish. Without a model a photo cannot be searched.
+  let vision: VisionAnswer;
   try {
     const prompt = "What dish is in this photo?";
-    const content = await callLLM(
-      VISION_SYSTEM_PROMPT,
-      [
-        { type: "text", text: prompt },
-        { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
-      ],
-      [
-        { text: prompt },
-        { inline_data: { mime_type: mimeType, data: imageBase64 } },
-      ],
-    );
-    const parsed = extractJson<{
-      dish_name?: string | null;
-      keywords?: string[];
-      confidence?: string;
-    }>(content);
-    dishName = parsed.dish_name ?? null;
-    keywords = Array.isArray(parsed.keywords) ? parsed.keywords : [];
-    confidence = ["high", "medium", "low"].includes(parsed.confidence ?? "")
-      ? (parsed.confidence as string)
-      : "low";
+    ({ value: vision } = await callLlmJson(
+      llmCall(
+        "vision",
+        VISION_SYSTEM_PROMPT,
+        [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: `data:${mimeType};base64,${imageBase64}` } },
+        ],
+        [{ text: prompt }, { inline_data: { mime_type: mimeType, data: imageBase64 } }],
+        simulate,
+        VISION_TIMEOUT_MS,
+      ),
+      parseVision,
+    ));
   } catch (e) {
-    return errorResponse("Failed to parse AI response.", String(e));
+    if (!(e instanceof LlmUnavailableError)) throw e;
+    console.error(`[ai-search] no model for the photo: ${e.message}`);
+    return json({ dish_name: null, confidence: "low", results: [], status: "degraded" });
   }
 
+  const { dishName, keywords, confidence } = vision;
   if (!dishName) {
-    return json({ error: "No food dish detected." }, 422);
+    return json({ dish_name: null, confidence, results: [], status: "no_match", reason: "no_dish" });
   }
 
-  // 2. Match against the menu. Try the dish name and each keyword.
-  const terms = [dishName, ...keywords].filter(Boolean);
-  const orFilter = terms
-    .flatMap((t) => [`name.ilike.%${t}%`, `description.ilike.%${t}%`])
-    .join(",");
-
-  // Same rules as the text search: closed shops kept, cheapest first.
-  const { data: candidates, error } = await supabase
-    .from("food_items")
-    .select(FOOD_SELECT)
-    .eq("is_available", true)
-    .or(orFilter)
-    .order("price", { ascending: true })
-    .limit(CANDIDATE_LIMIT);
-
-  if (error) {
-    return errorResponse("Database query failed.", error.message, 500);
-  }
-  if (!candidates || candidates.length === 0) {
-    return json({ dish_name: dishName, confidence, results: [] });
-  }
-
-  // 3. Re-rank candidates by fit to the identified dish.
-  //
-  // Annotated rather than inferred: the reranking below rebuilds the list out
-  // of a Map, which hands back `Record<string, unknown>[]`, and that is not
-  // assignable to the exact row shape supabase infers from FOOD_SELECT. The
-  // text-search path has carried this annotation all along; this one did not,
-  // and `deno check` flagged the assignment. Rows are only JSON-serialised
-  // from here on, so the row shape buys nothing past this point.
-  let results: Record<string, unknown>[] = candidates;
-  try {
-    const slim = candidates.map((c: Record<string, unknown>) => ({
-      id: c.id,
-      name: c.name,
-      description: c.description,
-      price: c.price,
-      category: c.category,
-    }));
-    const rankUserContent = `User uploaded a photo of: "${dishName}" (keywords: ${
-      keywords.join(", ")
-    }). Pick the menu dishes that best match this dish.\nCandidates:\n${
-      JSON.stringify(slim)
-    }`;
-    const content = await callLLM(RANK_SYSTEM_PROMPT, rankUserContent, [
-      { text: rankUserContent },
-    ]);
-    const ranked = extractJson<{ ids?: string[] }>(content);
-    if (Array.isArray(ranked.ids) && ranked.ids.length > 0) {
-      const byId = new Map(candidates.map((c: Record<string, unknown>) => [c.id, c]));
-      const ordered = ranked.ids
-        .map((id) => byId.get(id))
-        .filter((c): c is Record<string, unknown> => c != null);
-      const seen = new Set(ranked.ids);
-      for (const c of candidates) {
-        if (!seen.has((c as Record<string, unknown>).id as string)) ordered.push(c);
-      }
-      if (ordered.length > 0) results = ordered;
+  // 2. Match against the menu: the dish name, then each keyword, each one a
+  //    fuzzy search of its own. Closed shops kept, like the text search.
+  const seen = new Set<string>();
+  const rows: DishRow[] = [];
+  for (const term of [dishName, ...keywords].slice(0, 6)) {
+    for (const r of await searchDish(rpc, term, { openOnly: false, matchDescription: true, limit: 60 })) {
+      if (seen.has(r.id) || rows.length >= CANDIDATE_LIMIT) continue;
+      seen.add(r.id);
+      rows.push(r);
     }
-  } catch (_) {
-    // best-effort ranking — keep DB order on failure
+  }
+  if (rows.length === 0) {
+    return json({ dish_name: dishName, confidence, results: [], status: "no_match" });
   }
 
-  return json({ dish_name: dishName, confidence, results: openShopsFirst(results, shopOf, isOpenShop) });
+  // 3. Re-rank candidates by fit to the identified dish (best effort).
+  const candidates = rows.map(toFoodItemRow);
+  const slim = candidates.map((c) => ({
+    id: c.id,
+    name: c.name,
+    description: c.description,
+    price: c.price,
+    category: c.category,
+  }));
+  const request = `User uploaded a photo of: "${dishName}" (keywords: ${
+    keywords.join(", ")
+  }). Pick the menu dishes that best match this dish.\nCandidates:\n${JSON.stringify(slim)}`;
+  const results = await rankCandidates(candidates, request, "rank-image", simulate);
+
+  return json({
+    dish_name: dishName,
+    confidence,
+    results: openShopsFirst(results, shopOf, isOpenShop),
+    status: "ok",
+  });
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -580,47 +564,43 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: CORS_HEADERS });
   }
   if (req.method !== "POST") {
-    return json({ error: "Method not allowed." }, 405);
-  }
-
-  // Fail fast on misconfiguration so the app shows a clear message.
-  if (!OPENROUTER_API_KEY && !GEMINI_API_KEY) {
-    return errorResponse(
-      "Server misconfiguration.",
-      "Neither OPENROUTER_API_KEY nor GEMINI_API_KEY secret is set on the Edge Function.",
-      500,
-    );
+    return json({ error: "Méthode non autorisée.", code: "method_not_allowed", status: "error" }, 405);
   }
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    return errorResponse(
-      "Server misconfiguration.",
-      "SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not available.",
-      500,
-    );
+    console.error("[ai-search] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not available");
+    return errorResponse("database_unavailable", 500);
+  }
+  if (!OPENROUTER_API_KEY && !GEMINI_API_KEY) {
+    console.error("[ai-search] neither OPENROUTER_API_KEY nor GEMINI_API_KEY is set: degraded mode only");
   }
 
   let body: { mode?: string; query?: string; imageBase64?: string; mimeType?: string };
   try {
     body = await req.json();
   } catch {
-    return json({ error: "Invalid JSON body." }, 400);
+    return json({ error: "Requête invalide.", code: "invalid_json", status: "error" }, 400);
   }
 
   const supabase = makeClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+  const rpc = postgrestRpc(SUPABASE_URL, SERVICE_ROLE_KEY);
+  // Test hook, off by default: ../_shared/simulate.ts.
+  const simulate = simulatedLlmStatus(req);
 
   try {
     if (body.mode === "text") {
-      return await handleTextSearch(body.query ?? "", supabase);
+      return await handleTextSearch(body.query ?? "", supabase, rpc, simulate);
     }
     if (body.mode === "image") {
-      return await handleImageSearch(
-        body.imageBase64 ?? "",
-        body.mimeType ?? "image/jpeg",
-        supabase,
-      );
+      return await handleImageSearch(body.imageBase64 ?? "", body.mimeType ?? "image/jpeg", rpc, simulate);
     }
-    return json({ error: "Unknown mode. Use 'text' or 'image'." }, 400);
+    return json({ error: "Requête invalide.", code: "unknown_mode", status: "error" }, 400);
   } catch (e) {
-    return errorResponse("Unexpected server error.", String(e), 500);
+    // The real cause stays in the logs (dashboard Logs tab), never in the reply.
+    if (e instanceof DishSearchError || e instanceof DatabaseError) {
+      console.error("[ai-search] database failed:", e);
+      return errorResponse("database_unavailable", 503);
+    }
+    console.error("[ai-search] unexpected error:", e);
+    return errorResponse("unexpected", 500);
   }
 });

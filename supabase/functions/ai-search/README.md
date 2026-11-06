@@ -54,9 +54,15 @@ Expected: `{ "intent": {...}, "results": [ ... ] }`.
 
 | mode    | request body                                  | success response                                  |
 | ------- | ---------------------------------------------- | -------------------------------------------------- |
-| `text`  | `{ mode, query }`                              | `{ intent: {...}, results: [food_item + restaurants] }` |
-| `image` | `{ mode, imageBase64, mimeType }`              | `{ dish_name, confidence, results: [...] }`        |
-| error   | —                                              | `{ error: string, details?: string }` with 4xx/5xx |
+| `text`  | `{ mode, query }`                              | `{ intent: {...}, results: [food_item + restaurants], fallback, status }` |
+| `image` | `{ mode, imageBase64, mimeType }`              | `{ dish_name, confidence, results: [...], status, reason? }` |
+| error   | —                                              | `{ error: <French sentence>, code, status: "error" }` — 4xx bad request, 5xx database only |
+
+`status` (since 2026-11-06): `ok`, `no_match` (the named dish is on no menu,
+`results: []`) or `degraded` (no model answered: plain database search on the
+user's words, possibly empty). Provider failures never produce an error
+response, and no response carries provider or database details — they are in
+the function logs. See the header of `index.ts` and `../_shared/llm.ts`.
 
 `results[]` items match `lib/features/ai_search/data/models/search_result.dart`
 (`AiSearchFoodResult.fromJson`): each row carries the `food_items` columns plus
