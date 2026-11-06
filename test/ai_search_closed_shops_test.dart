@@ -93,7 +93,10 @@ void main() {
   testWidgets('all closed: the dishes are shown, under "Ces restaurants sont fermés"', (tester) async {
     await _pumpScreen(tester, _textResults(allClosed));
     expect(find.text(_allClosed), findsOneWidget);
-    expect(find.text('Aucun plat ne correspond à ta demande'), findsNothing);
+    expect(
+        find.text("Ce plat n'est pas disponible pour le moment. "
+            'Essayez un autre plat ou un autre restaurant.'),
+        findsNothing);
     expect(_cardIds(tester), ['nuit-1', 'midi-1']);
     expect(find.text('Fermé'), findsNWidgets(2));
     // The notice sits above the list.

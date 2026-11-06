@@ -118,6 +118,17 @@ class AiChatService {
   }) =>
       CatalogueSearch.relaxationPlan(hasKeyword: hasKeyword, hasCategory: hasCategory);
 
+  @visibleForTesting
+  static List<({bool keyword, bool category})> foodRelaxationPlan({
+    required bool hasKeyword,
+    required bool hasCategory,
+    required bool namedSomething,
+  }) =>
+      CatalogueSearch.foodRelaxationPlan(
+          hasKeyword: hasKeyword,
+          hasCategory: hasCategory,
+          namedSomething: namedSomething);
+
   // ── System prompt ─────────────────────────────────────────────────────────
   // Lives SERVER-SIDE in supabase/functions/ai-chat/index.ts (SYSTEM_PROMPT),
   // ported verbatim from the old client-side implementation.
@@ -184,6 +195,18 @@ class AiChatService {
                       lang: resolved.lang)
                   : ChatWording.noLightDishMessage(lang: resolved.lang);
             }
+            break;
+          }
+          // The function already searched each dish the user named (fuzzy,
+          // one search per dish, open restaurants only): show exactly those
+          // rows and nothing else. Its message says, dish by dish, what was
+          // found and what was not ("Calzone : trouvé chez Texas food.").
+          // This is what stopped "malfouf thon et calzone" from filling the
+          // carousel with the cheapest items on the menu.
+          final dishResults = resolved.dishResults;
+          if (dishResults != null) {
+            products = CatalogueSearch.cardsFromFoodRows(
+                [for (final d in dishResults) ...d.items]);
             break;
           }
           final foodResult = await _catalogue.queryFoodItems(resolved);

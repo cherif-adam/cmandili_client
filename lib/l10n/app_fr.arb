@@ -467,7 +467,7 @@
             "dishName": { "type": "String" }
         }
     },
-    "aiSearchNoResultsText": "Aucun plat ne correspond à ta demande",
+    "aiSearchNoResultsText": "Ce plat n'est pas disponible pour le moment. Essayez un autre plat ou un autre restaurant.",
     "aiSearchFallbackMessage": "Aucun résultat exact — voici des plats populaires",
     "aiSearchAllClosed": "Ces restaurants sont fermés pour le moment",
     "aiSearchShopUnavailable": "Ce restaurant n'est plus disponible",
@@ -680,10 +680,10 @@
     "aiBadgeVeg": "🥦 Végé",
     "aiThisDish": "ce plat",
     "aiSearchErrorNetwork": "Erreur réseau. Vérifiez votre connexion.",
-    "aiSearchErrorUnavailable": "Service temporairement indisponible. Réessayez plus tard.",
+    "aiSearchErrorUnavailable": "La recherche intelligente est momentanément indisponible. Réessayez dans quelques instants.",
     "aiSearchErrorNoDish": "Aucun plat reconnu sur cette photo. Essayez une image plus nette.",
     "aiSearchErrorImageTooLarge": "L'image est trop lourde ({size} Mo). Utilisez une image de moins de 10 Mo.",
-    "aiSearchErrorUnknown": "Erreur inconnue",
+    "aiSearchDegradedNote": "Résultats simplifiés : la recherche intelligente est momentanément indisponible.",
     "deleteAccount": "Supprimer mon compte",
     "deleteAccountIntro": "La suppression est définitive. Vous ne pourrez plus vous connecter avec ce compte.",
     "deleteAccountDeletedTitle": "Ce qui sera supprimé",

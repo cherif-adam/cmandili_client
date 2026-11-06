@@ -4,7 +4,9 @@ import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../providers/ai_search_provider.dart';
 
-/// A search ran but found nothing: grey "search off" icon and a message.
+/// A search ran but found nothing: grey "search off" icon and a message —
+/// "Ce plat n'est pas disponible pour le moment…" for a text search, the
+/// recognised dish (or "no dish on this photo") for a photo.
 class AiNoResults extends StatelessWidget {
   final AiSearchState state;
 
@@ -13,9 +15,15 @@ class AiNoResults extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final message = state.mode == AiSearchMode.image
-        ? l10n.aiSearchNoResultsPhoto(state.imageResponse?.dishName ?? l10n.aiThisDish)
-        : l10n.aiSearchNoResultsText;
+    final String message;
+    if (state.mode != AiSearchMode.image) {
+      message = l10n.aiSearchNoResultsText;
+    } else if (state.noDishInPhoto) {
+      message = l10n.aiSearchErrorNoDish;
+    } else {
+      message = l10n.aiSearchNoResultsPhoto(
+          state.imageResponse?.dishName ?? l10n.aiThisDish);
+    }
     return Padding(
       padding: const EdgeInsets.all(40),
       child: Column(

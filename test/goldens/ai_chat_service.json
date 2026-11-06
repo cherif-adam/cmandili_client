@@ -56,21 +56,16 @@
     "Je n'ai pas trouvé exactement ça — voici ce qui est disponible en ce moment dans les restaurants ouverts 👇",
     "CARD food | f4 | Pizza 4 fromages | Bon Pizza 4 fromages | 12.0 | TND | null | Seven Pizza | r1 | 4.5 | 25 | 3.0"
   ],
-  "signed out: dish search relaxes down to anything": [
+  "signed out: dish search never relaxes to anything once something is named": [
     "FUNCTION ai-chat {\"text\":\"couscous royal\",\"history\":[]}",
     "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%couscous%,name.ilike.%couscous%)&or=(name.ilike.%royal%,description.ilike.%royal%)&order=price.asc.nullslast&limit=20",
     "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&or=(category.ilike.%couscous%,name.ilike.%couscous%)&order=price.asc.nullslast&limit=20",
-    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&order=price.asc.nullslast&limit=20",
-    "REPLY user=false intent=search_food products=1",
-    "TEXT Voici ce que je propose 👇",
-    "",
-    "Je n'ai pas trouvé exactement ça — voici ce qui est disponible en ce moment dans les restaurants ouverts 👇",
-    "CARD food | f5 | Makloub | Bon Makloub | 12.0 | TND | null | Burger Lab | r2 | 0.0 | 30 | 2.5"
+    "REPLY user=false intent=search_food products=0",
+    "TEXT Je ne trouve rien qui corresponde dans les restaurants ouverts en ce moment. Essayez un autre plat ou revenez un peu plus tard 🍽️"
   ],
   "signed out: dish search finds nothing within budget (en)": [
     "FUNCTION ai-chat {\"text\":\"cheap pizza\",\"history\":[]}",
     "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&price=lte.8&or=(category.ilike.%pizza%,name.ilike.%pizza%)&order=price.asc.nullslast&limit=20",
-    "GET food_items?select=id,name,description,price,discount_price,image_url,category,is_spicy,is_vegetarian,preparation_time,restaurant_id,restaurants!inner(id,name,image_url,rating,delivery_time_min,delivery_fee,is_open)&is_available=eq.true&restaurants.is_open=eq.true&price=lte.8&order=price.asc.nullslast&limit=20",
     "REPLY user=false intent=search_food products=0",
     "TEXT Nothing under 8 TND in the restaurants open right now. A slightly wider budget should find something 🍽️"
   ],

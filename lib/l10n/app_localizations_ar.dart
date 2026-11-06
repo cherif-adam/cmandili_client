@@ -1356,7 +1356,8 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get aiSearchNoResultsText => 'لا توجد أطباق تطابق طلبك';
+  String get aiSearchNoResultsText =>
+      'هذا الطبق غير متوفر حاليًا. جرّب طبقًا آخر أو مطعمًا آخر.';
 
   @override
   String get aiSearchFallbackMessage =>
@@ -2033,7 +2034,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aiSearchErrorUnavailable =>
-      'الخدمة غير متاحة مؤقتًا. حاول مرة أخرى لاحقًا.';
+      'البحث الذكي غير متاح مؤقتًا. حاول مجددًا بعد لحظات.';
 
   @override
   String get aiSearchErrorNoDish =>
@@ -2045,7 +2046,8 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get aiSearchErrorUnknown => 'خطأ غير معروف';
+  String get aiSearchDegradedNote =>
+      'نتائج مبسّطة: البحث الذكي غير متاح مؤقتًا.';
 
   @override
   String get deleteAccount => 'حذف حسابي';

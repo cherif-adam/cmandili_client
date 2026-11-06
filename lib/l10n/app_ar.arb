@@ -467,7 +467,7 @@
             "dishName": { "type": "String" }
         }
     },
-    "aiSearchNoResultsText": "لا توجد أطباق تطابق طلبك",
+    "aiSearchNoResultsText": "هذا الطبق غير متوفر حاليًا. جرّب طبقًا آخر أو مطعمًا آخر.",
     "aiSearchFallbackMessage": "لا توجد نتائج مطابقة — إليك بعض الأطباق الشائعة",
     "aiSearchAllClosed": "هذه المطاعم مغلقة حاليًا",
     "aiSearchShopUnavailable": "هذا المطعم لم يعد متاحًا",
@@ -680,10 +680,10 @@
     "aiBadgeVeg": "🥦 نباتي",
     "aiThisDish": "هذا الطبق",
     "aiSearchErrorNetwork": "خطأ في الشبكة. تحقّق من اتصالك.",
-    "aiSearchErrorUnavailable": "الخدمة غير متاحة مؤقتًا. حاول مرة أخرى لاحقًا.",
+    "aiSearchErrorUnavailable": "البحث الذكي غير متاح مؤقتًا. حاول مجددًا بعد لحظات.",
     "aiSearchErrorNoDish": "تعذّر التعرّف على طبق في هذه الصورة. جرّب صورة أوضح.",
     "aiSearchErrorImageTooLarge": "الصورة كبيرة جدًا ({size} ميغابايت). استخدم صورة أصغر من 10 ميغابايت.",
-    "aiSearchErrorUnknown": "خطأ غير معروف",
+    "aiSearchDegradedNote": "نتائج مبسّطة: البحث الذكي غير متاح مؤقتًا.",
     "deleteAccount": "حذف حسابي",
     "deleteAccountIntro": "الحذف نهائي. لن تتمكن بعد ذلك من تسجيل الدخول بهذا الحساب.",
     "deleteAccountDeletedTitle": "ما سيتم حذفه",

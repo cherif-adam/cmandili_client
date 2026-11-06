@@ -1,6 +1,6 @@
 # CMANDILI_CONTEXT.md
 > **Purpose:** AI session bootstrap. Read this file at the start of every session to understand the full project and continue immediately without reading every file.
-> **Last updated:** 2026-10-15 (driver verification built, not applied — see CURRENT WORK; Colis receipt live; Amana Assistant blocked on OpenRouter credits)
+> **Last updated:** 2026-11-06 (AI search & assistant: fuzzy dish search, per-dish replies, no raw errors — see "AI SEARCH & ASSISTANT — 2026-11-06" below; older sections unchanged)
 
 ---
 
@@ -33,6 +33,104 @@ Flutter `OrderStatus` enums serialize via `toString().split('.').last` — new l
 ## ⚠️ DISPATCH RULE — PERMANENT
 
 **Orders are ALWAYS dispatched through the automatic waterfall** (`next_eligible_driver` → `offer_order_to_driver` → `rotate_expired_offers` pg_cron / `pass_order_offer`). No manual admin assignment, ever. Waterfall exhausted → partner notified to self-deliver (§4).
+
+---
+
+## AI SEARCH & ASSISTANT — 2026-11-06 (Recherche IA + Amana Assistant)
+
+Three bugs fixed: Recherche IA printed Gemini's raw 429 JSON; dish names with a
+small spelling difference were not found; "malfouf thon et calzone" in the
+assistant showed koucha and mineral water.
+
+**Live (applied / deployed 2026-11-06):**
+- Migration `20261106120000_recherche_plats_floue.sql` — applied with
+  `db query --file` and recorded with `migration repair`. `pg_trgm` + `unaccent`
+  in schema `extensions`; `public.search_normalize(text)` (IMMUTABLE: lower,
+  unaccent, punctuation → space); 2 GIN trigram indexes on `vendor_items`
+  (`name`, `search_normalize(name)`); `public.search_dishes(...)`. EXECUTE:
+  `authenticated` + `service_role` only. `search_normalize` keeps PUBLIC execute
+  ON PURPOSE — the index evaluates it on every `vendor_items` write, whoever
+  writes (partner app inserts were tested in a rolled-back dry run).
+- Edge functions `ai-search` and `ai-chat` redeployed (`--use-api`, no Docker).
+
+**Matching rule (`search_dishes`)**: word by word on name + menu section. Each
+word of the request must match a word of the dish: identical = 1, contained
+(≥ 3 letters) = 0.95, else `similarity()`; the worst word must reach 0.4.
+Filler words (et, w, de, au, n7eb, aatini...) ignored. `similarity('calzone',
+'calzine')` = 0.45. 0.3 and 0.4 gave identical results on the live menu; 0.4
+kept (short words like thon/ton = 0.29 stay apart). Options:
+`p_open_only` (chat true, search false — closed shops are shown dimmed),
+`p_match_description` (search only, score 0.5), `p_ignore_unknown_words` (only
+the no-model mode: drops words that match no dish, e.g. "n7eb", "bonjour").
+
+**Shared edge code** (`supabase/functions/_shared/`):
+- `llm.ts` — `callLlmJson`: OpenRouter then Gemini, per-provider timeout; ANY
+  failure (402/429/5xx/timeout/unparseable JSON) moves to the next. 401/402/403
+  → provider skipped 10 min, 429 → Retry-After or 60 s (per isolate). Throws
+  `LlmUnavailableError`; provider bodies are logged, never returned.
+- `dish_search.ts` — `findDishes`: hard split on `, ; + /`; a lone dish is
+  first tried with the model's category in front ("thon"+"pizza" → "pizza
+  thon"); a part that matches nothing whole is split on `et / w / and / ou`
+  ("malfouf thon et fromage" stays one dish if it exists). Budget parser for
+  the no-model mode.
+- `simulate.ts` — test hook, OFF by default. Header `x-simulate-llm-status: 429`
+  (service-role JWT only) or secrets `LLM_SIMULATE_USER_ID` +
+  `LLM_SIMULATE_STATUS` (one account only). Never starts a cooldown.
+
+**ai-search** — always HTTP 200 `{..., status}` except 4xx (bad request) and 5xx
+(database only): `ok` | `no_match` (named dish on no menu, results `[]`) |
+`degraded` (no model: plain DB search on the user's words, maybe `[]`). A NAMED
+dish is never relaxed away any more (no more "cheapest dishes as
+suggestions"); the category-only ladder is unchanged. Error bodies carry a
+French sentence in `error` (older apps print it) + `code`, never details.
+
+**ai-chat** — for `search_food` with a keyword and no health goal, the function
+searches each dish itself (open restaurants, available dishes) and returns
+`dish_results: [{dish, found, items}]` + a per-dish message
+(`ai-chat/dish_reply.ts`, fr/en/tn/ar): "Calzone : trouvé chez Texas food. /
+Malfouf thon : pas disponible pour le moment.". One dish found → model message
+kept; several all found → model message + lines; any missing → lines only.
+**Compat shim for app builds before 2026-11-06** (they ignore `dish_results`):
+`keyword` = names of the dishes found, `category` = null, and `intent` =
+"general" when nothing was found, so their own search shows the same thing —
+remove `legacyKeyword` once no such build is installed. No model → dish search
+on the user's words (`status: "degraded"`), else HTTP 503
+`{error:"assistant_unavailable"}` (the app shows its own French message).
+Prompt change (retrieval only): several dishes go in `keyword`, comma-separated,
++ one Derja example. Scope/personality untouched.
+
+**App (needs a new build to reach phones):**
+- Chat: `ChatIntent.dishResults`; `AiChatService` shows exactly those rows
+  (`CatalogueSearch.cardsFromFoodRows`) and runs no search of its own. The app's
+  own dish ladder (`foodRelaxationPlan`) no longer ends on the "no filter" tier
+  once a dish or kind of food was named.
+- Recherche IA: repository throws only `AiSearchNetworkException` /
+  `AiSearchUnavailableException` / `AiImageTooLargeException` (no server text);
+  controller (`ai_search_provider.dart`) has 3 error kinds and `retry()` re-runs
+  the last search; screen shows a grey empty state (`AiErrorView` restyled),
+  `AiNoResults` with "Ce plat n'est pas disponible pour le moment…",
+  `AiDegradedNote` above degraded results. ARB: `aiSearchNoResultsText`,
+  `aiSearchErrorUnavailable` reworded, `aiSearchDegradedNote` added,
+  `aiSearchErrorUnknown` removed.
+
+**Tests:** Deno 47 (`deno test --allow-env supabase/functions/_shared/
+supabase/functions/ai-chat/dish_reply_test.ts ...`), Dart
+`test/ai_chat_dish_results_test.dart`, `test/ai_search_friendly_errors_test.dart`
+(mutation-checked). Live: degraded paths verified with the hook; chat
+"malfouf thon et calzone" verified with the real model.
+
+**Provider reality (2026-11-06):** right after one successful chat call, both
+functions fell to the no-model path — consistent with Gemini's free tier (20
+requests/day for gemini-2.5-flash) being spent and OpenRouter still without
+credits. Each Recherche IA text search costs 2 model calls (intent + ranking),
+each chat message 1. Until OpenRouter is topped up, expect degraded mode most
+of the day.
+
+**Data — fix by hand (nothing renamed automatically):** the "calzine" in the
+bug report does not exist live — Texas food's item is spelled "Calzone" (its
+description reads "chawarma", probably a copy-paste). Real typos found:
+plan b, 8 items "Chapati omlette …" → "omelette"; Charlot, "CHIKEN KIDS
+BURGER" → "CHICKEN". Piccolo Mondo has "Malfouf Escalope Panée" twice.
 
 ---
 
@@ -256,6 +354,9 @@ pending; fill their records, then switch it to `on`.
 | Venue truth | `vendors` / `vendor_items`; `restaurants`, `supermarkets`, `food_items`, `grocery_items` are **category-filtered views** |
 | Assistant prompt | `supabase/functions/ai-chat/index.ts` (~26 000 chars, ~7 350 tokens per message) |
 | Assistant probes | `tool/ai_chat_category_probe.sh` (`retrieval` / `prompt` / `cards`) |
+| Fuzzy dish search (SQL) | `supabase/migrations/20261106120000_recherche_plats_floue.sql` (`search_dishes`) |
+| LLM fallback / dish split / test hook | `supabase/functions/_shared/{llm,dish_search,simulate}.ts` |
+| Assistant per-dish wording | `supabase/functions/ai-chat/dish_reply.ts` |
 | Colis proofs, driver | `cmandili_driver/lib/features/orders/data/colis_proof_repository.dart` |
 | Colis proofs, client | `lib/features/courier/data/colis_repository.dart` |
 | Receipts, admin | `cmandili_admin/app/dashboard/colis/`, `app/api/colis/route.ts` |

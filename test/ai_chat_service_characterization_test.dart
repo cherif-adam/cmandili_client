@@ -237,7 +237,11 @@ final _signedOutCases = <_Case>[
       [_food('f4', 'Pizza 4 fromages', category: 'Pizzas', venue: _venueA)],
     ],
   }),
-  _Case('dish search relaxes down to anything', text: 'couscous royal', reply: _intent('search_food', extra: {'category': 'couscous', 'keyword': 'royal'}), tables: {
+  // Since 2026-11-06 a request that named something never falls to the
+  // unfiltered tier (it showed koucha and mineral water for "malfouf thon et
+  // calzone"): the third reply below is never asked for, the answer is the
+  // honest empty state.
+  _Case('dish search never relaxes to anything once something is named', text: 'couscous royal', reply: _intent('search_food', extra: {'category': 'couscous', 'keyword': 'royal'}), tables: {
     'food_items': [[], [], [_food('f5', 'Makloub', category: 'Makloub', venue: _venueB)]],
   }),
   const _Case('dish search finds nothing within budget (en)', text: 'cheap pizza', reply: {

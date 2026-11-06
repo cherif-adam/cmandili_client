@@ -494,7 +494,7 @@
             "dishName": { "type": "String" }
         }
     },
-    "aiSearchNoResultsText": "No dishes match your request",
+    "aiSearchNoResultsText": "This dish isn't available right now. Try another dish or another restaurant.",
     "aiSearchFallbackMessage": "No exact match — here are some popular dishes",
     "aiSearchAllClosed": "These restaurants are closed for now",
     "aiSearchShopUnavailable": "This restaurant is no longer available",
@@ -722,11 +722,11 @@
     "aiBadgeVeg": "🥦 Veg",
     "aiThisDish": "this dish",
     "aiSearchErrorNetwork": "Network error. Please check your connection.",
-    "aiSearchErrorUnavailable": "Service temporarily unavailable. Try again later.",
+    "aiSearchErrorUnavailable": "Smart search is temporarily unavailable. Please try again in a few moments.",
     "aiSearchErrorNoDish": "Could not identify a dish in this photo. Try a clearer image.",
     "aiSearchErrorImageTooLarge": "Image is too large ({size} MB). Please use an image smaller than 10 MB.",
     "@aiSearchErrorImageTooLarge": { "placeholders": { "size": { "type": "String" } } },
-    "aiSearchErrorUnknown": "Unknown error",
+    "aiSearchDegradedNote": "Simplified results: smart search is temporarily unavailable.",
     "deleteAccount": "Delete my account",
     "deleteAccountIntro": "Deletion is permanent. You will no longer be able to sign in with this account.",
     "deleteAccountDeletedTitle": "What will be deleted",

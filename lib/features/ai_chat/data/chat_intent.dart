@@ -29,6 +29,44 @@ class QueryFailure implements Exception {
   String toString() => 'QueryFailure($what): $cause';
 }
 
+// ── Dishes the function already searched ──────────────────────────────────────
+
+/// One dish the user named, as the `ai-chat` function searched it (fuzzy,
+/// open restaurants, available dishes): its rows are `food_items` rows with
+/// the embedded `restaurants`, ready for a card. [items] is empty when the
+/// dish is not on any open menu — the function's message says so.
+class ChatDishResult {
+  final String dish;
+  final bool found;
+  final List<Map<String, dynamic>> items;
+
+  const ChatDishResult({
+    required this.dish,
+    required this.found,
+    required this.items,
+  });
+
+  factory ChatDishResult.fromJson(Map<String, dynamic> json) => ChatDishResult(
+        dish: (json['dish'] as String?) ?? '',
+        found: (json['found'] as bool?) ?? false,
+        items: [
+          for (final item in (json['items'] as List? ?? const []))
+            if (item is Map) Map<String, dynamic>.from(item),
+        ],
+      );
+
+  /// Null when the function sent no `dish_results` (no dish was named, a
+  /// health goal, or a build of the function older than 2026-11-06): the app
+  /// then runs its own search.
+  static List<ChatDishResult>? listFromJson(Object? raw) {
+    if (raw is! List) return null;
+    return [
+      for (final r in raw)
+        if (r is Map) ChatDishResult.fromJson(Map<String, dynamic>.from(r)),
+    ];
+  }
+}
+
 // ── Internal intent model ─────────────────────────────────────────────────────
 
 class ChatIntent {
@@ -53,6 +91,15 @@ class ChatIntent {
   /// comes back empty. 'fr' when an older function build sends no `lang`.
   final String lang;
 
+  /// The dishes the function searched itself, one entry per dish named. When
+  /// present the app shows exactly these rows and runs no search of its own:
+  /// nothing unrelated may fill the carousel. See [ChatDishResult.listFromJson].
+  final List<ChatDishResult>? dishResults;
+
+  /// 'ok', or 'degraded' when no model answered and the function searched the
+  /// user's own words.
+  final String status;
+
   bool get deliveryFast => deliveryTime == 'fast';
 
   const ChatIntent({
@@ -68,6 +115,8 @@ class ChatIntent {
     this.minPrice,
     this.deliveryTime,
     this.lang = 'fr',
+    this.dishResults,
+    this.status = 'ok',
   });
 
   ChatIntent withServiceCategory(String? slug) => ChatIntent(
@@ -83,6 +132,8 @@ class ChatIntent {
         minPrice: minPrice,
         deliveryTime: deliveryTime,
         lang: lang,
+        dishResults: dishResults,
+        status: status,
       );
 
   /// Builds an intent from the JSON map the `ai-chat` Edge Function returns.
@@ -109,6 +160,8 @@ class ChatIntent {
       maxPrice: json['max_price'] as num?,
       minPrice: json['min_price'] as num?,
       deliveryTime: json['delivery_time'] as String?,
+      dishResults: ChatDishResult.listFromJson(json['dish_results']),
+      status: (json['status'] as String?) ?? 'ok',
     );
   }
 }

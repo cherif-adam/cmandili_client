@@ -51,9 +51,11 @@ class CatalogueSearch {
     final hasKeyword = (intent.keyword?.isNotEmpty ?? false) ||
         _healthGoalKeyword(intent.healthGoal) != null;
 
-    final attempts = relaxationPlan(
+    final attempts = foodRelaxationPlan(
       hasKeyword: hasKeyword,
       hasCategory: patterns.isNotEmpty,
+      namedSomething:
+          (intent.keyword?.trim().isNotEmpty ?? false) || patterns.isNotEmpty,
     );
 
     for (var i = 0; i < attempts.length; i++) {
@@ -170,7 +172,37 @@ class CatalogueSearch {
     }
   }
 
-  ProductResult _foodCard(dynamic r) {
+  /// The dish tiers. Same as [relaxationPlan], minus the last tier when the
+  /// user named a dish or a kind of food: that tier matches nothing in
+  /// particular, so it answered "malfouf thon et calzone" with the 20 cheapest
+  /// dishes of the open restaurants (koucha, mineral water). A request that
+  /// named something and matched nothing is said as such instead
+  /// (noResultsMessageFor). A request that named nothing ("j'ai faim", or a
+  /// vegetarian goal alone) keeps every tier.
+  static List<({bool keyword, bool category})> foodRelaxationPlan({
+    required bool hasKeyword,
+    required bool hasCategory,
+    required bool namedSomething,
+  }) {
+    final plan =
+        relaxationPlan(hasKeyword: hasKeyword, hasCategory: hasCategory);
+    if (!namedSomething) return plan;
+    return [
+      for (final tier in plan)
+        if (tier.keyword || tier.category) tier,
+    ];
+  }
+
+  /// Cards for rows the `ai-chat` function already searched (`dish_results`):
+  /// `food_items` rows with their embedded `restaurants`, in its order.
+  static List<ProductResult> cardsFromFoodRows(
+          List<Map<String, dynamic>> rows) =>
+      [
+        for (final r in rows)
+          if (r['restaurants'] is Map<String, dynamic>) _foodCard(r),
+      ];
+
+  static ProductResult _foodCard(dynamic r) {
     final restaurant = r['restaurants'] as Map<String, dynamic>;
     return ProductResult(
       type: 'food',
@@ -681,7 +713,7 @@ class CatalogueSearch {
 
   // ── Image URL resolver ────────────────────────────────────────────────────
 
-  String? _resolveImageUrl(dynamic raw) {
+  static String? _resolveImageUrl(dynamic raw) {
     if (raw == null) return null;
     final url = raw.toString().trim();
     if (url.isEmpty) return null;

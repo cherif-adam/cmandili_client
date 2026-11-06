@@ -1391,7 +1391,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get aiSearchNoResultsText => 'Aucun plat ne correspond à ta demande';
+  String get aiSearchNoResultsText =>
+      'Ce plat n\'est pas disponible pour le moment. Essayez un autre plat ou un autre restaurant.';
 
   @override
   String get aiSearchFallbackMessage =>
@@ -2079,7 +2080,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get aiSearchErrorUnavailable =>
-      'Service temporairement indisponible. Réessayez plus tard.';
+      'La recherche intelligente est momentanément indisponible. Réessayez dans quelques instants.';
 
   @override
   String get aiSearchErrorNoDish =>
@@ -2091,7 +2092,8 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get aiSearchErrorUnknown => 'Erreur inconnue';
+  String get aiSearchDegradedNote =>
+      'Résultats simplifiés : la recherche intelligente est momentanément indisponible.';
 
   @override
   String get deleteAccount => 'Supprimer mon compte';

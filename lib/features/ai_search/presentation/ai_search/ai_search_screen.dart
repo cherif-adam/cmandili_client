@@ -8,6 +8,7 @@ import '../../../restaurant/presentation/restaurant_detail/open_restaurant_at_di
 import '../../data/models/search_result.dart';
 import '../../providers/ai_search_provider.dart';
 import 'widgets/ai_all_closed_notice.dart';
+import 'widgets/ai_degraded_note.dart';
 import 'widgets/ai_dish_badge.dart';
 import 'widgets/ai_empty_state.dart';
 import 'widgets/ai_error_view.dart';
@@ -26,11 +27,15 @@ import 'widgets/image_source_sheet.dart';
 /// Top to bottom: AiSearchAppBar, AiSearchBar, AiImagePreview (photo
 /// search only), then ONE body depending on the search state:
 ///   loading   → AiLoadingView
-///   error     → AiErrorView
+///   error     → AiErrorView (grey icon, our own sentence, "Réessayer")
 ///   no search → AiEmptyState (example queries)
-///   nothing   → AiNoResults
-///   results   → _ResultsSection: AiAllClosedNotice (every shop closed),
+///   nothing   → AiNoResults ("Ce plat n'est pas disponible…"), or
+///               AiErrorView when the search without AI found nothing
+///   results   → _ResultsSection: AiDegradedNote (found without AI),
+///               AiAllClosedNotice (every shop closed),
 ///               AiIntentChips / AiDishBadge + AiSearchResultCard list
+///
+/// No server text is ever displayed: every message is one of ours.
 ///
 /// A tap on a result opens its restaurant's page at the dish
 /// ([openRestaurantAtDish]).
@@ -116,27 +121,20 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
     );
   }
 
-  /// The search error in the customer's language.
-  static String _errorText(AppLocalizations l10n, AiSearchState state) {
-    final message = state.errorMessage ?? '';
-    switch (state.errorKind) {
-      case AiSearchErrorKind.network:
-        return l10n.aiSearchErrorNetwork;
-      case AiSearchErrorKind.unavailable:
-        return l10n.aiSearchErrorUnavailable;
-      case AiSearchErrorKind.noDish:
-        return l10n.aiSearchErrorNoDish;
-      case AiSearchErrorKind.imageTooLarge:
-        return l10n.aiSearchErrorImageTooLarge(message);
-      case AiSearchErrorKind.unknown:
-        return message.isEmpty
-            ? l10n.aiSearchErrorUnknown
-            : '${l10n.aiSearchErrorUnknown}\n$message';
-      case AiSearchErrorKind.other:
-      case null:
-        return message;
-    }
-  }
+  /// The search error in the customer's language. Never the server's text.
+  static String _errorText(AppLocalizations l10n, AiSearchState state) =>
+      switch (state.errorKind) {
+        AiSearchErrorKind.network => l10n.aiSearchErrorNetwork,
+        AiSearchErrorKind.imageTooLarge =>
+          l10n.aiSearchErrorImageTooLarge(state.errorDetail ?? ''),
+        AiSearchErrorKind.unavailable || null => l10n.aiSearchErrorUnavailable,
+      };
+
+  static IconData _errorIcon(AiSearchState state) => switch (state.errorKind) {
+        AiSearchErrorKind.network => Icons.wifi_off_rounded,
+        AiSearchErrorKind.imageTooLarge => Icons.photo_size_select_large_rounded,
+        AiSearchErrorKind.unavailable || null => Icons.cloud_off_rounded,
+      };
 
   /// Opens [item]'s restaurant page, scrolled to the dish. A closed
   /// restaurant opens too: its page shows it closed and blocks the cart.
@@ -206,11 +204,12 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
           // ── Body: one of loading / error / empty / no results / results ──
           if (state.isLoading)
             SliverToBoxAdapter(child: AiLoadingView(mode: state.mode))
-          else if (state.errorMessage != null)
+          else if (state.hasError)
             SliverToBoxAdapter(
               child: AiErrorView(
                 message: _errorText(AppLocalizations.of(context)!, state),
-                onRetry: () => ref.read(aiSearchProvider.notifier).clearError(),
+                icon: _errorIcon(state),
+                onRetry: () => ref.read(aiSearchProvider.notifier).retry(),
               ),
             )
           else if (state.mode == AiSearchMode.none)
@@ -219,6 +218,16 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
                 screenWidth: sw,
                 onExampleQuery: _searchExample,
                 onPhotoTap: _showImageSourceSheet,
+              ),
+            )
+          // Without the AI and with nothing found, "this dish is not
+          // available" may be false: the search could not understand the
+          // request. Say the smart search is unavailable instead.
+          else if (!state.hasResults && state.isDegraded)
+            SliverToBoxAdapter(
+              child: AiErrorView(
+                message: AppLocalizations.of(context)!.aiSearchErrorUnavailable,
+                onRetry: () => ref.read(aiSearchProvider.notifier).retry(),
               ),
             )
           else if (!state.hasResults)
@@ -247,6 +256,8 @@ class _ResultsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverMainAxisGroup(
       slivers: [
+        if (state.isDegraded)
+          const SliverToBoxAdapter(child: AiDegradedNote()),
         if (state.allShopsClosed)
           const SliverToBoxAdapter(child: AiAllClosedNotice()),
         if (state.mode == AiSearchMode.text && state.textResponse != null)

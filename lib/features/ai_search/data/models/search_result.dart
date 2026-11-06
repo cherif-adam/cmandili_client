@@ -113,6 +113,29 @@ class TextSearchIntent {
   }
 }
 
+/// What the ai-search function says about its answer (`status`).
+enum AiSearchStatus {
+  /// Results understood by the AI.
+  ok,
+
+  /// The dish asked for is on no menu: results are empty.
+  noMatch,
+
+  /// No AI model answered; the results (maybe none) come from a plain
+  /// database search on the customer's own words.
+  degraded;
+
+  /// A function deployed before 2026-11-06 sends no status: an empty list
+  /// then means nothing matched.
+  static AiSearchStatus parse(Object? raw, {required bool hasResults}) =>
+      switch (raw) {
+        'ok' => ok,
+        'no_match' => noMatch,
+        'degraded' => degraded,
+        _ => hasResults ? ok : noMatch,
+      };
+}
+
 /// Top-level response from the ai-search Edge Function.
 sealed class AiSearchResponse {
   const AiSearchResponse();
@@ -126,10 +149,13 @@ class AiTextSearchResponse extends AiSearchResponse {
   /// anything. These are suggestions, not matches, and the UI must say so.
   final bool isFallback;
 
+  final AiSearchStatus status;
+
   const AiTextSearchResponse({
     required this.intent,
     required this.results,
     this.isFallback = false,
+    this.status = AiSearchStatus.ok,
   });
 }
 
@@ -138,9 +164,16 @@ class AiImageSearchResponse extends AiSearchResponse {
   final String confidence;
   final List<AiSearchFoodResult> results;
 
+  final AiSearchStatus status;
+
+  /// The photo shows no dish the AI could recognise.
+  final bool noDishDetected;
+
   const AiImageSearchResponse({
     required this.dishName,
     required this.confidence,
     required this.results,
+    this.status = AiSearchStatus.ok,
+    this.noDishDetected = false,
   });
 }

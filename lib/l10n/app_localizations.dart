@@ -2599,7 +2599,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSearchNoResultsText.
   ///
   /// In en, this message translates to:
-  /// **'No dishes match your request'**
+  /// **'This dish isn\'t available right now. Try another dish or another restaurant.'**
   String get aiSearchNoResultsText;
 
   /// No description provided for @aiSearchFallbackMessage.
@@ -3812,7 +3812,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSearchErrorUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Service temporarily unavailable. Try again later.'**
+  /// **'Smart search is temporarily unavailable. Please try again in a few moments.'**
   String get aiSearchErrorUnavailable;
 
   /// No description provided for @aiSearchErrorNoDish.
@@ -3827,11 +3827,11 @@ abstract class AppLocalizations {
   /// **'Image is too large ({size} MB). Please use an image smaller than 10 MB.'**
   String aiSearchErrorImageTooLarge(String size);
 
-  /// No description provided for @aiSearchErrorUnknown.
+  /// No description provided for @aiSearchDegradedNote.
   ///
   /// In en, this message translates to:
-  /// **'Unknown error'**
-  String get aiSearchErrorUnknown;
+  /// **'Simplified results: smart search is temporarily unavailable.'**
+  String get aiSearchDegradedNote;
 
   /// No description provided for @deleteAccount.
   ///
