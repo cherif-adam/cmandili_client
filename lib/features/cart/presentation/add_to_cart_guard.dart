@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../data/models/cart_item.dart';
 import '../providers/cart_provider.dart';
 
@@ -26,32 +25,8 @@ Future<bool> addToCartGuarded(
   WidgetRef ref,
   CartItem item,
 ) async {
-  final cart = ref.read(cartProvider);
-  final currentShopId = cart.isEmpty ? null : cart.first.shopId;
-
-  if (currentShopId != null && currentShopId != item.shopId) {
-    final l = AppLocalizations.of(context)!;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.cartFromAnotherShopTitle),
-        content: Text(l.cartFromAnotherShopMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l.emptyAndAdd),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return false;
-    ref.read(cartProvider.notifier).clearCart();
-  }
-
+  // A cart may now hold several shops: checkout splits it into one order per
+  // shop, each with its own delivery fee.
   ref.read(cartProvider.notifier).addItem(item);
   return true;
 }

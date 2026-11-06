@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -81,7 +82,67 @@ class _AddressSelectionScreenState extends ConsumerState<AddressSelectionScreen>
     );
   }
 
+  /// Makes sure GPS is on and the app may use it. Asks for the permission
+  /// (system prompt) when it can, otherwise shows a dialog that sends the
+  /// customer to the right settings page. Returns true when ready to locate.
+  Future<bool> _ensureLocationReady() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      await _showLocationDialog(openLocationSettings: true);
+      return false;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      await _showLocationDialog(openLocationSettings: false);
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _showLocationDialog({required bool openLocationSettings}) async {
+    if (!mounted) return;
+    final lang = Localizations.localeOf(context).languageCode;
+    String t(String en, String fr, String ar) =>
+        lang == 'fr' ? fr : (lang == 'ar' ? ar : en);
+    final goToSettings = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('Location needed', 'Localisation requise', 'الموقع مطلوب')),
+        content: Text(openLocationSettings
+            ? t(
+                'Turn on location services to deliver to where you are.',
+                'Activez la localisation pour livrer à votre position.',
+                'فعّل خدمة الموقع للتوصيل إلى مكانك.')
+            : t(
+                'Allow Cmandili to access your location in the app settings.',
+                'Autorisez Cmandili à accéder à votre position dans les paramètres.',
+                'اسمح لـ Cmandili بالوصول إلى موقعك من الإعدادات.')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('Open settings', 'Ouvrir les paramètres', 'فتح الإعدادات')),
+          ),
+        ],
+      ),
+    );
+    if (goToSettings != true) return;
+    if (openLocationSettings) {
+      await Geolocator.openLocationSettings();
+    } else {
+      await Geolocator.openAppSettings();
+    }
+  }
+
   Future<void> _useCurrentLocation() async {
+    if (!await _ensureLocationReady()) return;
+    if (!mounted) return;
     final controller = ref.read(_provider.notifier);
     final label = AppLocalizations.of(context)!.currentLocation;
     try {

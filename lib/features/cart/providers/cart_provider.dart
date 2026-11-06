@@ -134,14 +134,28 @@ final cartItemCountProvider = Provider<int>((ref) {
 bool cartIsFlatRateDelivery(List<CartItem> cart) =>
     cart.isNotEmpty && cart.first.type == CartItemType.grocery;
 
+/// The cart's lines grouped by shop, in the order the shops were first added.
+/// Checkout places one order per group.
+List<List<CartItem>> groupCartByShop(List<CartItem> cart) {
+  final groups = <String, List<CartItem>>{};
+  for (final item in cart) {
+    groups.putIfAbsent(item.shopId, () => []).add(item);
+  }
+  return groups.values.toList();
+}
+
+/// One delivery fee per shop (each shop is its own order and its own trip).
 final cartDeliveryFeeProvider = Provider<double>((ref) {
   final cart = ref.watch(cartProvider);
-  if (cart.isEmpty) return 0.0;
-  final flat = cartIsFlatRateDelivery(cart);
-  return calculateDeliveryFee(
-    partnerFlatFee: flat ? kFlatDeliveryFee : kDeliveryBaseFee,
-    isFlatRate: flat,
-  );
+  var total = 0.0;
+  for (final group in groupCartByShop(cart)) {
+    final flat = cartIsFlatRateDelivery(group);
+    total += calculateDeliveryFee(
+      partnerFlatFee: flat ? kFlatDeliveryFee : kDeliveryBaseFee,
+      isFlatRate: flat,
+    );
+  }
+  return total;
 });
 
 final cartTotalProvider = Provider<double>((ref) {

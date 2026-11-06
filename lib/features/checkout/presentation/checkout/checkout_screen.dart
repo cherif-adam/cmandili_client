@@ -53,6 +53,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   /// This screen's own controller (see [checkoutControllerProvider]).
   late final _provider = checkoutControllerProvider(Object());
 
+  final _addressKey = GlobalKey();
+  bool _addressError = false;
+
   final _notesController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -121,6 +124,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _AddressSection(
+                    key: _addressKey,
+                    hasError: _addressError,
                     selectedAddress: state.selectedAddress,
                     onTap: _selectAddress,
                   ),
@@ -178,7 +183,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       context,
       MaterialPageRoute(builder: (context) => const AddressSelectionScreen()),
     );
-    if (address != null && mounted) controller.selectAddress(address);
+    if (address != null && mounted) {
+      controller.selectAddress(address);
+      setState(() => _addressError = false);
+    }
   }
 
   Future<void> _placeOrder() async {
@@ -192,7 +200,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
 
     switch (outcome) {
       case CheckoutMissingAddress():
-        _showSnack(l10n.pleaseSelectAddress);
+        setState(() => _addressError = true);
+        final ctx = _addressKey.currentContext;
+        if (ctx != null && ctx.mounted) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOut,
+            alignment: 0.1,
+          );
+        }
+        _showSnack(l10n.pleaseSelectAddress, icon: Icons.location_off_rounded);
       case CheckoutMissingPhone():
         _showSnack(l10n.pleaseEnterPhone);
       case CheckoutVenueClosed():
@@ -244,23 +262,56 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         notes: _notesController.text,
       );
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+  void _showSnack(String message, {IconData icon = Icons.error_outline_rounded}) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          elevation: 6,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      );
   }
 }
 
 // ── Sections ──────────────────────────────────────────────────────────────────
 
 class _AddressSection extends StatelessWidget {
-  const _AddressSection({required this.selectedAddress, required this.onTap});
+  const _AddressSection({
+    super.key,
+    required this.selectedAddress,
+    required this.onTap,
+    this.hasError = false,
+  });
 
+  final bool hasError;
   final DeliveryAddress? selectedAddress;
   final VoidCallback onTap;
 
@@ -274,6 +325,7 @@ class _AddressSection extends StatelessWidget {
         CheckoutAddressPicker(
           selectedAddress: selectedAddress,
           onTap: onTap,
+          hasError: hasError,
         ),
       ],
     );

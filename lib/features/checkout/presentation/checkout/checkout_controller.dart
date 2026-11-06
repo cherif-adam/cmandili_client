@@ -234,6 +234,9 @@ class CheckoutController
     // must release it on failure or the customer permanently loses the
     // promo usage with no order to show for it.
     var promoCommitted = false;
+    // Orders already created in this run (one per shop): undone together if
+    // a later one fails, so the customer never ends up with half an order.
+    final createdOrderIds = <String>[];
 
     try {
       // ── P0 ghost-order guard ───────────────────────────────────────────
@@ -277,92 +280,13 @@ class CheckoutController
         promoCommitted = true;
       }
 
-      // ── Delivery fee computation ───────────────────────────────────────
-      final firstItem = cartItems.isNotEmpty ? cartItems.first : null;
-      final supermarketId = firstItem?.groceryItem?.supermarketId;
-      // `orders.restaurant_id` is a plain FK to what is now the generic
-      // `vendors` table, so a florist/pet/gift/bakery order rides the same
-      // column. Leaving it null (as it was before the generic categories)
-      // would orphan the order from its shop: the partner app looks its
-      // orders up by this id, and the driver resolves the pickup pin from it.
-      final restaurantId = firstItem?.foodItem?.restaurantId ??
-          firstItem?.vendorItem?.vendorId;
-
-      double? pickupLat;
-      double? pickupLng;
-      String? shopCategory;
-
-      // Fetch pickup coordinates only — delivery_fee is no longer taken from
-      // the partner row; the platform fee algorithm uses a fixed base instead.
-      // One lookup for every category — see the note in _venueStillOpen.
-      // Without the vendorItem fallback a flower or pet-supply order would
-      // carry no pickup coordinates, and the distance-based delivery fee
-      // would be computed from nothing.
-      try {
-        final vendorId = restaurantId ??
-            supermarketId ??
-            cartItems.first.vendorItem?.vendorId;
-        if (vendorId != null) {
-          final row = await checkoutRepo.vendorPickupRow(vendorId);
-          if (row != null) {
-            pickupLat = (row['latitude'] as num?)?.toDouble();
-            pickupLng = (row['longitude'] as num?)?.toDouble();
-            // Lue dans la requête qui cherchait déjà les coordonnées : la
-            // catégorie ne vaut pas un aller-retour réseau de plus.
-            shopCategory = row['category']?.toString();
-          }
-        }
-      } catch (_) {}
-
-      final distanceKm = await tryDistanceKm(
-        originLat: pickupLat,
-        originLng: pickupLng,
-        destLat: address.latitude,
-        destLng: address.longitude,
-      );
-      // `order_type` porte désormais la CATÉGORIE du commerce, pas une
-      // déduction à partir du type de ligne. Une commande de fleurs, de
-      // cadeaux ou d'électronique s'enregistrait sinon comme une commande de
-      // restaurant. Repli sur l'ancienne déduction si la boutique n'a pas pu
-      // être lue : une ligne d'épicerie ne vient que d'un supermarché.
-      final orderType = shopCategory != null
-          ? orderTypeForCategory(shopCategory)
-          : (supermarketId != null ? OrderType.grocery : OrderType.food);
-
-      // Commerce : base 3.500 DT + 0.500 DT/km au-delà de 3 km.
-      // Supermarché : forfait 5 DT -- le livreur fait les courses en rayon,
-      // le coût est par course et non par kilomètre.
-      //
-      // Le même test que l'aperçu du panier, délibérément : c'est ce qui
-      // garantit que le client paie les frais qu'on lui a montrés.
-      final isFlatRate = cartIsFlatRateDelivery(cartItems);
-      final finalDeliveryFee = calculateDeliveryFee(
-        distanceKm: distanceKm,
-        partnerFlatFee: isFlatRate ? kFlatDeliveryFee : kDeliveryBaseFee,
-        isFlatRate: isFlatRate,
-      );
-
-      // Best-effort ETA — reuses the same pickup/destination pair as the
-      // delivery-fee distance call above, just keeping the duration that
-      // call already receives from Mapbox and discards. Null (no estimate
-      // shown) on any failure — this is a display nicety, never worth
-      // blocking or retrying checkout over.
-      DateTime? estimatedDeliveryTime;
-      if (pickupLat != null && pickupLng != null &&
-          !(pickupLat == 0 && pickupLng == 0)) {
-        final durationSeconds = await LocationService.estimateRouteDurationSeconds(
-          pickupLat, pickupLng,
-          address.latitude, address.longitude,
-        );
-        if (durationSeconds != null) {
-          estimatedDeliveryTime =
-              DateTime.now().add(Duration(seconds: durationSeconds));
-        }
-      }
-
-      // effectiveSubtotal already has the promo discount baked in (or equals
-      // the screen's subtotal when no promo was applied).
-      final finalTotal = effectiveSubtotal + finalDeliveryFee;
+      // ── One order per shop ─────────────────────────────────────────────
+      // A cart can hold items from several shops. Each shop gets its own
+      // order (own pickup point, own delivery fee), so the partner only sees
+      // what it sells and the driver collects from the right place.
+      final groups = groupCartByShop(cartItems);
+      final ratio = subtotal > 0 ? effectiveSubtotal / subtotal : 1.0;
+      var allocated = 0.0;
 
       final addressWithContact = address.copyWith(
         recipientName: fields.name.trim().isEmpty ? null : fields.name.trim(),
@@ -377,51 +301,131 @@ class CheckoutController
           )
           .then((_) {}, onError: (_) {});
 
-      // ── Create order ───────────────────────────────────────────────────
-      // finalDeliveryFee/finalTotal above are the STICKER price sent to the
-      // server; apply_loyalty_at_checkout() (BEFORE INSERT trigger) may
-      // overwrite delivery_fee/total on a 5th/10th order before the row is
-      // persisted. The returned record reflects what was actually charged —
-      // used below for payment instead of the sticker finalTotal, so a
-      // loyalty order is never paid/recorded at the pre-discount amount.
-      final createdOrder = await placementRepo.createOrder(
-            items: cartItems,
-            deliveryAddress: addressWithContact,
-            subtotal: effectiveSubtotal, // server-authorised value
-            deliveryFee: finalDeliveryFee,
-            total: finalTotal,
-            orderType: orderType,
-            restaurantId: restaurantId,
-            supermarketId: supermarketId,
-            notes: fields.notes.isNotEmpty ? fields.notes : null,
-            paymentMethod: selectedPaymentMethod,
-            distanceKm: distanceKm,
-            estimatedDeliveryTime: estimatedDeliveryTime,
-          );
-      final orderId = createdOrder.orderId;
+      String? firstOrderId;
+      OrderType? firstOrderType;
 
-      // ── Payment ────────────────────────────────────────────────────────
-      final paymentResult = await paymentService.processAndRecord(
-        orderId: orderId,
-        amount: createdOrder.total,
-        methodKey: selectedPaymentMethod,
-        context: context.mounted ? context : null,
-      );
-
-      if (!paymentResult.success) {
-        await statusRepo.cancelOrder(orderId);
-        if (promoCommitted) {
-          await promoRepo.releaseUsage(promoCode: promoState.appliedCode);
+      for (var i = 0; i < groups.length; i++) {
+        final groupItems = groups[i];
+        final groupSubtotal =
+            groupItems.fold<double>(0, (s, it) => s + it.totalPrice);
+        // The promo discount is shared between the shops pro rata; the last
+        // one takes the remainder so the sum is exactly the server's figure.
+        final double groupEffective;
+        if (!promoState.isApplied) {
+          groupEffective = groupSubtotal;
+        } else if (i == groups.length - 1) {
+          groupEffective = effectiveSubtotal - allocated;
+        } else {
+          groupEffective =
+              double.parse((groupSubtotal * ratio).toStringAsFixed(3));
         }
-        return CheckoutPaymentRefused(paymentResult.errorMessage);
+        allocated += groupEffective;
+
+        final firstItem = groupItems.first;
+        final supermarketId = firstItem.groceryItem?.supermarketId;
+        // `orders.restaurant_id` is a plain FK to the generic `vendors`
+        // table, so every category rides the same column.
+        final restaurantId =
+            firstItem.foodItem?.restaurantId ?? firstItem.vendorItem?.vendorId;
+
+        double? pickupLat;
+        double? pickupLng;
+        String? shopCategory;
+
+        try {
+          final vendorId = restaurantId ?? supermarketId;
+          if (vendorId != null) {
+            final row = await checkoutRepo.vendorPickupRow(vendorId);
+            if (row != null) {
+              pickupLat = (row['latitude'] as num?)?.toDouble();
+              pickupLng = (row['longitude'] as num?)?.toDouble();
+              shopCategory = row['category']?.toString();
+            }
+          }
+        } catch (_) {}
+
+        final distanceKm = await tryDistanceKm(
+          originLat: pickupLat,
+          originLng: pickupLng,
+          destLat: address.latitude,
+          destLng: address.longitude,
+        );
+        final orderType = shopCategory != null
+            ? orderTypeForCategory(shopCategory)
+            : (supermarketId != null ? OrderType.grocery : OrderType.food);
+
+        // Same test as the cart preview, so the customer pays what was shown.
+        final isFlatRate = cartIsFlatRateDelivery(groupItems);
+        final finalDeliveryFee = calculateDeliveryFee(
+          distanceKm: distanceKm,
+          partnerFlatFee: isFlatRate ? kFlatDeliveryFee : kDeliveryBaseFee,
+          isFlatRate: isFlatRate,
+        );
+
+        DateTime? estimatedDeliveryTime;
+        if (pickupLat != null &&
+            pickupLng != null &&
+            !(pickupLat == 0 && pickupLng == 0)) {
+          final durationSeconds =
+              await LocationService.estimateRouteDurationSeconds(
+            pickupLat,
+            pickupLng,
+            address.latitude,
+            address.longitude,
+          );
+          if (durationSeconds != null) {
+            estimatedDeliveryTime =
+                DateTime.now().add(Duration(seconds: durationSeconds));
+          }
+        }
+
+        final finalTotal = groupEffective + finalDeliveryFee;
+
+        // finalDeliveryFee/finalTotal are the STICKER price; the loyalty
+        // trigger may lower them server-side. Pay what the server returns.
+        final createdOrder = await placementRepo.createOrder(
+          items: groupItems,
+          deliveryAddress: addressWithContact,
+          subtotal: groupEffective,
+          deliveryFee: finalDeliveryFee,
+          total: finalTotal,
+          orderType: orderType,
+          restaurantId: restaurantId,
+          supermarketId: supermarketId,
+          notes: fields.notes.isNotEmpty ? fields.notes : null,
+          paymentMethod: selectedPaymentMethod,
+          distanceKm: distanceKm,
+          estimatedDeliveryTime: estimatedDeliveryTime,
+        );
+        final orderId = createdOrder.orderId;
+        createdOrderIds.add(orderId);
+        firstOrderId ??= orderId;
+        firstOrderType ??= orderType;
+
+        // ── Payment ──────────────────────────────────────────────────────
+        final paymentResult = await paymentService.processAndRecord(
+          orderId: orderId,
+          amount: createdOrder.total,
+          methodKey: selectedPaymentMethod,
+          context: context.mounted ? context : null,
+        );
+
+        if (!paymentResult.success) {
+          await _cancelAll(statusRepo, createdOrderIds);
+          if (promoCommitted) {
+            await promoRepo.releaseUsage(promoCode: promoState.appliedCode);
+          }
+          return CheckoutPaymentRefused(paymentResult.errorMessage);
+        }
       }
 
-      // Order stays 'pending' — the partner must accept it before it moves
-      // to 'confirmed'. Do NOT call confirmOrder() here.
+      // Orders stay 'pending' — each partner must accept its own.
       cartNotifier.clearCart();
 
-      return CheckoutPlaced(orderId: orderId, orderType: orderType);
+      return CheckoutPlaced(
+          orderId: firstOrderId!, orderType: firstOrderType!);
     } catch (e) {
+      await _cancelAll(statusRepo, createdOrderIds);
       // Release before the screen shows anything — this is a plain network
       // call with no context/widget dependency, made whether the screen is
       // still open or not: skipping it would leave the promo usage
@@ -450,20 +454,30 @@ class CheckoutController
   /// authoritative backstop.
   Future<bool> _venueStillOpen(
       CheckoutRepository checkoutRepo, List<CartItem> cartItems) async {
-    if (cartItems.isEmpty) return true;
-    final first = cartItems.first;
-    // Every shop — restaurant, supermarket, florist, pet shop — is a row in
-    // `vendors`, so one lookup covers all of them. Reading the legacy views
-    // instead would return nothing for the newer categories and wrongly
-    // report a closed shop as open.
-    final vendorId = first.foodItem?.restaurantId ??
-        first.groceryItem?.supermarketId ??
-        first.vendorItem?.vendorId;
-    if (vendorId == null) return true;
-    try {
-      return (await checkoutRepo.vendorIsOpen(vendorId)) ?? true;
-    } catch (_) {
-      return true; // DB trigger is the authoritative guard
+    // Every shop in the cart must be open. Every shop — restaurant,
+    // supermarket, florist, pet shop — is a row in `vendors`, so one lookup
+    // covers all of them.
+    for (final group in groupCartByShop(cartItems)) {
+      final first = group.first;
+      final vendorId = first.foodItem?.restaurantId ??
+          first.groceryItem?.supermarketId ??
+          first.vendorItem?.vendorId;
+      if (vendorId == null) continue;
+      try {
+        if ((await checkoutRepo.vendorIsOpen(vendorId)) == false) return false;
+      } catch (_) {
+        // DB trigger is the authoritative guard
+      }
     }
+    return true;
+  }
+
+  Future<void> _cancelAll(dynamic statusRepo, List<String> orderIds) async {
+    for (final id in orderIds) {
+      try {
+        await statusRepo.cancelOrder(id);
+      } catch (_) {}
+    }
+    orderIds.clear();
   }
 }
