@@ -75,10 +75,10 @@ class AppColors {
   /// title (AA), warming to the splash orange at the bottom, where the white
   /// system-bar icons stay at 3.4:1.
   static const brandBackgroundGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [brandOrangeDeep, brandOrangeDeep, splashOrange],
-    stops: [0.0, 0.32, 1.0],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [brandOrangeDark, brandOrangeDeep, splashOrange, splashAmber],
+    stops: [0.0, 0.35, 0.75, 1.0],
   );
 
   /// Primary buttons and the active tab: white text is AA at both ends.
