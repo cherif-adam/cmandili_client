@@ -88,7 +88,11 @@ const OPENROUTER_API_KEY = (Deno.env.get("OPENROUTER_API_KEY") ?? "").trim();
 const OPENROUTER_MODEL =
   (Deno.env.get("OPENROUTER_CHAT_MODEL") ?? "google/gemini-2.5-flash").trim();
 
-const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") ?? "").trim();
+// OpenRouter ONLY (decision 2026-11-07): the direct Gemini fallback is
+// switched off, so every model call goes through OPENROUTER_API_KEY
+// (google/gemini-2.5-flash). An empty key makes _shared/llm.ts skip Gemini.
+// To bring the fallback back: (Deno.env.get("GEMINI_API_KEY") ?? "").trim().
+const GEMINI_API_KEY = "";
 // Same model as the OpenRouter default, minus the "google/" route prefix.
 const GEMINI_MODEL = (Deno.env.get("GEMINI_CHAT_MODEL") ?? "gemini-2.5-flash").trim();
 
