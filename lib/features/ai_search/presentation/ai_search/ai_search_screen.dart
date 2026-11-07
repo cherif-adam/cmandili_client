@@ -44,7 +44,12 @@ import 'widgets/image_source_sheet.dart';
 /// (AiSearchNotifier, AiSearchRepository behind it). This screen keeps the
 /// text field, the focus, the animations and the photo picker.
 class AiSearchScreen extends ConsumerStatefulWidget {
-  const AiSearchScreen({super.key});
+  const AiSearchScreen({super.key, this.initialQuery});
+
+  /// Text sent from the home search bar (keyboard "Rechercher", or the
+  /// "Chercher « … » avec l'IA" row): put in the field and searched on
+  /// arrival, exactly as if typed here.
+  final String? initialQuery;
 
   @override
   ConsumerState<AiSearchScreen> createState() => _AiSearchScreenState();
@@ -73,6 +78,15 @@ class _AiSearchScreenState extends ConsumerState<AiSearchScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     )..forward();
+
+    final initial = widget.initialQuery?.trim() ?? '';
+    if (initial.isNotEmpty) {
+      _queryController.text = initial;
+      // After the first frame: a provider may not change while building.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _onSubmitText();
+      });
+    }
   }
 
   @override

@@ -69,7 +69,7 @@ class TunisianPhoneField extends StatelessWidget {
             letterSpacing: 1.0,
           ),
           floatingLabelStyle: const TextStyle(
-            color: AppColors.primary,
+            color: AppColors.brandOrangeDeep,
             fontWeight: FontWeight.w600,
           ),
           prefixIcon: const _CountryPrefix(),
@@ -77,7 +77,7 @@ class TunisianPhoneField extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
           border: _border(AppColors.textSecondary.withValues(alpha: 0.25)),
           enabledBorder: _border(AppColors.textSecondary.withValues(alpha: 0.25)),
-          focusedBorder: _border(AppColors.primary, width: 1.8),
+          focusedBorder: _border(AppColors.brandOrangeDeep, width: 1.8),
           errorBorder: _border(Colors.red.shade400),
           focusedErrorBorder: _border(Colors.red.shade400, width: 1.8),
         ),

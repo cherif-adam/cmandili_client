@@ -27,7 +27,8 @@ class ForgotPasswordLink extends StatelessWidget {
           ),
         ),
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
+          // 5.2:1 on the white card.
+          foregroundColor: AppColors.brandOrangeDeep,
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.01,
             vertical: screenHeight * 0.005,

@@ -46,7 +46,13 @@ class LanguagePickerSheet extends ConsumerWidget {
         );
 
     return Container(
-      padding: EdgeInsets.all(screenWidth * 0.06),
+      // Above the system navigation bar: the app draws edge-to-edge.
+      padding: EdgeInsets.fromLTRB(
+        screenWidth * 0.06,
+        screenWidth * 0.06,
+        screenWidth * 0.06,
+        screenWidth * 0.06 + MediaQuery.paddingOf(context).bottom,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.vertical(

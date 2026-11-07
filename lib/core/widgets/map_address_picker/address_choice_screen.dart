@@ -342,7 +342,9 @@ class _SuggestionList extends StatelessWidget {
       );
     }
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      // The last suggestion clears the system navigation bar (edge-to-edge;
+      // 0 while the keyboard covers it).
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + MediaQuery.paddingOf(context).bottom),
       itemCount: suggestions.length,
       separatorBuilder: (_, __) =>
           Divider(height: 1, color: Colors.grey.shade200),

@@ -102,6 +102,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
             _RestaurantsSection(
               restaurants: restaurants,
               filters: filters,
+              searchText: _searchController.text,
               onCategorySelected: controller.selectCategory,
               onSeeAll: () {
                 controller.clearFilters();
@@ -160,6 +161,7 @@ class _RestaurantsSection extends StatelessWidget {
   const _RestaurantsSection({
     required this.restaurants,
     required this.filters,
+    required this.searchText,
     required this.onCategorySelected,
     required this.onSeeAll,
     required this.screenWidth,
@@ -168,6 +170,9 @@ class _RestaurantsSection extends StatelessWidget {
 
   final AsyncValue<List<Restaurant>> restaurants;
   final HomeTabFilters filters;
+
+  /// The search text as typed (the filter keeps it lower-cased).
+  final String searchText;
   final ValueChanged<String> onCategorySelected;
   final VoidCallback onSeeAll;
   final double screenWidth;
@@ -208,6 +213,7 @@ class _RestaurantsSection extends StatelessWidget {
           restaurants: restaurants,
           selectedCategory: filters.category,
           searchQuery: filters.searchQuery,
+          searchText: searchText,
           screenWidth: screenWidth,
           screenHeight: screenHeight,
         ),

@@ -3,20 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
 import '../../../../../core/providers/nearby_provider.dart';
+import '../../../../ai_onboarding/presentation/ai_entry_navigation.dart';
+import '../../../../ai_onboarding/presentation/widgets/ask_ai_search_row.dart';
 import '../../../../restaurant/presentation/widgets/restaurant_card.dart';
 import '../../../../restaurant/providers/restaurant_provider.dart';
 import '../../../data/models/restaurant.dart';
+import 'package:cmandili_mobile/core/widgets/bottom_reserve.dart';
 
 /// The restaurant cards of the home tab, filtered by the selected cuisine
 /// and the search text. Also shows the loading, error and "nothing within
-/// 15 km" states.
+/// 15 km" states; when the typed text matches no restaurant, it offers to
+/// search it with the AI instead (AskAiSearchRow).
 ///
 /// Returns a sliver, so it goes in a [CustomScrollView]'s slivers.
 class RestaurantListSliver extends ConsumerWidget {
   /// Already limited to the restaurants near the customer.
   final AsyncValue<List<Restaurant>> restaurants;
   final String selectedCategory;
+
+  /// The filter's lower-cased text.
   final String searchQuery;
+
+  /// The text as typed, for the "Chercher « … » avec l'IA" row.
+  final String searchText;
   final double screenWidth;
   final double screenHeight;
 
@@ -25,6 +34,7 @@ class RestaurantListSliver extends ConsumerWidget {
     required this.restaurants,
     required this.selectedCategory,
     required this.searchQuery,
+    this.searchText = '',
     required this.screenWidth,
     required this.screenHeight,
   });
@@ -58,7 +68,8 @@ class RestaurantListSliver extends ConsumerWidget {
         screenWidth * 0.05,
         0,
         screenWidth * 0.05,
-        screenHeight * 0.12, // Bottom padding for floating nav
+        // Clears the floating menu bar, the pill and the system bar.
+        BottomReserve.of(context),
       ),
       sliver: restaurants.when(
         data: (restaurantList) {
@@ -85,6 +96,7 @@ class RestaurantListSliver extends ConsumerWidget {
   }
 
   Widget _empty(BuildContext context) {
+    final typed = (searchText.isNotEmpty ? searchText : searchQuery).trim();
     return SliverToBoxAdapter(
       child: Center(
         child: Padding(
@@ -106,6 +118,15 @@ class RestaurantListSliver extends ConsumerWidget {
                   color: Colors.grey[500],
                 ),
               ),
+              // The text matches no restaurant name: it is probably a dish
+              // or a wish ("pizza moins de 15 DT"), which the AI handles.
+              if (searchQuery.isNotEmpty && typed.isNotEmpty) ...[
+                SizedBox(height: screenHeight * 0.025),
+                AskAiSearchRow(
+                  query: typed,
+                  onTap: () => AiEntryNavigation.openSearch(context, query: typed),
+                ),
+              ],
             ],
           ),
         ),

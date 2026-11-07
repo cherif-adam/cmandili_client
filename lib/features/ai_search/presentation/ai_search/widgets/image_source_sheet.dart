@@ -15,7 +15,8 @@ class ImageSourceSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Container(
-      margin: const EdgeInsets.all(16),
+      // Above the system navigation bar: the app draws edge-to-edge.
+      margin: EdgeInsets.fromLTRB(16, 16, 16, 16 + MediaQuery.paddingOf(context).bottom),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,

@@ -66,6 +66,7 @@ dependencies:
 
   # Timezone support for scheduling local bill-reminder notifications
   timezone: ^0.9.4
+  showcaseview: ^5.1.0
 
 dev_dependencies:
   flutter_test:

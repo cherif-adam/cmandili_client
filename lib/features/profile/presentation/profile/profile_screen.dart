@@ -10,6 +10,7 @@ import '../../../../core/providers/theme_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/privacy_policy.dart';
 import '../../../account_deletion/presentation/delete_account/delete_account_screen.dart';
+import '../../../ai_onboarding/presentation/widgets/ai_onboarding_reset_tile.dart';
 import '../../../auth/presentation/change_password/change_password_screen.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../bills/presentation/mes_factures/mes_factures_screen.dart';
@@ -24,6 +25,7 @@ import 'widgets/profile_header.dart';
 import 'widgets/profile_menu_item.dart';
 import 'widgets/profile_section_title.dart';
 import 'widgets/profile_switch_item.dart';
+import 'package:cmandili_mobile/core/widgets/bottom_reserve.dart';
 
 /// The "Profil" tab, top to bottom:
 ///
@@ -85,6 +87,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   isDarkMode: themeMode == ThemeMode.dark,
                   onToggleTheme: controller.toggleTheme,
                 ),
+                // Dev tools only (debug, or --dart-define=AMANA_DEV_TOOLS=true).
+                const AiOnboardingResetTile(),
                 _LogoutSection(onLogout: _logout, onOpen: _open),
               ]),
             ),
@@ -320,7 +324,7 @@ class _LogoutSection extends StatelessWidget {
           color: AppColors.error,
           onTap: () => onOpen(const DeleteAccountScreen()),
         ),
-        SizedBox(height: size.height * 0.12),
+        SizedBox(height: BottomReserve.of(context)),
       ],
     );
   }

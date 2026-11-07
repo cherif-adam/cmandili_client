@@ -2215,4 +2215,72 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get privacyPolicyOpenFailed => 'تعذّر فتح الصفحة. تحقّق من اتصالك.';
+
+  @override
+  String get aiTypewriter1 => 'جرّب: بيتزا بأقل من 15 دينارًا...';
+
+  @override
+  String get aiTypewriter2 => 'طبق خفيف لهذه الليلة...';
+
+  @override
+  String get aiTypewriter3 => 'التقط صورة لطبق...';
+
+  @override
+  String get aiTypewriter4 => 'شيء حلو...';
+
+  @override
+  String get aiSearchFieldStaticHint => 'مطعم، طبق… أو اسأل الذكاء الاصطناعي';
+
+  @override
+  String get aiNewBadge => 'جديد';
+
+  @override
+  String get aiAskAmana => 'اسأل أمانة';
+
+  @override
+  String get aiTeaserMorning => 'فطور؟ أساعدك في الاختيار ☕';
+
+  @override
+  String get aiTeaserMidday => 'جائع؟ أساعدك في الاختيار 🍕';
+
+  @override
+  String get aiTeaserEvening => 'فكرة لهذه الليلة؟ اسألني 🌙';
+
+  @override
+  String get aiTeaserDefault => 'تحتاج مساعدة؟ أنا هنا ✦';
+
+  @override
+  String get aiTeaserClose => 'إغلاق';
+
+  @override
+  String get aiCoachSearchTitle => 'جديد ✦ ابحث بالذكاء الاصطناعي';
+
+  @override
+  String get aiCoachSearchBody => 'اكتب ما تريد أو التقط صورة لطبق.';
+
+  @override
+  String get aiCoachChatTitle => 'مساعد أمانة';
+
+  @override
+  String get aiCoachChatBody => 'اسألني أي سؤال، وسأساعدك في الاختيار.';
+
+  @override
+  String get aiCoachNext => 'التالي';
+
+  @override
+  String get aiCoachDone => 'فهمت';
+
+  @override
+  String get aiCoachSkip => 'تخطي';
+
+  @override
+  String aiSearchWithAi(String query) {
+    return 'ابحث عن «$query» بالذكاء الاصطناعي ✦';
+  }
+
+  @override
+  String get aiDevResetTitle => 'إعادة اكتشاف الذكاء الاصطناعي (مطوّر)';
+
+  @override
+  String get aiDevResetDone => 'تمت إعادة الضبط: ارجع إلى الصفحة الرئيسية.';
 }

@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-/// Background of the forgot / reset password screens: the login green
-/// gradient with two still white circles (top right, bottom left).
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_system_bars.dart';
+
+/// Background of the forgot / reset password screens: the login's orange
+/// gradient (AppColors.brandBackgroundGradient) with two still white circles
+/// (top right, bottom left). White system-bar icons wherever it shows.
 class PasswordPageBackground extends StatelessWidget {
   const PasswordPageBackground({super.key});
 
@@ -10,16 +15,13 @@ class PasswordPageBackground extends StatelessWidget {
     final sw = MediaQuery.of(context).size.width;
     final sh = MediaQuery.of(context).size.height;
 
-    return Stack(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: AppSystemBars.onDark,
+      child: Stack(
       children: [
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF059669), Color(0xFF0D9488), Color(0xFF0F766E)],
-            ),
-          ),
+        const DecoratedBox(
+          decoration: BoxDecoration(gradient: AppColors.brandBackgroundGradient),
+          child: SizedBox.expand(),
         ),
         Positioned(
           top: -sh * 0.12,
@@ -32,6 +34,7 @@ class PasswordPageBackground extends StatelessWidget {
           child: _circle(sw * 0.5, Colors.white.withValues(alpha: 0.10)),
         ),
       ],
+      ),
     );
   }
 

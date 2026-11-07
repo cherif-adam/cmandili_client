@@ -298,7 +298,9 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen>
             controller: _textController,
             isListening: _isListening,
             micPulseController: _micPulseController,
-            bottomViewPadding: MediaQuery.of(context).viewPadding.bottom,
+            // padding, not viewPadding: 0 once the keyboard covers the system
+            // bar, so the input sits right on the keyboard.
+            bottomViewPadding: MediaQuery.paddingOf(context).bottom,
             onImageTap: () => showChatImageSourceSheet(context, onPick: _pickImage),
             onMicTap: _toggleListening,
             onSubmitted: _handleSubmitted,

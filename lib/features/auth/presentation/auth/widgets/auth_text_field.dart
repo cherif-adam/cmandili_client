@@ -62,7 +62,7 @@ class AuthTextField extends StatelessWidget {
         ),
         prefixIcon: Icon(
           icon,
-          color: AppColors.primary.withValues(alpha: 0.7),
+          color: AppColors.brandOrangeDeep.withValues(alpha: 0.75),
           size: screenWidth * 0.06,
         ),
         suffixIcon: isPassword
@@ -82,7 +82,7 @@ class AuthTextField extends StatelessWidget {
           color: AppColors.textLight.withValues(alpha: 0.1),
           width: 1.5,
         )),
-        focusedBorder: _border(const BorderSide(color: AppColors.primary, width: 2)),
+        focusedBorder: _border(const BorderSide(color: AppColors.brandOrangeDeep, width: 2)),
         errorBorder: _border(const BorderSide(color: AppColors.error, width: 1.5)),
         focusedErrorBorder: _border(const BorderSide(color: AppColors.error, width: 2)),
         contentPadding: EdgeInsets.symmetric(

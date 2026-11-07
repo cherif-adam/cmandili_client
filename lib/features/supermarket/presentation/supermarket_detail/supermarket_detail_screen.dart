@@ -94,7 +94,8 @@ class _ProductGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+      // Room for the cart button, which floats above the system bar.
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 100 + MediaQuery.paddingOf(context).bottom),
       sliver: SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,

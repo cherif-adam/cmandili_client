@@ -5,8 +5,14 @@ import '../../../../../core/theme/app_colors.dart';
 /// The floating white menu bar at the bottom of the home screen:
 /// Home · Favorites · Orders · Cart (with item count) · Profile.
 ///
+/// It floats just above the system navigation bar: [bottom] comes from
+/// HomeBottomLayout (system bar height + a small gap), so it clears the
+/// 3-button bar and the gesture handle alike.
+///
 /// Returns a [Positioned], so it must be a direct child of a [Stack].
 class HomeBottomNavBar extends StatelessWidget {
+  final double bottom;
+  final double height;
   final int selectedIndex;
   final int cartItemCount;
   final ValueChanged<int> onSelect;
@@ -15,6 +21,8 @@ class HomeBottomNavBar extends StatelessWidget {
 
   const HomeBottomNavBar({
     super.key,
+    required this.bottom,
+    required this.height,
     required this.selectedIndex,
     required this.cartItemCount,
     required this.onSelect,
@@ -25,11 +33,11 @@ class HomeBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      bottom: screenHeight * 0.03,
+      bottom: bottom,
       left: screenWidth * 0.06,
       right: screenWidth * 0.06,
       child: Container(
-        height: screenHeight * 0.085,
+        height: height,
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(screenWidth * 0.06),

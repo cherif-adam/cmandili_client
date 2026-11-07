@@ -13,11 +13,14 @@ import '../../../../orders/providers/order_provider.dart';
 ///
 /// Returns a [Positioned], so it must be a direct child of a [Stack].
 class ActiveOrderPill extends ConsumerWidget {
+  /// From the bottom edge of the screen (HomeBottomLayout.pillBottom).
+  final double bottom;
   final double screenWidth;
   final double screenHeight;
 
   const ActiveOrderPill({
     super.key,
+    required this.bottom,
     required this.screenWidth,
     required this.screenHeight,
   });
@@ -42,10 +45,11 @@ class ActiveOrderPill extends ConsumerWidget {
 
     return Positioned(
       left: sw * 0.06,
-      // Leaves room for the AI chat FAB, which sits at the same height on the
-      // right edge (16 margin + 56 FAB + 8 gap).
+      // Leaves room for the AI assistant button, which sits on the same row
+      // at the right edge (16 margin + 56 round button + 8 gap). The button
+      // stays round while this pill shows (aiFabExtendedProvider).
       right: 80,
-      bottom: sh * 0.03 + sh * 0.085 + sh * 0.015,
+      bottom: bottom,
       child: Material(
         color: pillColor,
         elevation: 6,

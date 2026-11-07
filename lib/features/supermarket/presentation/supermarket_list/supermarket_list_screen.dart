@@ -8,6 +8,7 @@ import '../../data/models/supermarket.dart';
 import '../../providers/supermarket_provider.dart';
 import 'widgets/supermarket_card.dart';
 import 'widgets/supermarket_hero_banner.dart';
+import 'package:cmandili_mobile/core/widgets/bottom_reserve.dart';
 
 /// The supermarkets part of the home tab (shown when "Supermarché" is
 /// picked):
@@ -94,7 +95,7 @@ class _SupermarketsSliverList extends StatelessWidget {
         screenWidth * 0.05,
         0,
         screenWidth * 0.05,
-        screenHeight * 0.12,
+        BottomReserve.of(context),
       ),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(

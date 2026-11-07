@@ -51,7 +51,7 @@ class PasswordTextField extends StatelessWidget {
           fontSize: sw * 0.038,
         ),
         prefixIcon: Icon(icon,
-            color: AppColors.primary.withValues(alpha: 0.7), size: sw * 0.06),
+            color: AppColors.brandOrangeDeep.withValues(alpha: 0.75), size: sw * 0.06),
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
@@ -67,7 +67,7 @@ class PasswordTextField extends StatelessWidget {
         border: border(BorderSide.none),
         enabledBorder: border(BorderSide(
             color: AppColors.textLight.withValues(alpha: 0.1), width: 1.5)),
-        focusedBorder: border(const BorderSide(color: AppColors.primary, width: 2)),
+        focusedBorder: border(const BorderSide(color: AppColors.brandOrangeDeep, width: 2)),
         errorBorder: border(const BorderSide(color: AppColors.error, width: 1.5)),
         focusedErrorBorder: border(const BorderSide(color: AppColors.error, width: 2)),
         contentPadding: EdgeInsets.symmetric(

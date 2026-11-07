@@ -56,6 +56,52 @@ class AppColors {
     end: Alignment.bottomCenter,
   );
 
+  // ── Client brand orange (login, password and phone-number screens) ──────
+  // The client app's brand is orange (green is the driver app's). The native
+  // splash is a left-to-right gradient splashOrange → splashAmber
+  // (android/app/src/main/res/drawable/launch_background.xml); the login
+  // continues it. Contrast of white text (WCAG): brandOrangeDeep 5.2:1 (AA,
+  // any text), brandOrangeDark 7.3:1, splashOrange 3.4:1 (large text and
+  // icons only), splashAmber 2.1:1 and foodPrimary 2.6:1 (decoration only).
+  // So anything carrying white text — buttons, the active tab, the text on
+  // the background — sits on brandOrangeDeep or darker; text links on white
+  // use brandOrangeDeep too (5.2:1).
+  static const brandOrangeDeep = Color(0xFFC2410C);
+  static const brandOrangeDark = Color(0xFF9A3412);
+  static const splashOrange = Color(0xFFF1592A);
+  static const splashAmber = Color(0xFFF9A01B);
+
+  /// Login and password screens: deep orange behind the logo and the white
+  /// title (AA), warming to the splash orange at the bottom, where the white
+  /// system-bar icons stay at 3.4:1.
+  static const brandBackgroundGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [brandOrangeDeep, brandOrangeDeep, splashOrange],
+    stops: [0.0, 0.32, 1.0],
+  );
+
+  /// Primary buttons and the active tab: white text is AA at both ends.
+  static const brandButtonGradient = LinearGradient(
+    colors: [brandOrangeDeep, brandOrangeDark],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // ── AI identity (Recherche IA + Amana Assistant) ────────────────────────
+  // "Violet = AI": the two AI entry points share this gradient, and nothing
+  // else in the app uses it, so customers learn to recognise it. The base is
+  // the purple both features always used; the brand colours stay the
+  // emerald and the food orange above/below.
+  static const aiViolet = Color(0xFF6C3DE1);
+  static const aiVioletLight = Color(0xFF8F57FB);
+  static const aiBlue = Color(0xFF3B82F6);
+  static const aiGradient = LinearGradient(
+    colors: [aiViolet, aiBlue],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   // ── Food context accent (Livraison tab + food-only screens) ─────────────
   static const foodPrimary = Color(0xFFE8890C);
   static const foodPrimaryDark = Color(0xFFC2652A);

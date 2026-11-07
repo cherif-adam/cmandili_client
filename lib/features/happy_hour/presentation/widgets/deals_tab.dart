@@ -102,7 +102,8 @@ class DealsTab extends ConsumerWidget {
       data: (items) {
         if (items.isEmpty) return Center(child: Text(l.noDealsRightNow));
         return ListView.builder(
-          padding: const EdgeInsets.only(top: 16, bottom: 96),
+          // Room for the cart button, which floats above the system bar.
+          padding: EdgeInsets.only(top: 16, bottom: 96 + MediaQuery.paddingOf(context).bottom),
           itemCount: items.length,
           itemBuilder: (context, index) {
             final deal = toDeal(items[index]);

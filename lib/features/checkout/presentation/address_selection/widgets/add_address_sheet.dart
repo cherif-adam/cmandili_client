@@ -73,8 +73,11 @@ class _AddAddressSheetState extends State<AddAddressSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      // The keyboard when it is open, else the system navigation bar (the
+      // app draws edge-to-edge; padding is 0 while the keyboard covers it).
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: MediaQuery.viewInsetsOf(context).bottom +
+            MediaQuery.paddingOf(context).bottom,
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

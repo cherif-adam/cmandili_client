@@ -95,7 +95,10 @@ class _VendorDetailScreenState extends ConsumerState<VendorDetailScreen> {
                         enabled: vendor.isOpen,
                         spotlight: _spotlight,
                       ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                    // Room for the cart button, above the system bar.
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: 100 + MediaQuery.paddingOf(context).bottom),
+                    ),
                   ],
           ),
         ],

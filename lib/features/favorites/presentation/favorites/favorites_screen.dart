@@ -5,6 +5,7 @@ import '../../../home/data/models/restaurant.dart';
 import '../../../restaurant/presentation/widgets/restaurant_card.dart';
 import '../../providers/favorites_provider.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
+import 'package:cmandili_mobile/core/widgets/bottom_reserve.dart';
 
 /// "Favoris": the app bar, then either [_EmptyFavorites] or
 /// [_FavoritesList]. UI only — the list comes from [favoritesProvider],
@@ -91,7 +92,12 @@ class _FavoritesList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: EdgeInsets.all(screenWidth * 0.05),
+      padding: EdgeInsets.fromLTRB(
+        screenWidth * 0.05,
+        screenWidth * 0.05,
+        screenWidth * 0.05,
+        BottomReserve.of(context),
+      ),
       itemCount: restaurants.length,
       itemBuilder: (context, index) {
         return RestaurantCard(restaurant: restaurants[index]);

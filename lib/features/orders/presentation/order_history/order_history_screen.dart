@@ -9,6 +9,7 @@ import 'widgets/empty_orders_view.dart';
 import 'widgets/loyalty_progress_card.dart';
 import 'widgets/order_history_card.dart';
 import 'widgets/orders_error_view.dart';
+import 'package:cmandili_mobile/core/widgets/bottom_reserve.dart';
 
 /// The customer's orders, newest first (the "Commandes" tab):
 ///
@@ -96,7 +97,7 @@ class _OrdersList extends StatelessWidget {
       onRefresh: onRefresh,
       color: AppColors.primary,
       child: ListView.builder(
-        padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.01, sw * 0.04, sh * 0.04),
+        padding: EdgeInsets.fromLTRB(sw * 0.04, sh * 0.01, sw * 0.04, BottomReserve.of(context)),
         itemCount: orders.length + 1,
         itemBuilder: (context, index) {
           if (index == 0) {

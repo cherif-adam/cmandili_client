@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/widgets/bottom_reserve.dart';
+import '../../../ai_onboarding/presentation/widgets/ai_onboarding_host.dart';
 import '../../../cart/presentation/cart/cart_screen.dart';
 import '../../../cart/providers/cart_provider.dart';
 import '../../../favorites/presentation/favorites/favorites_screen.dart';
@@ -24,8 +26,15 @@ import 'widgets/home_bottom_nav_bar.dart';
 ///   ├─ ActiveOrderPill — back into order tracking, on every tab
 ///   └─ HomeBottomNavBar
 ///
-/// UI only: the selected tab and the cart's bottom room live in
-/// [HomeController].
+/// Edge-to-edge: the system navigation bar is under the screen. Everything
+/// floating sits above it, placed by one [HomeBottomLayout]; the tabs get
+/// the room to leave after their last item through [BottomReserve].
+///
+/// Wrapped in AiOnboardingHost: the one-time AI coach mark and the home
+/// list's scroll that extends/collapses the assistant button.
+///
+/// UI only: the selected tab and the bottom layout live in
+/// [HomeController]; the AI entry points' rules in AiOnboardingController.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -36,32 +45,49 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.sizeOf(context);
     final screenHeight = size.height;
     final screenWidth = size.width;
     final cartItemCount = ref.watch(cartItemCountProvider);
     final selectedIndex = ref.watch(homeControllerProvider);
-    final cartInset = HomeController.cartBottomInset(
-      screenHeight,
+    final layout = HomeBottomLayout(
+      systemBottom: MediaQuery.viewPaddingOf(context).bottom,
+      navHeight: screenHeight * 0.085,
       pillShowing: ref.watch(activeOrderPillShowingProvider),
     );
 
-    return Scaffold(
-      // The assistant belongs to browsing. On the other tabs it sat on top
-      // of the cart's checkout button and the profile list.
-      floatingActionButton: selectedIndex == 0 ? const AiChatFab() : null,
-      body: Stack(
-        children: [
-          _TabsStack(selectedIndex: selectedIndex, cartInset: cartInset),
-          ActiveOrderPill(screenWidth: screenWidth, screenHeight: screenHeight),
-          HomeBottomNavBar(
-            selectedIndex: selectedIndex,
-            cartItemCount: cartItemCount,
-            onSelect: ref.read(homeControllerProvider.notifier).selectTab,
-            screenWidth: screenWidth,
-            screenHeight: screenHeight,
-          ),
-        ],
+    return AiOnboardingHost(
+      onHomeTab: selectedIndex == 0,
+      child: Scaffold(
+        // The assistant belongs to browsing. On the other tabs it sat on top
+        // of the cart's checkout button and the profile list.
+        floatingActionButton:
+            selectedIndex == 0 ? AiChatFab(bottomLift: layout.fabLift) : null,
+        body: Stack(
+          children: [
+            BottomReserve(
+              bottom: layout.contentBottom,
+              child: _TabsStack(
+                selectedIndex: selectedIndex,
+                cartInset: layout.floatingRoom,
+              ),
+            ),
+            ActiveOrderPill(
+              bottom: layout.pillBottom,
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
+            ),
+            HomeBottomNavBar(
+              bottom: layout.navBottom,
+              height: layout.navHeight,
+              selectedIndex: selectedIndex,
+              cartItemCount: cartItemCount,
+              onSelect: ref.read(homeControllerProvider.notifier).selectTab,
+              screenWidth: screenWidth,
+              screenHeight: screenHeight,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -82,7 +108,9 @@ class _TabsStack extends StatelessWidget {
     return IndexedStack(
       index: selectedIndex,
       children: [
-        const HomeTab(),
+        // The home tab's animations (typewriter, sparkle, shimmer) stop
+        // while another tab is shown.
+        TickerMode(enabled: selectedIndex == 0, child: const HomeTab()),
         const FavoritesScreen(),
         const OrderHistoryScreen(),
         CartScreen(bottomInset: cartInset),

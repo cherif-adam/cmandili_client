@@ -29,10 +29,11 @@ class AuthSubmitButton extends StatelessWidget {
         key: const Key('auth_submit'),
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          // Deep orange: white text at 5.2:1 (AppColors.brandOrangeDeep).
+          backgroundColor: AppColors.brandOrangeDeep,
           foregroundColor: Colors.white,
           elevation: 8,
-          shadowColor: AppColors.primary.withValues(alpha: 0.5),
+          shadowColor: AppColors.brandOrangeDeep.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(screenWidth * 0.04),
           ),

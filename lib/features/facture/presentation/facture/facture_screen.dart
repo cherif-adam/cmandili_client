@@ -22,6 +22,7 @@ import 'widgets/facture_price_summary.dart';
 import 'widgets/facture_section_title.dart';
 import 'widgets/facture_text_field.dart';
 import 'widgets/send_request_button.dart';
+import 'package:cmandili_mobile/core/widgets/bottom_reserve.dart';
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -73,10 +74,9 @@ class _FactureScreenState extends ConsumerState<FactureScreen> {
     final controller = ref.read(_provider.notifier);
 
     return Padding(
-      // Bottom padding clears the floating bottom nav bar (~11.5% of screen
-      // height) so the "Envoyer la demande" button isn't hidden under it —
-      // matches the clearance used by SupermarketListScreen.
-      padding: EdgeInsets.fromLTRB(16, 8, 16, widget.screenHeight * 0.12),
+      // Bottom padding clears the floating menu bar and the system bar, so
+      // the "Envoyer la demande" button is never hidden under them.
+      padding: EdgeInsets.fromLTRB(16, 8, 16, BottomReserve.of(context)),
       child: Form(
         key: _formKey,
         child: Column(

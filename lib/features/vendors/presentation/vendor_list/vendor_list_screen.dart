@@ -6,6 +6,7 @@ import '../../../../core/models/vendor.dart';
 import '../../../../core/providers/vendor_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'widgets/vendor_card.dart';
+import 'package:cmandili_mobile/core/widgets/bottom_reserve.dart';
 
 /// Shop list for any vendor category — florists, pet shops, gift shops,
 /// bakeries, electronics stores — shown in the home tab:
@@ -67,7 +68,7 @@ class _VendorsSliverList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+      padding: EdgeInsets.fromLTRB(20, 4, 20, BottomReserve.of(context)),
       sliver: SliverList.separated(
         itemCount: vendors.length,
         separatorBuilder: (_, __) => const SizedBox(height: 14),

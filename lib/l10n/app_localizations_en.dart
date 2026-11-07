@@ -2235,4 +2235,73 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get privacyPolicyOpenFailed =>
       'The page could not be opened. Check your connection.';
+
+  @override
+  String get aiTypewriter1 => 'Try: pizza under 15 TND...';
+
+  @override
+  String get aiTypewriter2 => 'A light dish for tonight...';
+
+  @override
+  String get aiTypewriter3 => 'Take a photo of a dish...';
+
+  @override
+  String get aiTypewriter4 => 'Something sweet...';
+
+  @override
+  String get aiSearchFieldStaticHint => 'A restaurant, a dish… or ask the AI';
+
+  @override
+  String get aiNewBadge => 'New';
+
+  @override
+  String get aiAskAmana => 'Ask Amana';
+
+  @override
+  String get aiTeaserMorning => 'Breakfast? I\'ll help you choose ☕';
+
+  @override
+  String get aiTeaserMidday => 'Hungry? I\'ll help you choose 🍕';
+
+  @override
+  String get aiTeaserEvening => 'An idea for tonight? Ask me 🌙';
+
+  @override
+  String get aiTeaserDefault => 'Need help? I\'m here ✦';
+
+  @override
+  String get aiTeaserClose => 'Close';
+
+  @override
+  String get aiCoachSearchTitle => 'New ✦ Search with AI';
+
+  @override
+  String get aiCoachSearchBody =>
+      'Type what you want or take a photo of a dish.';
+
+  @override
+  String get aiCoachChatTitle => 'Amana Assistant';
+
+  @override
+  String get aiCoachChatBody => 'Ask me anything, I\'ll help you choose.';
+
+  @override
+  String get aiCoachNext => 'Next';
+
+  @override
+  String get aiCoachDone => 'Got it';
+
+  @override
+  String get aiCoachSkip => 'Skip';
+
+  @override
+  String aiSearchWithAi(String query) {
+    return 'Search “$query” with AI ✦';
+  }
+
+  @override
+  String get aiDevResetTitle => 'Replay the AI onboarding (dev)';
+
+  @override
+  String get aiDevResetDone => 'AI onboarding reset: go back to the home tab.';
 }

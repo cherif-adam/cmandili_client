@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-/// The green gradient behind the login screen.
+import '../../../../../core/theme/app_colors.dart';
+import '../../../../../core/theme/app_system_bars.dart';
+
+/// The orange gradient behind the login screen (deep orange at the top,
+/// warming to the splash orange): see AppColors.brandBackgroundGradient.
+/// White system-bar icons wherever it shows.
 class AuthGradientBackground extends StatelessWidget {
   const AuthGradientBackground({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF059669),
-            Color(0xFF0D9488),
-            Color(0xFF0F766E),
-          ],
-        ),
+    return const AnnotatedRegion<SystemUiOverlayStyle>(
+      value: AppSystemBars.onDark,
+      child: DecoratedBox(
+        decoration: BoxDecoration(gradient: AppColors.brandBackgroundGradient),
+        child: SizedBox.expand(),
       ),
     );
   }
 }
 
-/// Three soft white circles drifting slowly over the gradient.
+/// Three soft circles drifting slowly over the gradient: a warm amber glow,
+/// the splash's second colour, fading to white at the edge.
 class AuthFloatingCircles extends StatelessWidget {
   /// 0 → 1, repeating (one loop every 20 s).
   final Animation<double> animation;
@@ -61,7 +62,7 @@ class AuthFloatingCircles extends StatelessWidget {
                 height: screenWidth * 0.3,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.08),
+                  color: AppColors.splashAmber.withValues(alpha: 0.14),
                 ),
               ),
             ),
@@ -72,7 +73,7 @@ class AuthFloatingCircles extends StatelessWidget {
   }
 }
 
-/// A circle fading from white 15 % in the middle to 5 % at the edge.
+/// A circle glowing warm amber in the middle, fading to a faint white edge.
 class _Circle extends StatelessWidget {
   final double size;
 
@@ -87,8 +88,8 @@ class _Circle extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: RadialGradient(
           colors: [
-            Colors.white.withValues(alpha: 0.15),
-            Colors.white.withValues(alpha: 0.05),
+            AppColors.splashAmber.withValues(alpha: 0.22),
+            Colors.white.withValues(alpha: 0.04),
           ],
         ),
       ),

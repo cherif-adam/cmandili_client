@@ -74,7 +74,8 @@ class TrackingDetailsSheet extends StatelessWidget {
           ),
           child: ListView(
             controller: scrollController,
-            padding: const EdgeInsets.all(20),
+            // The last line clears the system navigation bar (edge-to-edge).
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.paddingOf(context).bottom),
             children: [
               const _DragHandle(),
               const SizedBox(height: 20),

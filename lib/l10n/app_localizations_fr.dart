@@ -2272,4 +2272,76 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get privacyPolicyOpenFailed =>
       'La page n\'a pas pu s\'ouvrir. Vérifiez votre connexion.';
+
+  @override
+  String get aiTypewriter1 => 'Essaie : pizza moins de 15 DT...';
+
+  @override
+  String get aiTypewriter2 => 'Un plat léger pour ce soir...';
+
+  @override
+  String get aiTypewriter3 => 'Prends en photo un plat...';
+
+  @override
+  String get aiTypewriter4 => 'Quelque chose de sucré...';
+
+  @override
+  String get aiSearchFieldStaticHint =>
+      'Un restaurant, un plat… ou demande à l\'IA';
+
+  @override
+  String get aiNewBadge => 'Nouveau';
+
+  @override
+  String get aiAskAmana => 'Demande à Amana';
+
+  @override
+  String get aiTeaserMorning => 'Un petit-déj ? Je t\'aide à choisir ☕';
+
+  @override
+  String get aiTeaserMidday => 'Tu as faim ? Je t\'aide à choisir 🍕';
+
+  @override
+  String get aiTeaserEvening => 'Une idée pour ce soir ? Demande-moi 🌙';
+
+  @override
+  String get aiTeaserDefault => 'Besoin d\'aide ? Je suis là ✦';
+
+  @override
+  String get aiTeaserClose => 'Fermer';
+
+  @override
+  String get aiCoachSearchTitle => 'Nouveau ✦ Cherche avec l\'IA';
+
+  @override
+  String get aiCoachSearchBody =>
+      'Écris ce que tu veux ou prends une photo d\'un plat.';
+
+  @override
+  String get aiCoachChatTitle => 'Amana Assistant';
+
+  @override
+  String get aiCoachChatBody =>
+      'Pose-moi n\'importe quelle question, je t\'aide à choisir.';
+
+  @override
+  String get aiCoachNext => 'Suivant';
+
+  @override
+  String get aiCoachDone => 'Compris';
+
+  @override
+  String get aiCoachSkip => 'Passer';
+
+  @override
+  String aiSearchWithAi(String query) {
+    return 'Chercher « $query » avec l\'IA ✦';
+  }
+
+  @override
+  String get aiDevResetTitle => 'Rejouer la découverte de l\'IA (dev)';
+
+  @override
+  String get aiDevResetDone =>
+      'Découverte de l\'IA réinitialisée : retourne à l\'accueil.';
 }

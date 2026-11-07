@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/theme/app_system_bars.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/presentation/auth/auth_screen.dart';
+import 'features/auth/presentation/auth/widgets/auth_loading_screen.dart';
 import 'features/home/presentation/home/home_screen.dart';
 import 'features/profile/data/profile_repository.dart';
 import 'features/profile/presentation/phone_gate/phone_gate_screen.dart';
@@ -21,6 +24,11 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Edge-to-edge on every Android version (Android 15+ forces it anyway for
+  // targetSdk 35+): transparent system bars, no grey scrim behind 3-button
+  // navigation. Screens leave room for the bars themselves.
+  await AppSystemBars.enableEdgeToEdge();
 
   // Initialize timezone database for scheduled bill reminder notifications.
   tz_data.initializeTimeZones();
@@ -77,6 +85,13 @@ class MyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       locale: locale,
+      // Default system bar icons for the theme (dark icons on the light
+      // theme). A screen with another background sets its own
+      // AnnotatedRegion, which wins over this one.
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: AppSystemBars.forBackground(Theme.of(context).brightness),
+        child: child ?? const SizedBox.shrink(),
+      ),
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -95,11 +110,8 @@ class MyApp extends ConsumerWidget {
           }
           return const AuthScreen();
         },
-        loading: () => const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
+        // Orange like the splash before it and the login after it.
+        loading: () => const AuthLoadingScreen(),
         error: (error, stack) => const AuthScreen(),
       ),
     );

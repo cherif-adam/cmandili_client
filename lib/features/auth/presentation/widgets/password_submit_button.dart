@@ -26,10 +26,10 @@ class PasswordSubmitButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.brandOrangeDeep,
           foregroundColor: Colors.white,
           elevation: 8,
-          shadowColor: AppColors.primary.withValues(alpha: 0.4),
+          shadowColor: AppColors.brandOrangeDeep.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(sw * 0.04),
           ),

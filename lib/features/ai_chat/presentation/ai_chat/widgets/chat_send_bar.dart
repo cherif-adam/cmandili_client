@@ -36,7 +36,9 @@ class ChatSendBar extends StatelessWidget {
         16,
         10,
         16,
-        10 + bottomViewPadding * 0.5,
+        // The whole system bar (3-button or gesture handle): with only half
+        // of it, the input sat partly behind the 3-button bar.
+        10 + bottomViewPadding,
       ),
       child: Row(
         children: [

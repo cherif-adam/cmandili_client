@@ -17,7 +17,8 @@ import 'widgets/social_sign_in_button.dart';
 
 /// Sign in / sign up, top to bottom:
 ///
-///   background (green gradient + drifting circles), LanguageCycleButton
+///   background (orange gradient + drifting warm circles, white system-bar
+///   icons), LanguageCycleButton
 ///   AuthLogoHeader     logo, "Amana", "Bienvenue"
 ///   GlassCard
 ///     AuthTabBar       Se connecter | S'inscrire
@@ -484,7 +485,8 @@ class _BuildLabel extends StatelessWidget {
     return Positioned(
       left: 0,
       right: 0,
-      bottom: 6,
+      // Above the system navigation bar (edge-to-edge).
+      bottom: 6 + MediaQuery.paddingOf(context).bottom,
       child: IgnorePointer(
         child: Text(
           BuildInfo.label!,

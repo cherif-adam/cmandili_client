@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../core/providers/localization_provider.dart';
+import '../../../../../core/theme/app_colors.dart';
 
 /// The round 🌐 button at the top right of the login screen. Each tap
 /// switches language: English → العربية → Français → English.
@@ -45,11 +46,13 @@ class LanguageCycleButton extends ConsumerWidget {
           icon: Container(
             padding: EdgeInsets.all(screenWidth * 0.025),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.25),
+              // On the deep orange top: white icon at 4:1 or more.
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: AppColors.brandOrangeDark.withValues(alpha: 0.25),
                   blurRadius: screenWidth * 0.02,
                   offset: Offset(0, screenHeight * 0.005),
                 ),

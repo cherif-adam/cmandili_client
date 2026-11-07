@@ -26,6 +26,7 @@ import 'widgets/package_photo_section.dart';
 import 'widgets/package_size_selector.dart';
 import 'widgets/save_recipient_toggle.dart';
 import 'widgets/saved_recipients_section.dart';
+import 'package:cmandili_mobile/core/widgets/bottom_reserve.dart';
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -102,7 +103,7 @@ class _CourierScreenState extends ConsumerState<CourierScreen> {
     final controller = ref.read(_provider.notifier);
 
     return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(w * 0.05, h * 0.02, w * 0.05, h * 0.14),
+      padding: EdgeInsets.fromLTRB(w * 0.05, h * 0.02, w * 0.05, BottomReserve.of(context)),
       child: Form(
         key: _formKey,
         child: Column(

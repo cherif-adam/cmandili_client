@@ -236,15 +236,15 @@ class _PhoneIcon extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.primary.withValues(alpha: 0.16),
-              AppColors.primary.withValues(alpha: 0.06),
+              AppColors.brandOrangeDeep.withValues(alpha: 0.16),
+              AppColors.brandOrangeDeep.withValues(alpha: 0.06),
             ],
           ),
         ),
         child: const Icon(
           Icons.phone_in_talk_rounded,
           size: 40,
-          color: AppColors.primary,
+          color: AppColors.brandOrangeDeep,
         ),
       ),
     );
@@ -272,13 +272,13 @@ class _ContinueButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: enabled ? onPressed : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.brandOrangeDeep,
           foregroundColor: Colors.white,
           disabledBackgroundColor:
               AppColors.textSecondary.withValues(alpha: 0.18),
           disabledForegroundColor: Colors.white,
           elevation: enabled ? 2 : 0,
-          shadowColor: AppColors.primary.withValues(alpha: 0.4),
+          shadowColor: AppColors.brandOrangeDeep.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

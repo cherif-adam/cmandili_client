@@ -4108,6 +4108,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The page could not be opened. Check your connection.'**
   String get privacyPolicyOpenFailed;
+
+  /// No description provided for @aiTypewriter1.
+  ///
+  /// In en, this message translates to:
+  /// **'Try: pizza under 15 TND...'**
+  String get aiTypewriter1;
+
+  /// No description provided for @aiTypewriter2.
+  ///
+  /// In en, this message translates to:
+  /// **'A light dish for tonight...'**
+  String get aiTypewriter2;
+
+  /// No description provided for @aiTypewriter3.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo of a dish...'**
+  String get aiTypewriter3;
+
+  /// No description provided for @aiTypewriter4.
+  ///
+  /// In en, this message translates to:
+  /// **'Something sweet...'**
+  String get aiTypewriter4;
+
+  /// No description provided for @aiSearchFieldStaticHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A restaurant, a dish… or ask the AI'**
+  String get aiSearchFieldStaticHint;
+
+  /// No description provided for @aiNewBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get aiNewBadge;
+
+  /// No description provided for @aiAskAmana.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Amana'**
+  String get aiAskAmana;
+
+  /// No description provided for @aiTeaserMorning.
+  ///
+  /// In en, this message translates to:
+  /// **'Breakfast? I\'ll help you choose ☕'**
+  String get aiTeaserMorning;
+
+  /// No description provided for @aiTeaserMidday.
+  ///
+  /// In en, this message translates to:
+  /// **'Hungry? I\'ll help you choose 🍕'**
+  String get aiTeaserMidday;
+
+  /// No description provided for @aiTeaserEvening.
+  ///
+  /// In en, this message translates to:
+  /// **'An idea for tonight? Ask me 🌙'**
+  String get aiTeaserEvening;
+
+  /// No description provided for @aiTeaserDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Need help? I\'m here ✦'**
+  String get aiTeaserDefault;
+
+  /// No description provided for @aiTeaserClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get aiTeaserClose;
+
+  /// No description provided for @aiCoachSearchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New ✦ Search with AI'**
+  String get aiCoachSearchTitle;
+
+  /// No description provided for @aiCoachSearchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Type what you want or take a photo of a dish.'**
+  String get aiCoachSearchBody;
+
+  /// No description provided for @aiCoachChatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Amana Assistant'**
+  String get aiCoachChatTitle;
+
+  /// No description provided for @aiCoachChatBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me anything, I\'ll help you choose.'**
+  String get aiCoachChatBody;
+
+  /// No description provided for @aiCoachNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get aiCoachNext;
+
+  /// No description provided for @aiCoachDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get aiCoachDone;
+
+  /// No description provided for @aiCoachSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get aiCoachSkip;
+
+  /// No description provided for @aiSearchWithAi.
+  ///
+  /// In en, this message translates to:
+  /// **'Search “{query}” with AI ✦'**
+  String aiSearchWithAi(String query);
+
+  /// No description provided for @aiDevResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replay the AI onboarding (dev)'**
+  String get aiDevResetTitle;
+
+  /// No description provided for @aiDevResetDone.
+  ///
+  /// In en, this message translates to:
+  /// **'AI onboarding reset: go back to the home tab.'**
+  String get aiDevResetDone;
 }
 
 class _AppLocalizationsDelegate

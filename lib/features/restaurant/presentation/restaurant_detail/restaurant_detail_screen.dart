@@ -155,7 +155,8 @@ class _MenuList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+      // Room for the cart button, which floats above the system bar.
+      padding: EdgeInsets.fromLTRB(20, 10, 20, 100 + MediaQuery.paddingOf(context).bottom),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) => spotlight.frame(

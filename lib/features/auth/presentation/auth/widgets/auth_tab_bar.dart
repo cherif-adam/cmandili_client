@@ -30,13 +30,11 @@ class AuthTabBar extends StatelessWidget {
       child: TabBar(
         controller: controller,
         indicator: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF059669), Color(0xFF0D9488)],
-          ),
+          gradient: AppColors.brandButtonGradient,
           borderRadius: BorderRadius.circular(screenWidth * 0.08),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.4),
+              color: AppColors.brandOrangeDeep.withValues(alpha: 0.4),
               blurRadius: screenWidth * 0.03,
               offset: Offset(0, screenHeight * 0.005),
             ),

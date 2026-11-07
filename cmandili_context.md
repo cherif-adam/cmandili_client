@@ -36,6 +36,159 @@ Flutter `OrderStatus` enums serialize via `toString().split('.').last` — new l
 
 ---
 
+## EDGE-TO-EDGE + ORANGE LOGIN — 2026-11-07 (client app, NOT committed: phone test first)
+
+Parts A and C of the 07/11 branding brief. Part B (official Google button) is
+BLOCKED and Part D (animated logo, 3 apps) is at its first checkpoint — see
+the end of this section.
+
+**A — Edge-to-edge.** `targetSdk` is 36, so Android 15+ already forced the app
+edge-to-edge (with a grey scrim behind 3-button navigation) and nothing in the
+app accounted for it: the floating menu bar sat inside the system bar.
+- `lib/core/theme/app_system_bars.dart`: `onLight` / `onDark`
+  `SystemUiOverlayStyle` (transparent bars, `system*ContrastEnforced: false`),
+  `enableEdgeToEdge()` called in `main.dart` before `runApp`;
+  `MaterialApp.builder` puts the theme's default in an `AnnotatedRegion`; the
+  orange backgrounds (`AuthGradientBackground`, `PasswordPageBackground`) carry
+  their own `onDark` region, so the icons turn white wherever orange shows.
+  App bars still pick their status-bar icons from their own colour.
+- Android, consistent from the first frame: `values/` and `values-night/`
+  `styles.xml` (LaunchTheme + NormalTheme: transparent bars, light icons on the
+  orange splash, `enforce*Contrast=false`), `MainActivity.kt`
+  `drawEdgeToEdge()` (platform APIs only, no new dependency).
+- Home bottom layout, one source of truth: `HomeBottomLayout` in
+  `home_controller.dart` (from `MediaQuery.viewPaddingOf(context).bottom`: menu
+  bar 10 dp above the system bar, active-order pill 12 dp above it, assistant
+  button on the pill's row via `AiChatFab.bottomLift`, `contentBottom` for
+  lists). `aiFabExtendedProvider`: the AI button stays ROUND while the pill
+  shows (the extended button would cover it). `HomeController.cartBottomInset`
+  was removed (replaced by `floatingRoom`).
+- `lib/core/widgets/bottom_reserve.dart`: `BottomReserve` (InheritedWidget from
+  HomeScreen; fallback system bar + 16 for screens opened on their own) used by
+  every tab list: restaurants, supermarkets, shops, Colis, Facture, Favorites
+  (had none), Orders, Profile, cart summary.
+- Other bottoms: chat input uses the full `MediaQuery.paddingOf` (was half of
+  `viewPadding`); sheets without an inset fixed (Recherche IA photo picker, add
+  address, language picker, order-tracking sheet); address choice list,
+  rewards screen, restaurant/supermarket/shop detail and Happy Hour deal lists
+  add the system bar to their room for the cart button. Already fine: checkout
+  `PlaceOrderBar` (SafeArea), Scaffold FABs, `AddToCartBar`, rating and
+  loyalty sheets.
+
+**C — Orange login.** Tokens in `AppColors` (contrast of white text):
+`brandOrangeDeep` #C2410C (5.2:1, AA), `brandOrangeDark` #9A3412 (7.3:1),
+`splashOrange` #F1592A (3.4:1, large text/icons only) and `splashAmber`
+#F9A01B (2.1:1, decoration) — the two colours of the native splash
+(`drawable/launch_background.xml`). `foodPrimary` (2.6:1) and
+`foodPrimaryDark` (4.1:1) fail AA for white text, hence the new deep tokens.
+`brandBackgroundGradient` is vertical: deep orange up to 32 % (the logo, "Amana"
+and the subtitle stay AA) to splash orange at the bottom (white bar icons
+3.4:1). `brandButtonGradient` deep → dark. Applied to: login background (amber
+circles), active tab, "Se connecter", field focus/icons, "Mot de passe
+oublié ?", globe chip; forgot/reset/change-password pages
+(`password_page_background`, submit button, text field, reset dialog button);
+phone-number screen and `TunisianPhoneField`. New `AuthLoadingScreen` (orange +
+white spinner) replaces the white page shown while the session restores, so
+splash → login never flashes white. Unchanged on purpose: the green bottom bar
+selection, success greens (check icons, "Ouvert", success snackbars).
+
+**Tests:** `test/edge_to_edge_test.dart` (13: layout with 3-button / gesture /
+no nav bar, pill vs round button, BottomReserve fallback, bar styles, the
+Android styles read as text), `test/brand_colors_contrast_test.dart` (5: WCAG
+ratios computed from the tokens). Full suite 480 green, analyzer clean.
+
+**B — Google button: BLOCKED.** `assets/icons/google_g.svg` never existed.
+The official kit (developers.google.com/static/identity/images/signin-assets.zip,
+855,303 bytes, downloaded 07/11 then deleted) has NO standalone "G": 133 files,
+all complete buttons (SVG/PNG 1x–4x, Light/Dark/Neutral, pill/square, with or
+without text). Its G is Google's new gradient G drawn with 7 `feGaussianBlur`
+filters inside a mask; `flutter_svg` ignores SVG filters, so even an extracted
+G would not render faithfully. Waiting for Adam's choice; never take the logo
+from anywhere else.
+
+**D — Animated logo: D1 analysis done, tracing not started.** Sources:
+client `assets/branding/logo_client.png` (1077×1049, 12 pieces: courier body,
+head+cap, customer body, head, 3 bags, 5 letters; figures in horizontal
+gradients ≈ #EF5D2B → #F79322, letters flat #F05C2A); driver
+`cmandili_driver/assets/branding/logo_driver.png` (1024×891, a DIFFERENT
+drawing: long cap brim, simpler bags, bold letters; #7EBD26 → #CEE237);
+partner `logo_partner.png` = the driver drawing recoloured indigo (#483ECD →
+#6465E2), 95.8 % shape overlap, extra pixels are a blurry halo. Client native
+splash = orange gradient + a WHITE driver-style logo (`splash_logo.png`);
+driver/partner launch backgrounds are plain white without logo; on Android
+12+ the system splash shows the launcher icon. No tracer (vtracer/potrace) or
+SVG renderer is installed: installing one needs Adam's OK.
+
+---
+
+## AI ENTRY POINTS — 2026-11-06 (client app, NOT committed: Adam tests on a phone first)
+
+The ✦ Recherche IA button of the home search bar and the Amana Assistant
+button were made visible as a "new, premium" feature. AI search and chat
+logic untouched (one optional `AiSearchScreen.initialQuery`, which calls the
+existing `searchByText`).
+
+**Identity:** `AppColors.aiViolet` (the old `0xFF6C3DE1`), `aiBlue`,
+`aiGradient` (violet → blue) on both entry points only: "violet = AI". The
+other screens still hard-code the old purple (17 files), not migrated.
+
+**One controller:** `lib/features/ai_onboarding/presentation/ai_onboarding_controller.dart`
+(global `NotifierProvider`, keeps the app run). Persisted in SharedPreferences
+by `data/ai_onboarding_store.dart`: `ai_session_count`, `ai_onboarding_seen`,
+`ai_first_search_done`, `ai_chat_open_count`, `ai_last_teaser_day`. Rules are
+pure functions in `AiOnboardingRules` (unit-tested):
+- session = an app launch, or a return after ≥ 30 min in the background;
+- strong animations (border shimmer, pulse halo) in sessions 1–5 only;
+- "Nouveau" badge until the first AI search — detected by LISTENING to
+  `aiSearchProvider` (a search that started and finished, any outcome);
+- coach mark (`showcaseview 5.1.0`, new dependency) once, after login, when
+  `nearbyRestaurantsProvider` has data and the home tab shows; finish or
+  "Passer" saves `ai_onboarding_seen`;
+- "settled" = data loaded and no coach mark pending/showing: shimmer, pulse
+  and teaser wait for it, so nothing overlaps the coach mark;
+- teaser: ~5 s after settled, max once a day, never after 3 chat opens,
+  never before the coach mark was seen nor in its session (deliberate:
+  the coach mark already introduced the assistant), auto-hide 6 s; text by
+  local hour (<11 morning, 11–15 midday, ≥18 evening, else default);
+- assistant button extended at the top of the home list, collapsed when it
+  scrolls down, extended again only back at the top.
+
+**Widgets** (`lib/features/ai_onboarding/presentation/widgets/`):
+`typewriter_hint`, `twinkling_sparkle`, `ai_new_badge`, `ai_shimmer_border`,
+`ai_pulse_halo`, `living_ai_icon` (chat bubble with blinking eyes + ✦, pure
+Flutter — no Lottie in the project, none downloaded), `ai_assistant_button`,
+`ai_teaser_bubble`, `ai_coach_mark` (`AiCoachMarkScope` + `AiCoachMarkTarget`:
+a `Showcase` THROWS without a registered scope, so targets only wrap
+themselves under the scope), `ai_onboarding_host` (registers the scope,
+starts the tour, feeds the home scroll), `ask_ai_search_row`,
+`ai_onboarding_reset_tile`. `home_search_field.dart` and `ai_chat_fab.dart`
+only assemble them; `home_screen.dart` wraps itself in `AiOnboardingHost` and
+puts `TickerMode(enabled: tab == 0)` around `HomeTab`.
+
+**Search bar behaviour (Adam's defaults):** typing still filters restaurants;
+keyboard "Rechercher" opens Recherche IA with the text searched; focused hint
+= "Rechercher des restaurants..."; when the typed text matches no restaurant,
+the empty list shows "Chercher « … » avec l'IA ✦" (same hand-off).
+
+**Performance / a11y:** every controller disposed; tickers pause under another
+route, in the background and on other tabs; `RepaintBoundary` around each
+animation; scroll state read with `select`, the home screen is not rebuilt per
+frame. `MediaQuery.disableAnimations` → fixed placeholder, static ✦ and icon,
+no shimmer/pulse, instant collapse. `HapticFeedback.lightImpact` on both
+entry points.
+
+**Dev reset:** tile "Rejouer la découverte de l'IA (dev)" at the bottom of
+Profile, shown in debug builds or with `--dart-define=AMANA_DEV_TOOLS=true`
+(the phone runs release builds). Clears only the five `ai_*` keys.
+
+**Tests:** `test/ai_onboarding_controller_test.dart` (19),
+`test/ai_entry_points_test.dart` (14), mutation-checked; full suite 462 green,
+`flutter analyze lib test` clean. showcaseview needs real frames in tests:
+advance time in 50 ms steps (`_advance`), a single big `pump(duration)` skips
+its step transition.
+
+---
+
 ## ADMIN FORGOT-PASSWORD — 2026-11-06 (pushed on adam-branch, full flow NOT yet tested)
 
 The admin is NOT deployed: it only runs locally on `localhost:3000`, so every
@@ -77,6 +230,37 @@ refused by the permission system); then Adam ADDS
 entry; the Site URL can stay as it is unless it equals that URL) and pastes the
 template block after the `{{ .Token }}` line; then the localhost end-to-end
 test. When the admin gets deployed, add `<admin URL>/reset-password` too.
+
+---
+
+## ADMIN 404 ON EVERY SIDEBAR PAGE — 2026-11-07 (local dev server, no code change)
+
+Symptom: on `localhost:3000` the overview loaded but every sidebar link showed
+Next's "404 This page could not be found".
+
+**Not the cause (checked):** all 18 sidebar hrefs have an
+`app/dashboard/<x>/page.tsx` (the dev server's own `get_routes` scan lists them
+all); no `middleware.ts` (Next 16 uses `proxy.ts`, unchanged, it only
+redirects to `/login` without a session); `next.config.ts` is empty; the server
+ran from `Desktop\cmandili\cmandili_admin`, `adam-branch`, clean tree; the
+forgot-password commit `bbf033c` only touched `app/login` and
+`app/reset-password`. `"failed": true` on `handle-request` spans in
+`.next/dev/trace` is NORMAL (first pass before compiling a page), not a 404 sign.
+
+**Cause:** the dev server's state in `.next/dev` (Turbopack persistent cache kept
+since September). The old server answered the sub-pages without ever compiling
+them; a fresh `.next` compiles and serves them.
+
+**Fix:** stop every `next dev`, delete the whole `.next`, start ONE server. Never
+delete `.next` while a server runs: on 07/11 that deleted `.next/dev/lock`, a
+second `npm run dev` started on :3001 on the same folder, and Turbopack crashed
+("Failed to open SST file", panic log in `%TEMP%\next-panic-*.log`). With the
+lock in place, a second `next dev` refuses to start, which is what you want.
+
+Verified on the fresh server: `/login`, `/login?view=forgot`, `/reset-password`
+→ 200 and render; `/dashboard/*` → 307 to `/login` without a session.
+**Pending:** each sidebar page with an admin session (Adam signs in; nothing to
+commit — no file changed).
 
 ---
 
@@ -401,6 +585,7 @@ pending; fill their records, then switch it to `on`.
 | Fuzzy dish search (SQL) | `supabase/migrations/20261106120000_recherche_plats_floue.sql` (`search_dishes`) |
 | LLM fallback / dish split / test hook | `supabase/functions/_shared/{llm,dish_search,simulate}.ts` |
 | Assistant per-dish wording | `supabase/functions/ai-chat/dish_reply.ts` |
+| AI entry points (flags, rules, widgets) | `lib/features/ai_onboarding/` |
 | Colis proofs, driver | `cmandili_driver/lib/features/orders/data/colis_proof_repository.dart` |
 | Colis proofs, client | `lib/features/courier/data/colis_repository.dart` |
 | Receipts, admin | `cmandili_admin/app/dashboard/colis/`, `app/api/colis/route.ts` |
