@@ -4,26 +4,36 @@ import 'package:flutter/services.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../../../../core/theme/app_system_bars.dart';
 
-/// The orange gradient behind the login screen (deep orange at the top,
-/// warming to the splash orange): see AppColors.brandBackgroundGradient.
-/// White system-bar icons wherever it shows.
+/// The soft light background behind the login screen: pure white at the top
+/// (the logo image has a white background, so it blends in), warming to a
+/// gentle peach at the bottom. Easy on the eyes; dark system-bar icons.
 class AuthGradientBackground extends StatelessWidget {
   const AuthGradientBackground({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const AnnotatedRegion<SystemUiOverlayStyle>(
-      value: AppSystemBars.onDark,
+      value: AppSystemBars.onLight,
       child: DecoratedBox(
-        decoration: BoxDecoration(gradient: AppColors.brandBackgroundGradient),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.white,
+              Color(0xFFFFFBF7),
+              Color(0xFFFFEEDD),
+            ],
+            stops: [0.0, 0.45, 1.0],
+          ),
+        ),
         child: SizedBox.expand(),
       ),
     );
   }
 }
 
-/// Three soft circles drifting slowly over the gradient: a warm amber glow,
-/// the splash's second colour, fading to white at the edge.
+/// Two very faint orange glows drifting slowly in the corners.
 class AuthFloatingCircles extends StatelessWidget {
   /// 0 → 1, repeating (one loop every 20 s).
   final Animation<double> animation;
@@ -45,26 +55,14 @@ class AuthFloatingCircles extends StatelessWidget {
         return Stack(
           children: [
             Positioned(
-              top: -screenHeight * 0.15,
-              right: -screenWidth * 0.2 + (animation.value * screenWidth * 0.1),
-              child: _Circle(size: screenWidth * 0.6),
+              top: -screenHeight * 0.12,
+              right: -screenWidth * 0.25 + (animation.value * screenWidth * 0.08),
+              child: _Glow(size: screenWidth * 0.7),
             ),
             Positioned(
               bottom: -screenHeight * 0.1,
-              left: -screenWidth * 0.15 - (animation.value * screenWidth * 0.1),
-              child: _Circle(size: screenWidth * 0.5),
-            ),
-            Positioned(
-              top: screenHeight * 0.3,
-              left: -screenWidth * 0.1,
-              child: Container(
-                width: screenWidth * 0.3,
-                height: screenWidth * 0.3,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.splashAmber.withValues(alpha: 0.14),
-                ),
-              ),
+              left: -screenWidth * 0.25 - (animation.value * screenWidth * 0.08),
+              child: _Glow(size: screenWidth * 0.75),
             ),
           ],
         );
@@ -73,11 +71,11 @@ class AuthFloatingCircles extends StatelessWidget {
   }
 }
 
-/// A circle glowing warm amber in the middle, fading to a faint white edge.
-class _Circle extends StatelessWidget {
+/// A circle glowing faintly orange in the middle, fading to nothing.
+class _Glow extends StatelessWidget {
   final double size;
 
-  const _Circle({required this.size});
+  const _Glow({required this.size});
 
   @override
   Widget build(BuildContext context) {
@@ -88,8 +86,8 @@ class _Circle extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: RadialGradient(
           colors: [
-            AppColors.splashAmber.withValues(alpha: 0.22),
-            Colors.white.withValues(alpha: 0.04),
+            AppColors.splashAmber.withValues(alpha: 0.16),
+            AppColors.splashAmber.withValues(alpha: 0.0),
           ],
         ),
       ),

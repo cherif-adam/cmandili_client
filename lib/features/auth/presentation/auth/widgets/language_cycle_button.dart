@@ -46,21 +46,22 @@ class LanguageCycleButton extends ConsumerWidget {
           icon: Container(
             padding: EdgeInsets.all(screenWidth * 0.025),
             decoration: BoxDecoration(
-              // On the deep orange top: white icon at 4:1 or more.
-              color: Colors.white.withValues(alpha: 0.2),
+              // On the light background: white chip, deep-orange icon.
+              color: Colors.white,
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+              border: Border.all(
+                  color: AppColors.splashAmber.withValues(alpha: 0.35)),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.brandOrangeDark.withValues(alpha: 0.25),
+                  color: AppColors.splashOrange.withValues(alpha: 0.15),
                   blurRadius: screenWidth * 0.02,
-                  offset: Offset(0, screenHeight * 0.005),
+                  offset: Offset(0, screenHeight * 0.004),
                 ),
               ],
             ),
             child: Icon(
               Icons.language_rounded,
-              color: Colors.white,
+              color: AppColors.brandOrangeDeep,
               size: screenWidth * 0.06,
             ),
           ),

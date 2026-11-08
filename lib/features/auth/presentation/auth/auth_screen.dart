@@ -493,7 +493,7 @@ class _BuildLabel extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 10,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: AppColors.textSecondary.withValues(alpha: 0.6),
           ),
         ),
       ),

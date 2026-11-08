@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cmandili_mobile/l10n/app_localizations.dart';
 
-/// The top of the login screen: the logo in a white circle, "Amana" and
-/// "Bienvenue".
+import '../../../../../core/theme/app_colors.dart';
+
+/// The top of the login screen: the client logo (it already spells "AMANA")
+/// on the light background, then the welcome line.
 class AuthLogoHeader extends StatelessWidget {
   final double screenWidth;
   final double screenHeight;
@@ -17,43 +19,19 @@ class AuthLogoHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          padding: EdgeInsets.all(screenWidth * 0.04),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: screenWidth * 0.05,
-                offset: Offset(0, screenHeight * 0.01),
-              ),
-            ],
-          ),
-          child: Image.asset(
-            'assets/images/logo.png',
-            width: screenWidth * 0.15,
-            height: screenWidth * 0.15,
-            fit: BoxFit.contain,
-          ),
-        ),
-        SizedBox(height: screenHeight * 0.015),
-        Text(
-          AppLocalizations.of(context)!.appTitle,
-          style: TextStyle(
-            fontSize: screenWidth * 0.09,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 1.2,
-          ),
+        Image.asset(
+          'assets/branding/logo_client.png',
+          width: screenWidth * 0.42,
+          height: screenWidth * 0.42,
+          fit: BoxFit.contain,
         ),
         SizedBox(height: screenHeight * 0.005),
         Text(
           AppLocalizations.of(context)!.welcome,
           style: TextStyle(
-            fontSize: screenWidth * 0.038,
-            color: Colors.white.withValues(alpha: 0.95),
-            letterSpacing: 0.5,
+            fontSize: screenWidth * 0.042,
+            color: AppColors.textSecondary,
+            letterSpacing: 0.4,
             fontWeight: FontWeight.w500,
           ),
         ),
